@@ -8,10 +8,30 @@ on:
   pull_request:
     paths:
       - 'web/**'
+      - 'careerpilot.mjs'
+      - 'generate-pdf.mjs'
+      - 'build-cv-html.mjs'
+      - 'cv-templates.mjs'
+      - 'lib/careerpilot/**'
+      - 'schemas/cn/**'
+      - 'templates/cn/**'
+      - 'templates/careerpilot-resume-template.html'
+      - 'package.json'
+      - 'package-lock.json'
   push:
     branches: [main]
     paths:
       - 'web/**'
+      - 'careerpilot.mjs'
+      - 'generate-pdf.mjs'
+      - 'build-cv-html.mjs'
+      - 'cv-templates.mjs'
+      - 'lib/careerpilot/**'
+      - 'schemas/cn/**'
+      - 'templates/cn/**'
+      - 'templates/careerpilot-resume-template.html'
+      - 'package.json'
+      - 'package-lock.json'
 
 permissions:
   contents: read
@@ -40,3 +60,9 @@ jobs:
       - run: npm test
       - run: npx tsc --noEmit
       - run: npm run build
+      - name: Install Chromium for CareerPilot Web E2E
+        run: npx playwright install chromium --with-deps
+        working-directory: .
+      - name: CareerPilot Web E2E
+        run: npm run careerpilot:web-e2e
+        working-directory: .

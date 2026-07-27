@@ -25,6 +25,11 @@ export const KINDS = {
     profileKey: ['cover_letter', 'template'],
     required: ['NAME', 'ROLE_TITLE', 'OPENING'],
   },
+  resume: {
+    prefix: 'careerpilot-resume-template',
+    profileKey: ['resume', 'template'],
+    required: ['NAME', 'SECTIONS'],
+  },
 };
 
 export function prettify(name) {
@@ -181,7 +186,7 @@ if (isMain) {
       const name = positionals[0];
       process.stdout.write(resolveTemplate(kind, name, { format, fallback: Boolean(flags.fallback) }) + '\n');
     } else {
-      process.stderr.write('Usage: node cv-templates.mjs <list|resolve> <cv|cover> [name] [--format=html|tex] [--fallback]\n');
+    process.stderr.write('Usage: node cv-templates.mjs <list|resolve> <cv|cover|resume> [name] [--format=html|tex] [--fallback]\n');
       process.exit(2);
     }
   } catch (err) {

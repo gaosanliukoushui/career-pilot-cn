@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- career-ops-template
+name: CareerPilot CN
+version: 1.0.0
+-->
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{NAME}} - CareerPilot CN</title>
+<style>
+{{FONT_CSS}}
+@page{size:A4;margin:16mm 18mm}
+*{box-sizing:border-box}
+body{margin:0;color:#172033;background:#fff;font-family:"Noto Sans SC","Microsoft YaHei","SimSun",sans-serif;font-size:11pt;line-height:1.6}
+body.compact{font-size:10.5pt;line-height:1.45}
+body.compact{@page{size:A4;margin:12mm 15mm}}
+main{max-width:178mm;margin:auto}
+header{position:relative;border-bottom:2px solid #173a63;padding:0 25mm 8px 0;margin-bottom:10px;min-height:20mm}
+h1{margin:0;color:#102d4f;font-size:24pt;letter-spacing:.08em}
+.portrait{position:absolute;right:0;top:0;width:20mm;height:26mm;object-fit:cover;border:1px solid #9baabd}
+.meta{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:6px;color:#435269;font-size:9.5pt}
+section{break-inside:avoid;margin:12px 0}
+body.compact section{margin:8px 0}
+h2{margin:0 0 5px;padding-bottom:3px;border-bottom:1px solid #9baabd;color:#173a63;font-size:13pt}
+ul{margin:0;padding-left:1.25em}
+li{margin:4px 0}
+body.compact li{margin:2px 0}
+@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style>
+</head>
+<body class="{{LAYOUT}}"><main><header>{{PHOTO}}<h1>{{NAME}}</h1><div class="meta">{{META}}</div></header>{{SECTIONS}}</main></body>
+</html>

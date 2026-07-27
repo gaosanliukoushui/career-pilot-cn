@@ -117,3 +117,55 @@ test('failed Web validation does not mutate the canonical profile', async () => 
   const afterProfile = await (await fetch(`${baseUrl}/api/candidate-profile`)).json();
   assert.deepEqual(afterProfile, beforeProfile);
 }, { timeout: 30_000 });
+
+test('Web ResumeVariant preview and structured exports use the canonical Facts', async () => {
+  let response = await fetch(`${baseUrl}/api/resume-variants/preview`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ template: 'tech-two-page' }),
+  });
+  assert.equal(response.status, 200);
+  const preview = await response.json();
+  assert.equal(preview.variant.template, 'tech-two-page');
+  assert.match(preview.markdown, /完成匿名校园项目/);
+  assert.match(preview.html, /data-fact-id=/);
+
+  response = await fetch(`${baseUrl}/api/resume-variants/export`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ variant: preview.variant, format: 'md' }),
+  });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') || '', /text\/markdown/);
+  assert.match(await response.text(), /<!-- fact:/);
+
+  response = await fetch(`${baseUrl}/api/resume-variants/export`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      variant: (await (await fetch(`${baseUrl}/api/resume-variants/preview`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ template: 'application-detail' }),
+      })).json()).variant,
+      format: 'docx',
+    }),
+  });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') || '', /wordprocessingml/);
+  const docx = Buffer.from(await response.arrayBuffer());
+  assert.equal(docx.subarray(0, 2).toString(), 'PK');
+  assert.ok(docx.length > 5_000);
+
+  const factId = preview.variant.fact_ids[0];
+  response = await fetch(`${baseUrl}/api/candidate-profile/fact-status`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id: factId, status: 'rejected' }),
+  });
+  assert.equal(response.status, 200);
+  response = await fetch(`${baseUrl}/api/resume-variants/export`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ variant: preview.variant, format: 'md' }),
+  });
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /validation failed/i);
+}, { timeout: 30_000 });

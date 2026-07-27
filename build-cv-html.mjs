@@ -318,7 +318,7 @@ function renderReport(payload) {
 
 // Merge a payload into the template and return the final HTML (throws on any
 // unresolved {{PLACEHOLDER}} so a malformed payload fails loudly, not silently).
-function renderHtml(template, payload) {
+export function renderHtml(template, payload) {
   const { substitutions, candidate } = renderReport(payload);
 
   // The contact row and photo carry conditional markup (dropped separators /
@@ -338,6 +338,43 @@ function renderHtml(template, payload) {
   if (unresolved) {
     throw new Error(`Unresolved placeholders: ${[...new Set(unresolved)].join(', ')}`);
   }
+  return html;
+}
+
+/** Render the normalized CareerPilot CN ResumeVariant model through the shared
+ * deterministic template builder. Text and attributes are escaped here so the
+ * domain layer never emits markup itself. */
+export function renderSectionedHtml(template, payload) {
+  const layout = payload.layout === 'compact' ? 'compact' : 'standard';
+  const photo = payload.photoDataUrl
+    ? `<img class="portrait" alt="候选人照片" src="${sanitizeImageSrc(payload.photoDataUrl)}">`
+    : '';
+  const meta = Array.isArray(payload.meta)
+    ? payload.meta.filter(Boolean).map((item) => `<span>${escapeHtml(String(item))}</span>`).join('')
+    : '';
+  const sections = Array.isArray(payload.sections)
+    ? payload.sections.map((section) => {
+      const items = Array.isArray(section.items)
+        ? section.items.map((item) => `<li data-fact-id="${escapeHtml(String(item.fact_id || ''))}">${escapeHtml(String(item.statement || ''))}</li>`).join('')
+        : '';
+      return `<section><h2>${escapeHtml(String(section.title || ''))}</h2><ul>${items}</ul></section>`;
+    }).join('')
+    : '';
+  const replacements = {
+    LANG: 'zh-CN',
+    LAYOUT: layout,
+    FONT_CSS: typeof payload.fontCss === 'string' ? payload.fontCss : '',
+    NAME: escapeHtml(String(payload.name || '')),
+    PHOTO: photo,
+    META: meta,
+    SECTIONS: sections,
+  };
+  let html = template;
+  for (const [key, value] of Object.entries(replacements)) {
+    html = html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), () => value);
+  }
+  const unresolved = html.match(PLACEHOLDER_RE);
+  if (unresolved) throw new Error(`Unresolved placeholders: ${[...new Set(unresolved)].join(', ')}`);
   return html;
 }
 
@@ -551,4 +588,5 @@ async function runSelfTest() {
   process.exit(0);
 }
 
-main();
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) main();

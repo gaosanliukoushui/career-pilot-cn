@@ -1,97 +1,287 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Check, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle, CheckCircle2, FileDown, Loader2, ShieldCheck, Upload } from "lucide-react";
 import { cn } from "@/lib/cn";
 
+type Fact = {
+  id: string;
+  type: string;
+  statement: string;
+  status: "unconfirmed" | "confirmed" | "rejected" | "conflicted";
+  sensitivity: string;
+  allowed_uses: string[];
+  evidence_ids: string[];
+};
+type Evidence = { id: string; kind: string; ref: string; strength: "ordinary" | "strong" };
+type Profile = { candidate: { display_name: string; photo?: string; political_status?: string }; facts: Fact[]; evidence: Evidence[] };
+type Preview = {
+  variant: {
+    schema_version: number;
+    id: string;
+    template: Template;
+    source_profile_sha256: string;
+    source_photo_sha256: string | null;
+    fact_ids: string[];
+    order: string[];
+    rewrites: Rewrite[];
+    sensitive_authorizations: Record<string, boolean>;
+    status: string;
+    diff: { added: string[]; removed: string[]; rewritten: unknown[]; reordered: { fact_id: string; from: number; to: number }[] };
+  };
+  markdown: string;
+  html: string;
+};
+type Rewrite = { fact_id: string; proposed_statement: string; accepted: boolean };
+type Audit = { profile?: { facts?: { id: string; eligible: boolean; reasons: string[] }[] } };
+type Template = "soe-one-page" | "tech-two-page" | "application-detail";
+
+const TEMPLATES: { id: Template; name: string; note: string }[] = [
+  { id: "soe-one-page", name: "央国企一页版", note: "教育与综合经历优先，严格一页" },
+  { id: "tech-two-page", name: "技术岗位版", note: "技能与项目优先，最多两页" },
+  { id: "application-detail", name: "网申详细版", note: "完整呈现，不强制一页" },
+];
+const HIGH_RISK = new Set(["education", "grade", "ranking", "certificate", "award", "internship", "employment", "affiliation", "result", "quantified_result"]);
+const STATUS_LABEL = { unconfirmed: "待确认", confirmed: "已确认", rejected: "已拒绝", conflicted: "有冲突" } as const;
+
+async function json<T>(response: Response): Promise<T> {
+  const body = await response.json();
+  if (!response.ok || body?.error) throw new Error(body?.error || `请求失败（${response.status}）`);
+  return body as T;
+}
+
 export function CvEditor() {
-  const [content, setContent] = useState("");
-  const [loaded, setLoaded] = useState(false);
-  const [exists, setExists] = useState(true);
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [audit, setAudit] = useState<Audit | null>(null);
+  const [template, setTemplate] = useState<Template>("soe-one-page");
+  const [cvText, setCvText] = useState("");
+  const [evidenceRefs, setEvidenceRefs] = useState<Record<string, string>>({});
+  const [rewriteDrafts, setRewriteDrafts] = useState<Record<string, string>>({});
+  const [acceptedRewrites, setAcceptedRewrites] = useState<Rewrite[]>([]);
+  const [authorizePhoto, setAuthorizePhoto] = useState(false);
+  const [authorizePolitical, setAuthorizePolitical] = useState(false);
+  const [busy, setBusy] = useState<string | null>("加载");
+  const [message, setMessage] = useState<string | null>(null);
+  const refreshSequence = useRef(0);
 
-  useEffect(() => {
-    fetch("/api/cv")
-      .then((r) => r.json())
-      .then((d) => {
-        setContent(d.content ?? "");
-        setExists(d.exists ?? false);
-      })
-      .finally(() => setLoaded(true));
-  }, []);
+  const previewRequest = useCallback((selected: Template, photo: boolean, political: boolean, rewrites: Rewrite[]) => fetch("/api/resume-variants/preview", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ template: selected, authorize_photo: photo, authorize_political_status: political, rewrites }),
+  }).then((response) => json<Preview>(response)), []);
 
-  async function save() {
-    setSaving(true);
+  const refresh = useCallback(async () => {
+    const sequence = ++refreshSequence.current;
+    setBusy("刷新");
+    setMessage(null);
     try {
-      const res = await fetch("/api/cv", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-      if (res.ok) {
-        setDirty(false);
-        setExists(true);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-      }
+      const [nextProfile, nextPreview, nextAudit] = await Promise.all([
+        fetch("/api/candidate-profile").then((response) => json<Profile>(response)),
+        previewRequest(template, authorizePhoto, authorizePolitical, acceptedRewrites),
+        fetch("/api/candidate-profile/audit").then((response) => json<Audit>(response)),
+      ]);
+      if (sequence !== refreshSequence.current) return;
+      setProfile(nextProfile);
+      setPreview(nextPreview);
+      setAudit(nextAudit);
+    } catch (error) {
+      if (sequence !== refreshSequence.current) return;
+      setMessage(error instanceof Error ? error.message : "加载失败");
     } finally {
-      setSaving(false);
+      if (sequence === refreshSequence.current) setBusy(null);
+    }
+  }, [acceptedRewrites, authorizePhoto, authorizePolitical, previewRequest, template]);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  async function importCv() {
+    if (!cvText.trim()) return;
+    setBusy("导入");
+    setMessage(null);
+    try {
+      await json(await fetch("/api/candidate-profile/import-cv", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ content: cvText }),
+      }));
+      setCvText("");
+      await refresh();
+      setMessage("旧简历已导入为待确认 Facts，原文件已备份。");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "导入失败");
+    } finally { setBusy(null); }
+  }
+
+  async function updateStatus(fact: Fact, status: Fact["status"]) {
+    setBusy(fact.id);
+    setMessage(null);
+    try {
+      await json(await fetch("/api/candidate-profile/fact-status", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: fact.id, status }),
+      }));
+      await refresh();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "状态更新失败"); }
+    finally { setBusy(null); }
+  }
+
+  async function attachEvidence(fact: Fact) {
+    const highRisk = HIGH_RISK.has(fact.type);
+    const ref = highRisk ? evidenceRefs[fact.id]?.trim() : `confirmation:web-${crypto.randomUUID()}`;
+    if (!ref) { setMessage("高风险事实需要填写可核验的 HTTPS 链接。"); return; }
+    setBusy(fact.id);
+    setMessage(null);
+    try {
+      await json(await fetch("/api/candidate-profile/evidence", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          fact_id: fact.id,
+          id: `evidence.web.${crypto.randomUUID()}`,
+          kind: highRisk ? "official_link" : "user_confirmation",
+          ref,
+          strength: highRisk ? "strong" : "ordinary",
+        }),
+      }));
+      await refresh();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "证据关联失败"); }
+    finally { setBusy(null); }
+  }
+
+  async function exportFile(format: "md" | "docx" | "pdf") {
+    setBusy(`导出-${format}`);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/resume-variants/export", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ variant: preview?.variant, format }),
+      });
+      if (!response.ok) throw new Error((await response.json()).error || "导出失败");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${template}.${format}`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setMessage(`${format.toUpperCase()} 已生成并下载；导出前已重新审计事实和敏感授权。`);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "导出失败"); }
+    finally {
+      refreshSequence.current += 1;
+      setAuthorizePhoto(false);
+      setAuthorizePolitical(false);
+      setPreview(null);
+      setBusy(null);
     }
   }
 
-  return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl tracking-tight text-landing">CV editor</h1>
-          <p className="mt-1 text-sm text-muted">
-            Edit <code className="text-foreground">cv.md</code> with live preview.
-            {!exists && loaded && <span className="ml-1 text-faint">No cv.md yet — start typing to create it.</span>}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving || !dirty}
-          className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors max-sm:min-h-[44px]",
-            dirty
-              ? "bg-brand text-brand-foreground hover:bg-brand-200"
-              : "border border-border bg-surface text-muted",
-          )}
-        >
-          {saving ? <Loader2 className="size-4 animate-spin" /> : saved ? <Check className="size-4" /> : null}
-          {saved ? "Saved" : "Save"}
-        </button>
-      </div>
+  function selectTemplate(nextTemplate: Template) {
+    if (nextTemplate === template) return;
+    refreshSequence.current += 1;
+    setAuthorizePhoto(false);
+    setAuthorizePolitical(false);
+    setPreview(null);
+    setTemplate(nextTemplate);
+  }
 
-      {!loaded ? (
-        <div className="mt-6 text-sm text-muted">Loading…</div>
-      ) : (
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <textarea
-            value={content}
-            onChange={(e) => {
-              setContent(e.target.value);
-              setDirty(true);
-            }}
-            spellCheck={false}
-            placeholder="# Your Name&#10;&#10;## Summary&#10;..."
-            className="min-h-[60vh] w-full resize-none rounded-2xl border border-border bg-surface/50 p-4 font-mono text-sm leading-relaxed outline-none transition-colors placeholder:text-faint focus:border-brand/40"
-          />
-          <article className="report-prose min-h-[60vh] overflow-auto rounded-2xl border border-border bg-surface/30 p-5">
-            {content.trim() ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-            ) : (
-              <p className="text-muted">Preview appears here.</p>
-            )}
-          </article>
+  const evidenceById = new Map((profile?.evidence || []).map((item) => [item.id, item]));
+  const auditById = new Map((audit?.profile?.facts || []).map((item) => [item.id, item]));
+  const pending = profile?.facts.filter((fact) => fact.status !== "confirmed").length || 0;
+
+  return (
+    <main className="mx-auto max-w-[1500px] px-5 py-7 lg:px-8">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand">CareerPilot CN</p>
+          <h1 className="mt-1 font-display text-3xl tracking-tight text-landing">中文简历工作台</h1>
+          <p className="mt-1 text-sm text-muted">事实与证据是唯一真源；这里负责审阅、编排、预览和导出。</p>
         </div>
-      )}
-    </div>
+        <div className="rounded-full border border-border bg-surface px-4 py-2 text-sm text-muted">
+          {busy ? <span className="inline-flex items-center gap-2"><Loader2 className="size-4 animate-spin" />{busy}中</span> : `${profile?.facts.length || 0} 条事实 · ${pending} 条待处理`}
+        </div>
+      </header>
+
+      {message && <div className="mt-4 rounded-xl border border-brand/20 bg-brand/5 px-4 py-3 text-sm text-foreground">{message}</div>}
+
+      <div className="mt-6 grid gap-5 xl:grid-cols-[1.05fr_1.4fr_1.2fr]">
+        <section className="space-y-5">
+          <div className="rounded-2xl border border-border bg-surface/60 p-5">
+            <h2 className="flex items-center gap-2 font-semibold text-foreground"><Upload className="size-4 text-brand" />导入旧简历</h2>
+            <p className="mt-1 text-xs leading-5 text-muted">粘贴 Markdown；系统只创建待确认 Facts，不会直接发布。</p>
+            <textarea value={cvText} onChange={(event) => setCvText(event.target.value)} placeholder="# 姓名\n\n## 项目经历\n- ..." className="mt-3 min-h-32 w-full resize-y rounded-xl border border-border bg-background p-3 font-mono text-xs outline-none focus:border-brand/50" />
+            <button type="button" onClick={importCv} disabled={Boolean(busy) || !cvText.trim()} className="mt-3 w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-brand-foreground disabled:opacity-40">导入为待确认事实</button>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-surface/60 p-5">
+            <h2 className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-brand" />本次敏感授权</h2>
+            <p className="mt-1 text-xs leading-5 text-muted">仅作用于当前预览和本次导出，不写入全局授权。</p>
+            {[{ key: "photo", label: "照片", checked: authorizePhoto, set: setAuthorizePhoto, available: Boolean(profile?.candidate.photo) }, { key: "political", label: "政治面貌", checked: authorizePolitical, set: setAuthorizePolitical, available: Boolean(profile?.candidate.political_status) }].map((item) => (
+              <label key={item.key} className="mt-3 flex items-center justify-between rounded-xl border border-border px-3 py-2 text-sm">
+                <span>{item.label}{!item.available && <span className="ml-2 text-xs text-faint">资料未提供</span>}</span>
+                <input type="checkbox" checked={item.checked} disabled={!item.available} onChange={(event) => item.set(event.target.checked)} className="size-4 accent-[var(--color-brand)]" />
+              </label>
+            ))}
+            <p className="mt-3 text-xs text-faint">身份证号、家庭成员、完整住址始终禁止进入简历。</p>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-border bg-surface/60 p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div><h2 className="font-semibold">Fact 审阅队列</h2><p className="mt-1 text-xs text-muted">先补证，再确认；高风险事实只接受强证据。</p></div>
+            <span className="text-xs text-muted">{profile?.candidate.display_name || "匿名候选人"}</span>
+          </div>
+          <div className="mt-4 max-h-[74vh] space-y-3 overflow-auto pr-1">
+            {(profile?.facts || []).map((fact) => {
+              const evidence = fact.evidence_ids.map((id) => evidenceById.get(id)).filter(Boolean) as Evidence[];
+              const highRisk = HIGH_RISK.has(fact.type);
+              const publishable = preview?.variant.fact_ids.includes(fact.id);
+              const reasons = auditById.get(fact.id)?.reasons || [];
+              return <article key={fact.id} className={cn("rounded-xl border p-4", publishable ? "border-emerald-500/25 bg-emerald-500/5" : "border-border bg-background/60")}>
+                <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                  <span className="rounded-full bg-foreground/5 px-2 py-1 font-mono">{fact.type}</span>
+                  <span className="rounded-full bg-foreground/5 px-2 py-1">{STATUS_LABEL[fact.status]}</span>
+                  <span className="rounded-full bg-foreground/5 px-2 py-1">敏感：{fact.sensitivity}</span>
+                  {publishable ? <span className="inline-flex items-center gap-1 text-emerald-700"><CheckCircle2 className="size-3" />可发布</span> : <span className="inline-flex items-center gap-1 text-amber-700"><AlertTriangle className="size-3" />被门槛拦截</span>}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-foreground">{fact.statement}</p>
+                <p className="mt-2 break-all font-mono text-[10px] text-faint">{fact.id}</p>
+                <div className="mt-2 text-xs text-muted">用途：{fact.allowed_uses.join("、") || "无"} · 证据：{evidence.length ? evidence.map((item) => `${item.strength}/${item.kind}`).join("，") : "未关联"}</div>
+                {!!reasons.length && <p className="mt-2 text-xs text-amber-700">阻断原因：{reasons.join("、")}</p>}
+                {highRisk && <input value={evidenceRefs[fact.id] || ""} onChange={(event) => setEvidenceRefs((current) => ({ ...current, [fact.id]: event.target.value }))} placeholder="高风险事实：填写 HTTPS 正式链接" className="mt-3 w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-brand/50" />}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => attachEvidence(fact)} disabled={busy === fact.id} className="rounded-lg border border-border px-3 py-1.5 text-xs hover:border-brand/40">{highRisk ? "关联强证据" : "添加用户确认证言"}</button>
+                  {fact.status === "unconfirmed" && <button type="button" onClick={() => updateStatus(fact, "confirmed")} className="rounded-lg bg-brand px-3 py-1.5 text-xs text-brand-foreground">确认</button>}
+                  {fact.status !== "rejected" && <button type="button" onClick={() => updateStatus(fact, "rejected")} className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted">拒绝</button>}
+                  {fact.status === "rejected" && <button type="button" onClick={() => updateStatus(fact, "unconfirmed")} className="rounded-lg border border-border px-3 py-1.5 text-xs">恢复待确认</button>}
+                </div>
+                {publishable && <div className="mt-3 flex gap-2 border-t border-border/70 pt-3">
+                  <input value={rewriteDrafts[fact.id] ?? fact.statement} onChange={(event) => setRewriteDrafts((current) => ({ ...current, [fact.id]: event.target.value }))} aria-label={`候选改写 ${fact.id}`} className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-brand/50" />
+                  <button type="button" onClick={() => {
+                    const proposed = (rewriteDrafts[fact.id] ?? fact.statement).trim();
+                    setAcceptedRewrites((current) => [...current.filter((item) => item.fact_id !== fact.id), { fact_id: fact.id, proposed_statement: proposed, accepted: true }]);
+                  }} className="rounded-lg border border-brand/30 px-3 py-1.5 text-xs text-brand">接受候选改写</button>
+                </div>}
+              </article>;
+            })}
+            {!profile?.facts.length && <p className="py-16 text-center text-sm text-muted">暂无事实，请先导入旧简历。</p>}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="grid grid-cols-3 gap-2">
+            {TEMPLATES.map((item) => <button key={item.id} type="button" onClick={() => selectTemplate(item.id)} className={cn("rounded-xl border p-3 text-left transition", template === item.id ? "border-brand bg-brand/10" : "border-border bg-surface/60 hover:border-brand/30")}><span className="block text-sm font-medium">{item.name}</span><span className="mt-1 block text-[10px] leading-4 text-muted">{item.note}</span></button>)}
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+            {preview?.html ? <iframe title="简历实时预览" srcDoc={preview.html} className="h-[62vh] w-full bg-white" /> : <div className="grid h-[62vh] place-items-center text-sm text-muted">暂无可发布内容</div>}
+          </div>
+          <div className="rounded-2xl border border-border bg-surface/60 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div><h2 className="text-sm font-semibold">差异审计</h2><p className="mt-1 text-xs text-muted">展示 {preview?.variant.diff.added.length || 0} · 删除 {preview?.variant.diff.removed.length || 0} · 改写 {preview?.variant.diff.rewritten.length || 0} · 排序 {preview?.variant.diff.reordered.length || 0}</p></div>
+              <div className="flex gap-2">{(["md", "docx", "pdf"] as const).map((format) => <button key={format} type="button" onClick={() => exportFile(format)} disabled={Boolean(busy) || !preview?.variant.fact_ids.length} className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-2 text-xs font-medium text-brand-foreground disabled:opacity-40"><FileDown className="size-3.5" />{format.toUpperCase()}</button>)}</div>
+            </div>
+            {!!preview?.variant.diff.removed.length && <p className="mt-3 break-all text-[10px] leading-4 text-faint">未进入正式输出：{preview.variant.diff.removed.join("、")}</p>}
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
