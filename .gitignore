@@ -108,8 +108,13 @@ data/model-blacklist.json
 .opencode/memory/
 career-dashboard
 career-dashboard.exe
-package-lock.json
+
+# CareerPilot CN keeps both dependency locks for reproducible Windows installs.
+!package-lock.json
 !web/package-lock.json
+
+# CareerPilot CN candidate facts, evidence, generated manifests, and private exports.
+profile/
 
 # Playwright MCP server run artifacts (ephemeral, machine-local)
 .playwright-mcp/

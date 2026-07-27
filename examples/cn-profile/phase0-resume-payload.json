@@ -1,0 +1,42 @@
+{
+  "lang": "zh-CN",
+  "page_format": "a4",
+  "candidate": {
+    "name": "林晓舟",
+    "phone": "138-0000-0000",
+    "email": "candidate@example.com",
+    "location": "江苏省南京市"
+  },
+  "summary": "计算机科学与技术专业应届生，关注 Java 后端开发与企业数字化应用。",
+  "competencies": ["Java 后端", "数据库设计", "软件测试"],
+  "experience": [
+    {
+      "company": "某科技企业",
+      "role": "软件开发实习生",
+      "location": "南京",
+      "dates": "2025.06 - 2025.09",
+      "bullets": ["参与内部业务系统接口开发与测试", "整理接口文档并协助定位联调问题"]
+    }
+  ],
+  "projects": [
+    {
+      "name": "校园服务平台",
+      "badge": "课程项目",
+      "tech": "Java, Spring Boot, MySQL",
+      "description": "完成需求分析、后端接口实现与基础测试。"
+    }
+  ],
+  "education": [
+    {
+      "title": "计算机科学与技术 本科",
+      "org": "示例大学",
+      "year": "2026",
+      "description": "主修课程：数据结构、计算机网络、数据库原理。"
+    }
+  ],
+  "certifications": [],
+  "skills": [
+    { "category": "编程语言", "items": "Java, SQL, JavaScript" },
+    { "category": "开发工具", "items": "Git, Maven, Docker" }
+  ]
+}
