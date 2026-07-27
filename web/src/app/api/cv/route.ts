@@ -11,9 +11,12 @@ function cvPath() {
 const MAX_CV_BYTES = 200_000;
 
 export async function GET() {
-  const projected = await runCareerPilot<{ markdown?: string }>(["preview-cv"]);
-  if (projected.ok && projected.data?.markdown) {
-    return NextResponse.json({ content: projected.data.markdown, exists: true, generated: true });
+  const hasCandidateProfile = fs.existsSync(path.join(careerOpsRoot(), "profile", "candidate.yml"));
+  if (hasCandidateProfile) {
+    const projected = await runCareerPilot<{ markdown?: string }>(["preview-cv"]);
+    if (projected.ok && projected.data?.markdown) {
+      return NextResponse.json({ content: projected.data.markdown, exists: true, generated: true });
+    }
   }
   try {
     return NextResponse.json({ content: fs.readFileSync(cvPath(), "utf8"), exists: true, generated: false });

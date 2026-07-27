@@ -35,7 +35,7 @@
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
         "type": {
-          "enum": ["basic", "education", "skill", "certificate", "award", "campus", "internship", "project", "result"]
+          "enum": ["basic", "education", "grade", "ranking", "skill", "certificate", "award", "campus", "internship", "employment", "affiliation", "project", "result", "quantified_result"]
         },
         "statement": { "type": "string", "minLength": 1 },
         "status": { "enum": ["unconfirmed", "confirmed", "rejected", "conflicted"] },

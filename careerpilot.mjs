@@ -2,18 +2,6 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import {
-  attachEvidence,
-  auditCandidateProfile,
-  auditProjectedCv,
-  importCvMarkdown,
-  loadCandidateProfile,
-  previewCv,
-  projectCv,
-  updateFactStatus,
-  validateCandidateProfile,
-} from './lib/careerpilot/profile-core.mjs';
-
 async function readStdin() {
   let content = '';
   process.stdin.setEncoding('utf8');
@@ -61,6 +49,17 @@ function usage() {
 }
 
 async function main() {
+  const {
+    attachEvidence,
+    auditCandidateProfile,
+    auditProjectedCv,
+    importCvMarkdown,
+    loadCandidateProfile,
+    previewCv,
+    projectCv,
+    updateFactStatus,
+    validateCandidateProfile,
+  } = await import('./lib/careerpilot/profile-core.mjs');
   const args = process.argv.slice(2);
   const command = args.shift();
   const root = resolve(option(args, '--root', process.cwd()));
