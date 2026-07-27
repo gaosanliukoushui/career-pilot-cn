@@ -5,6 +5,13 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      # CareerPilot CN currently imports js-yaml through its v4 ESM-compatible
+      # default export. v5 removes that export and requires a coordinated code
+      # migration, so Dependabot must not open an automatic major upgrade.
+      - dependency-name: "js-yaml"
+        update-types:
+          - "version-update:semver-major"
 
   - package-ecosystem: "gomod"
     directory: "/dashboard"
