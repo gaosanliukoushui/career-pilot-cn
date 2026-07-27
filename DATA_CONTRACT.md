@@ -40,6 +40,7 @@ These files contain your personal data, customizations, and work product. Update
 | `reports/*` | Your evaluation reports |
 | `output/*` | Your generated PDFs |
 | `jds/*` | Your saved job descriptions |
+| `profile/*` | CareerPilot CN candidate Facts, Evidence indexes/files, generated manifests, migration backups, and local resume variants |
 
 ## System Layer (safe to auto-update)
 
@@ -102,6 +103,9 @@ These files contain system logic, scripts, templates, and instructions that impr
 | `VERSION` | Current version number |
 | `DATA_CONTRACT.md` | This file |
 | `writing-samples/README.md` | System-owned onboarding documentation for the writing-samples directory |
+| `schemas/cn/*` | CareerPilot CN JSON Schemas for candidate facts, evidence, and resume variants |
+| `lib/careerpilot/*` | Shared deterministic domain, publication-policy, projection, and export services |
+| `examples/cn-profile/*` | Fully anonymous CareerPilot CN fixtures used by tests and demos |
 
 ## The Rule
 

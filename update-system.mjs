@@ -271,6 +271,8 @@ const SYSTEM_PATHS = [
   '.editorconfig',
   '.github/',
   'package.json',
+  'package-lock.json',
+  'careerpilot-boundary-tests.mjs',
   'build-cv-latex.mjs',
   'build-cv-html.mjs',
   'cv-sections-core.mjs',
@@ -1277,7 +1279,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     switch (cmd) {
       case 'check': await check(); break;
-      case 'apply': await apply(); break;
+      case 'apply':
+        throw new Error('CareerPilot CN disables automatic upstream application. Run `node update-system.mjs check`, then merge the fetch-only upstream in a reviewed branch.');
       case 'rollback': rollback(); break;
       case 'dismiss': dismiss(); break;
       default:
