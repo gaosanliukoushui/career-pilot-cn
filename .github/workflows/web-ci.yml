@@ -30,6 +30,12 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: web/package-lock.json
+      # CandidateProfile Web routes execute the canonical root CLI, whose Ajv
+      # and YAML dependencies live in the root lockfile. Install without the
+      # Playwright postinstall because Web API tests do not launch Chromium.
+      - name: Install CareerPilot core dependencies
+        run: npm ci --ignore-scripts
+        working-directory: .
       - run: npm ci
       - run: npm test
       - run: npx tsc --noEmit

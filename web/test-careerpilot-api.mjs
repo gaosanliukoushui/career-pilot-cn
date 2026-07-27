@@ -12,18 +12,19 @@ const dataRoot = mkdtempSync(join(tmpdir(), 'careerpilot-web-api-'));
 const port = 19_500 + Math.floor(Math.random() * 1_000);
 const baseUrl = `http://127.0.0.1:${port}`;
 let server;
+let serverOutput = '';
 
 async function waitForServer() {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
       const response = await fetch(`${baseUrl}/api/candidate-profile`);
-      if (response.ok) return;
+      if (response.status !== 404) return;
     } catch {
       // Dev server is still compiling.
     }
     await new Promise((resolveWait) => setTimeout(resolveWait, 250));
   }
-  throw new Error('Next test server did not start');
+  throw new Error(`Next test server did not start: ${serverOutput.slice(-1000)}`);
 }
 
 before(async () => {
@@ -33,8 +34,10 @@ before(async () => {
   server = spawn(process.execPath, [join(webRoot, 'node_modules', 'next', 'dist', 'bin', 'next'), 'dev', '-H', '127.0.0.1', '-p', String(port)], {
     cwd: webRoot,
     env: { ...process.env, CAREER_OPS_ROOT: dataRoot, NEXT_TELEMETRY_DISABLED: '1' },
-    stdio: 'ignore',
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
+  server.stdout.on('data', (chunk) => (serverOutput += chunk.toString()));
+  server.stderr.on('data', (chunk) => (serverOutput += chunk.toString()));
   await waitForServer();
 }, { timeout: 30_000 });
 
