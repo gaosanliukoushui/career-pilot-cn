@@ -62,7 +62,10 @@
         "kind": { "enum": ["user_confirmation", "repository", "document", "transcript", "certificate", "official_link"] },
         "ref": { "type": "string", "minLength": 1 },
         "strength": { "enum": ["ordinary", "strong"] },
-        "verified_at": { "type": "string", "minLength": 1 },
+        "verified_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
         "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
       }
     }

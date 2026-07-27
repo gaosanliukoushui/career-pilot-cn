@@ -126,6 +126,33 @@ test('legacy migration deduplicates repeated bullets and retains plain paragraph
   assert.deepEqual(statements, ['完成匿名项目', '负责接口联调与测试。']);
 });
 
+test('legacy migration classifies grades, rankings, employment, and quantified outcomes as high risk', () => {
+  const root = mkdtempSync(join(tmpdir(), 'careerpilot-import-risk-'));
+  const markdown = [
+    '# 匿名候选人',
+    '## 成绩与排名',
+    '- GPA 3.9，专业排名前 5%',
+    '## 工作经历',
+    '- 在匿名单位参与系统维护',
+    '## 项目经历',
+    '- 将接口响应时间降低 30%',
+  ].join('\n');
+  importCvMarkdown(root, markdown);
+  const profile = loadCandidateProfile(root);
+  assert.deepEqual(profile.facts.map((fact) => fact.type), ['ranking', 'employment', 'quantified_result']);
+  for (const fact of profile.facts) {
+    attachEvidence(root, fact.id, {
+      id: `evidence.${fact.id}`,
+      kind: 'user_confirmation',
+      ref: `confirmation:${fact.id}`,
+      strength: 'ordinary',
+      verified_at: '2026-07-27T12:00:00.000Z',
+    });
+    updateFactStatus(root, fact.id, 'confirmed');
+  }
+  assert.doesNotMatch(projectCv(root).markdown, /GPA|匿名单位|30%/);
+});
+
 test('confirmed Fact projects to traceable cv.md and tampering is detected', () => {
   const root = mkdtempSync(join(tmpdir(), 'careerpilot-project-'));
   const markdown = '# 匿名候选人\n\n## 项目经历\n\n- 参与校园服务平台后端接口开发\n';
@@ -266,6 +293,35 @@ test('Fact status transitions reject impossible direct recovery from rejected to
   assert.throws(() => updateFactStatus(root, fact.id, 'confirmed'), /Invalid Fact status transition/);
   updateFactStatus(root, fact.id, 'unconfirmed');
   assert.equal(loadCandidateProfile(root).facts[0].status, 'unconfirmed');
+});
+
+test('Evidence write rejects missing or escaping local files and invalid verification time', () => {
+  const root = mkdtempSync(join(tmpdir(), 'careerpilot-evidence-input-'));
+  importCvMarkdown(root, '# 匿名候选人\n\n## 项目经历\n\n- 完成匿名项目\n');
+  const fact = loadCandidateProfile(root).facts[0];
+  const baseEvidence = {
+    id: 'evidence.invalid',
+    kind: 'document',
+    strength: 'strong',
+    verified_at: '2026-07-27T12:00:00.000Z',
+  };
+  assert.throws(() => attachEvidence(root, fact.id, { ...baseEvidence, ref: 'profile/evidence/missing.pdf' }), /not found/);
+  assert.throws(() => attachEvidence(root, fact.id, { ...baseEvidence, ref: '../outside.pdf' }), /profile\/evidence/);
+  assert.throws(() => attachEvidence(root, fact.id, {
+    id: 'evidence.invalid-time',
+    kind: 'official_link',
+    ref: 'https://example.invalid/evidence',
+    strength: 'strong',
+    verified_at: 'x',
+  }), /validation failed/);
+});
+
+test('project-cv returns a PROFILE_MISSING domain error before reading absent files', () => {
+  const root = mkdtempSync(join(tmpdir(), 'careerpilot-missing-profile-'));
+  assert.throws(
+    () => projectCv(root),
+    (error) => error.code === 'PROFILE_MISSING',
+  );
 });
 
 test('tracked anonymous sample satisfies the same CandidateProfile schema', () => {
