@@ -1,6 +1,6 @@
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/wordmark-dark.svg"><img src="docs/wordmark-light.svg" alt="career-ops" width="250" height="56"></picture></p>
 
-> **CareerPilot CN 二次开发分支：** 本仓库是在 MIT 许可的 [career-ops](https://github.com/santifer/career-ops) 基础上开发的中国校招本地 AI 求职工作台。CareerPilot CN 是独立项目名称，不代表获得 career-ops 商标授权。当前上游基线为 `career-ops v1.22.0`（commit `2901944`）。
+> **CareerPilot CN 二次开发分支：** 本仓库是在 MIT 许可的 [career-ops](https://github.com/santifer/career-ops) 基础上开发的中国校招本地 AI 求职工作台。CareerPilot CN 是独立项目名称，不代表获得 career-ops 商标授权。当前上游基线为 `career-ops v1.22.0`（commit `2901944`）。使用说明见[事实与证据中心](docs/CAREERPILOT_PROFILE.md)和[中文简历与导出工作台](docs/CAREERPILOT_RESUME.md)。
 
 <div align="center">
 

@@ -1,5 +1,7 @@
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/wordmark-dark.svg"><img src="docs/wordmark-light.svg" alt="career-ops" width="250" height="56"></picture></p>
 
+> **CareerPilot CN derivative:** This private, local-first Chinese campus-recruitment project is based on MIT-licensed [career-ops](https://github.com/santifer/career-ops), with upstream copyright preserved. See the [CandidateProfile fact center](docs/CAREERPILOT_PROFILE.md) and [Chinese resume/export studio](docs/CAREERPILOT_RESUME.md).
+
 <div align="center">
 
 [English](README.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [Français](README.fr.md) | [Português (Brasil)](README.pt-BR.md) | [한국어](README.ko-KR.md) | [日本語](README.ja.md) | [简体中文](README.cn.md) | [繁體中文](README.zh-TW.md) | [Українська](README.ua.md) | [Русский](README.ru.md) | [Polski](README.pl.md) | [Dansk](README.da.md) | [العربية](README.ar.md) | [हिन्दी](README.hi.md) | [Türkçe](README.tr.md)

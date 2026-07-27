@@ -15,7 +15,9 @@
         "display_name": { "type": "string", "minLength": 1 },
         "email": { "type": "string" },
         "phone": { "type": "string" },
-        "location": { "type": "string" }
+        "location": { "type": "string" },
+        "photo": { "type": "string" },
+        "political_status": { "type": "string" }
       }
     },
     "facts": {
@@ -37,6 +39,7 @@
         "type": {
           "enum": ["basic", "education", "grade", "ranking", "skill", "certificate", "award", "campus", "internship", "employment", "affiliation", "project", "result", "quantified_result"]
         },
+        "subtype": { "enum": ["email", "phone", "city_region"] },
         "statement": { "type": "string", "minLength": 1 },
         "status": { "enum": ["unconfirmed", "confirmed", "rejected", "conflicted"] },
         "sensitivity": { "enum": ["public", "personal", "sensitive", "restricted"] },

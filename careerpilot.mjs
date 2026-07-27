@@ -44,6 +44,9 @@ function usage() {
       'node careerpilot.mjs project-cv [--root PATH]',
       'node careerpilot.mjs preview-cv [--root PATH]',
       'node careerpilot.mjs audit [--root PATH]',
+      'node careerpilot.mjs resume-preview [--stdin | --template soe-one-page|tech-two-page|application-detail] [--root PATH]',
+      'node careerpilot.mjs resume-save --template TEMPLATE [--root PATH]',
+      'node careerpilot.mjs resume-export [--variant-stdin | --template TEMPLATE] --format md|html|docx|pdf [--output output/careerpilot/FILE] [--root PATH]',
     ],
   };
 }
@@ -60,6 +63,7 @@ async function main() {
     updateFactStatus,
     validateCandidateProfile,
   } = await import('./lib/careerpilot/profile-core.mjs');
+  const loadResumeCore = () => import('./lib/careerpilot/resume-core.mjs');
   const args = process.argv.slice(2);
   const command = args.shift();
   const root = resolve(option(args, '--root', process.cwd()));
@@ -125,6 +129,56 @@ async function main() {
       };
       process.stdout.write(`${JSON.stringify(result)}\n`);
       if (!result.profile.valid || !result.projection.valid) process.exitCode = 1;
+      return;
+    }
+    case 'resume-preview': {
+      const { createResumeVariant, renderResumeHtml, renderResumeMarkdown } = await loadResumeCore();
+      const supplied = args.includes('--stdin') ? JSON.parse(await readStdin()) : {};
+      const variant = createResumeVariant(root, args.includes('--stdin') ? supplied : {
+          template: option(args, '--template', 'soe-one-page'),
+          sensitive_authorizations: {
+            photo: args.includes('--authorize-photo'),
+            political_status: args.includes('--authorize-political-status'),
+          },
+        });
+      process.stdout.write(`${JSON.stringify({
+        variant,
+        markdown: renderResumeMarkdown(root, variant),
+        html: renderResumeHtml(root, variant),
+      })}\n`);
+      return;
+    }
+    case 'resume-save': {
+      const { createResumeVariant, saveResumeVariant } = await loadResumeCore();
+      const variant = createResumeVariant(root, {
+        template: option(args, '--template', 'soe-one-page'),
+        sensitive_authorizations: {
+          photo: args.includes('--authorize-photo'),
+          political_status: args.includes('--authorize-political-status'),
+        },
+      });
+      process.stdout.write(`${JSON.stringify({ variant, path: saveResumeVariant(root, variant) })}\n`);
+      return;
+    }
+    case 'resume-export': {
+      const { createResumeVariant, exportResume } = await loadResumeCore();
+      const variant = args.includes('--variant-stdin')
+        ? JSON.parse(await readStdin())
+        : createResumeVariant(root, {
+            template: option(args, '--template', 'soe-one-page'),
+            sensitive_authorizations: {
+              photo: args.includes('--authorize-photo'),
+              political_status: args.includes('--authorize-political-status'),
+            },
+            status: 'ready',
+          });
+      const result = await exportResume(
+        root,
+        variant,
+        required(option(args, '--format'), '--format'),
+        option(args, '--output'),
+      );
+      process.stdout.write(`${JSON.stringify({ variant, ...result })}\n`);
       return;
     }
     case '--help':
