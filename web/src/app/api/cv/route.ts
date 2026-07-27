@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     {
       error: "cv.md 现在是事实库生成的只读视图，请导入旧简历或编辑 Fact。",
       code: "CV_READ_ONLY",
-      next: "/api/profile/import-cv",
+      next: "/api/candidate-profile/import-cv",
     },
     { status: 409 },
   );

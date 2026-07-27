@@ -32,12 +32,12 @@ node careerpilot.mjs audit
 
 | 路径 | 用途 |
 |---|---|
-| `GET /api/profile` | 读取 CandidateProfile |
-| `POST /api/profile/import-cv` | 将旧简历导入为待确认 Facts |
-| `POST /api/profile/fact-status` | 更新 Fact 状态 |
-| `POST /api/profile/evidence` | 关联 Evidence |
-| `POST /api/profile/project-cv` | 生成兼容 `cv.md` 与 manifest |
-| `GET /api/profile/audit` | 执行结构、证据和投影审计 |
+| `GET /api/candidate-profile` | 读取 CandidateProfile |
+| `POST /api/candidate-profile/import-cv` | 将旧简历导入为待确认 Facts |
+| `POST /api/candidate-profile/fact-status` | 更新 Fact 状态 |
+| `POST /api/candidate-profile/evidence` | 关联 Evidence |
+| `POST /api/candidate-profile/project-cv` | 生成兼容 `cv.md` 与 manifest |
+| `GET /api/candidate-profile/audit` | 执行结构、证据和投影审计 |
 | `GET /api/cv` | 获取事实库生成的只读预览 |
 
 `POST /api/cv` 固定返回 `409 CV_READ_ONLY`，避免绕过事实真源直接覆盖简历。
