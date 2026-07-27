@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/candidate-profile.schema.json",
+  "title": "CandidateProfile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate", "facts", "evidence"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["display_name"],
+      "properties": {
+        "display_name": { "type": "string", "minLength": 1 },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "location": { "type": "string" }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/fact" }
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidence" }
+    }
+  },
+  "$defs": {
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "statement", "status", "sensitivity", "allowed_uses", "evidence_ids"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+        "type": {
+          "enum": ["basic", "education", "grade", "ranking", "skill", "certificate", "award", "campus", "internship", "employment", "affiliation", "project", "result", "quantified_result"]
+        },
+        "statement": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["unconfirmed", "confirmed", "rejected", "conflicted"] },
+        "sensitivity": { "enum": ["public", "personal", "sensitive", "restricted"] },
+        "allowed_uses": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["resume", "application_form", "interview"] }
+        },
+        "evidence_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "source": { "type": "string" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "ref", "strength", "verified_at"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+        "kind": { "enum": ["user_confirmation", "repository", "document", "transcript", "certificate", "official_link"] },
+        "ref": { "type": "string", "minLength": 1 },
+        "strength": { "enum": ["ordinary", "strong"] },
+        "verified_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    }
+  }
+}

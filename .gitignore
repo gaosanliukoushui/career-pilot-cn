@@ -114,7 +114,7 @@ career-dashboard.exe
 !web/package-lock.json
 
 # CareerPilot CN candidate facts, evidence, generated manifests, and private exports.
-profile/
+/profile/
 
 # Playwright MCP server run artifacts (ephemeral, machine-local)
 .playwright-mcp/

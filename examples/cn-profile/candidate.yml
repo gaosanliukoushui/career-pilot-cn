@@ -1,0 +1,46 @@
+schema_version: 1
+candidate:
+  display_name: 匿名候选人
+  email: anonymous@example.invalid
+  location: 中国
+facts:
+  - id: education.anonymous.bachelor
+    type: education
+    statement: 获得匿名大学计算机相关专业学士学位
+    status: confirmed
+    sensitivity: personal
+    allowed_uses: [resume, application_form]
+    evidence_ids: [evidence.education.official]
+    source: examples/cn-profile/candidate.yml
+  - id: skill.java.backend
+    type: skill
+    statement: 掌握 Java 后端开发与关系型数据库基础
+    status: confirmed
+    sensitivity: public
+    allowed_uses: [resume, application_form, interview]
+    evidence_ids: [evidence.skill.confirmation]
+    source: examples/cn-profile/candidate.yml
+  - id: project.campus.platform
+    type: project
+    statement: 完成匿名校园服务平台的接口设计与功能实现
+    status: confirmed
+    sensitivity: public
+    allowed_uses: [resume, application_form, interview]
+    evidence_ids: [evidence.project.repository]
+    source: examples/cn-profile/candidate.yml
+evidence:
+  - id: evidence.education.official
+    kind: official_link
+    ref: https://example.invalid/education/anonymous
+    strength: strong
+    verified_at: '2026-07-27T12:00:00.000Z'
+  - id: evidence.skill.confirmation
+    kind: user_confirmation
+    ref: confirmation:anonymous-fixture
+    strength: ordinary
+    verified_at: '2026-07-27T12:00:00.000Z'
+  - id: evidence.project.repository
+    kind: repository
+    ref: https://example.invalid/repository/anonymous
+    strength: strong
+    verified_at: '2026-07-27T12:00:00.000Z'
