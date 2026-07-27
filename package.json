@@ -1,6 +1,6 @@
 {
   "name": "career-pilot-cn",
-  "version": "0.1.0",
+  "version": "1.23.0",
   "description": "Local-first AI job-search workbench for Chinese campus recruitment, based on career-ops",
   "private": true,
   "scripts": {

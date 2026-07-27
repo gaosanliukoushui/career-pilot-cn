@@ -1,6 +1,6 @@
 {
   "name": "@career-pilot-cn/web",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Local-first web experience for CareerPilot CN.",
   "scripts": {
