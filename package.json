@@ -4,6 +4,7 @@
   "description": "Local-first AI job-search workbench for Chinese campus recruitment, based on career-ops",
   "private": true,
   "scripts": {
+    "careerpilot": "node careerpilot.mjs",
     "doctor": "node doctor.mjs",
     "or": "node openrouter-runner.mjs",
     "or:scan": "node openrouter-runner.mjs scan",
@@ -79,6 +80,7 @@
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "ajv": "^8.17.1",
     "dotenv": "^17.0.0",
     "js-yaml": "^4.1.1",
     "playwright": "1.62.0"

@@ -29,9 +29,19 @@ test('automatic upstream application is blocked while update checks remain avail
 });
 
 test('candidate profile data is an ignored user-layer path', () => {
-  assert.match(read('.gitignore'), /^profile\/$/m);
+  assert.match(read('.gitignore'), /^\/profile\/$/m);
+  const ignored = spawnSync('git', ['check-ignore', 'profile/candidate.yml'], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(ignored.status, 0, ignored.stderr);
   assert.match(read('DATA_CONTRACT.md'), /`profile\/\*`.*Candidate Facts.*Evidence/i);
   assert.match(read('.gitignore'), /^!package-lock\.json$/m);
+});
+
+test('candidate profile ignore rule does not hide system-layer Web APIs', () => {
+  const result = spawnSync('git', ['check-ignore', 'web/src/app/api/profile/evidence/route.ts'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  });
+  assert.notEqual(result.status, 0, result.stdout || result.stderr);
 });
 
 test('Claude remains a thin wrapper over canonical agent instructions', () => {
