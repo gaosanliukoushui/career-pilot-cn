@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     await fs.mkdir(uploadRoot, { recursive: true });
     const storedPath = path.join(uploadRoot, `${Date.now()}-${randomUUID()}${extension}`);
     await fs.writeFile(storedPath, bytes, { flag: "wx" });
-    const result = await runCareerPilot(["job-parse", "--file", storedPath]);
+    const result = await runCareerPilot(["job-parse", "--file", storedPath, "--allowed-root", uploadRoot]);
     if (!result.ok) {
       await fs.rm(storedPath, { force: true });
       return error(result.error || "招聘文件解析失败", 422);
@@ -52,4 +52,3 @@ export async function POST(request: Request) {
   const result = await runCareerPilot(["job-parse", "--stdin"], body.text);
   return Response.json(result.ok ? result.data : { error: result.error }, { status: result.ok ? 200 : 422 });
 }
-

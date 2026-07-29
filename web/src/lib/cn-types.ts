@@ -10,12 +10,25 @@ export type JobRule = {
   explicit: boolean;
   source_quote: string;
   confidence: number;
+  confirmation_status: "pending" | "confirmed" | "rejected";
 };
 
 export type JobPosting = {
   schema_version: 1;
   id: string;
-  source: { kind: "pasted_text" | "official_url" | "pdf" | "docx"; ref?: string; file_sha256?: string };
+  source: {
+    kind: "pasted_text" | "public_url" | "official_url" | "pdf" | "docx";
+    ref?: string;
+    file_sha256?: string;
+    final_url?: string;
+    redirect_chain?: string[];
+    fetched_at?: string;
+    page_title?: string;
+    capture_method?: "browser" | "http";
+    official?: boolean;
+    official_basis?: "unconfirmed" | "user_confirmed" | "employer_domain" | "official_platform";
+    official_evidence?: string;
+  };
   captured_at: string;
   content_sha256: string;
   employer: { name: string; type: string };
@@ -26,6 +39,7 @@ export type JobPosting = {
   raw_text: string;
   rules: JobRule[];
   posting_status: "unknown" | "active" | "closed" | "expired";
+  confirmation: { status: "pending" | "confirmed"; confirmed_at: string | null; structure_sha256: string | null };
 };
 
 export type FitDimension = {
@@ -73,15 +87,20 @@ export type CareerPilotApplication = {
     manual_required: boolean;
     source_fact_ids: string[];
     max_length: number | null;
+    definition_source: "default" | "job_posting" | "application_form";
+    source_quote: string;
+    confirmation_status: "pending" | "confirmed" | "manual_required";
     draft?: unknown;
   }>;
   materials: Array<{
     id: string;
     label: string;
+    required: boolean;
     status: "ready" | "missing" | "manual_required";
     evidence_ids: string[];
     manual_required: boolean;
+    definition_source: "default" | "job_posting" | "application_form";
+    source_quote: string;
   }>;
   events: Array<{ stage: string; canonical_status: string; recorded_at: string; note: string }>;
 };
-

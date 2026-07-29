@@ -33,6 +33,15 @@ async function assertStatus(response, expected = 200) {
   }
 }
 
+async function confirmResumeDraft(variant) {
+  const response = await fetch(`${baseUrl}/api/cn/resumes/baselines`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ variant, confirmed: true }),
+  });
+  await assertStatus(response);
+  return (await response.json()).variant;
+}
+
 before(async () => {
   const canonicalCli = pathToFileURL(join(repoRoot, 'careerpilot.mjs')).href;
   writeFileSync(join(dataRoot, 'careerpilot.mjs'), `import ${JSON.stringify(canonicalCli)};\n`, 'utf8');
@@ -135,24 +144,27 @@ test('Web ResumeVariant preview and structured exports use the canonical Facts',
   assert.equal(preview.variant.template, 'tech-two-page');
   assert.match(preview.markdown, /完成匿名校园项目/);
   assert.match(preview.html, /data-fact-id=/);
+  const confirmedPreview = await confirmResumeDraft(preview.variant);
 
   response = await fetch(`${baseUrl}/api/resume-variants/export`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ variant: preview.variant, format: 'md' }),
+    body: JSON.stringify({ variant: confirmedPreview, format: 'md' }),
   });
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type') || '', /text\/markdown/);
   assert.match(await response.text(), /<!-- fact:/);
 
+  const applicationDetailDraft = (await (await fetch(`${baseUrl}/api/resume-variants/preview`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ template: 'application-detail' }),
+  })).json()).variant;
+  const applicationDetail = await confirmResumeDraft(applicationDetailDraft);
   response = await fetch(`${baseUrl}/api/resume-variants/export`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      variant: (await (await fetch(`${baseUrl}/api/resume-variants/preview`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ template: 'application-detail' }),
-      })).json()).variant,
+      variant: applicationDetail,
       format: 'docx',
     }),
   });
@@ -170,10 +182,35 @@ test('Web ResumeVariant preview and structured exports use the canonical Facts',
   assert.equal(response.status, 200);
   response = await fetch(`${baseUrl}/api/resume-variants/export`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ variant: preview.variant, format: 'md' }),
+    body: JSON.stringify({ variant: confirmedPreview, format: 'md' }),
   });
   assert.equal(response.status, 400);
   assert.match((await response.json()).error, /validation failed/i);
+}, { timeout: 30_000 });
+
+test('Web profile evidence upload stores a verified local document with a content hash', async () => {
+  const beforeProfile = await (await fetch(`${baseUrl}/api/candidate-profile`)).json();
+  const form = new FormData();
+  form.set('fact_id', beforeProfile.facts[0].id);
+  form.set('file', new File([Buffer.from('%PDF-1.4\n% anonymous evidence\n')], 'proof.pdf', { type: 'application/pdf' }));
+  const response = await fetch(`${baseUrl}/api/candidate-profile/evidence`, { method: 'POST', body: form });
+  await assertStatus(response);
+  const result = await response.json();
+  assert.equal(result.evidence.kind, 'document');
+  assert.equal(result.evidence.strength, 'strong');
+  assert.match(result.evidence.ref, /^profile\/evidence\/imports\/[a-f0-9-]+\.pdf$/);
+  assert.match(result.evidence.sha256, /^[a-f0-9]{64}$/);
+  assert.doesNotMatch(JSON.stringify(result), /careerpilot-web-api-/);
+
+  const oversized = new FormData();
+  oversized.set('fact_id', beforeProfile.facts[0].id);
+  oversized.set('file', new File([Buffer.alloc(10 * 1024 * 1024 + 1)], 'too-large.pdf', { type: 'application/pdf' }));
+  assert.equal((await fetch(`${baseUrl}/api/candidate-profile/evidence`, { method: 'POST', body: oversized })).status, 413);
+
+  const forged = new FormData();
+  forged.set('fact_id', beforeProfile.facts[0].id);
+  forged.set('file', new File([Buffer.from('not a pdf')], 'forged.pdf', { type: 'application/pdf' }));
+  assert.equal((await fetch(`${baseUrl}/api/candidate-profile/evidence`, { method: 'POST', body: forged })).status, 400);
 }, { timeout: 30_000 });
 
 test('CareerPilot CN Web completes the campus workflow with structured artifacts and no restricted values', async () => {
@@ -254,16 +291,24 @@ test('CareerPilot CN Web completes the campus workflow with structured artifacts
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'text', text: jd }),
   });
   await assertStatus(response);
-  const posting = await response.json();
+  let posting = await response.json();
   assert.equal(posting.employer.type, 'central_soe');
+  posting.rules = posting.rules.map((rule) => ({ ...rule, confirmation_status: 'confirmed' }));
+  response = await fetch(`${baseUrl}/api/cn/jobs/confirm`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ posting, official_source_confirmed: false }),
+  });
+  await assertStatus(response);
+  posting = await response.json();
+  assert.equal(posting.confirmation.status, 'confirmed');
 
   const dimensions = [
     { id: 'role_major', score: 4.5, candidate_fact_ids: [factId('计算机科学与技术专业')], rationale: '专业方向一致' },
-    { id: 'evidence', score: 4.2, candidate_fact_ids: [factId('掌握 Java 后端开发')], rationale: '已有技能事实' },
+    { id: 'evidence', score: 4.2, candidate_fact_ids: [], rationale: '证据完整度由已确认结构化事实支持' },
     { id: 'career_direction', score: 4, candidate_fact_ids: [], rationale: '职业方向一致' },
     { id: 'mobility', score: 4.5, candidate_fact_ids: [factId('意向工作地点为北京或上海')], rationale: '地点匹配' },
     { id: 'development', score: 4, candidate_fact_ids: [], rationale: '校招培养路径清晰' },
-    { id: 'source_reliability', score: 5, candidate_fact_ids: [], rationale: '待官网复核' },
+    { id: 'source_reliability', score: 3, candidate_fact_ids: [], rationale: '粘贴文本来源，可靠性按上限计分' },
   ];
   response = await fetch(`${baseUrl}/api/cn/jobs/evaluate`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ posting, dimensions }),
@@ -274,11 +319,11 @@ test('CareerPilot CN Web completes the campus workflow with structured artifacts
   assert.equal(evaluation.report.recommendation, 'apply');
   assert.match(evaluation.report.report_path, /^reports\/careerpilot\//);
 
-  response = await fetch(`${baseUrl}/api/cn/resumes/baselines`, {
+  response = await fetch(`${baseUrl}/api/resume-variants/preview`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ template: 'soe-one-page' }),
   });
   await assertStatus(response);
-  const baseline = (await response.json()).variant;
+  const baseline = await confirmResumeDraft((await response.json()).variant);
   response = await fetch(`${baseUrl}/api/cn/resumes/tailor-preview`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ job_id: posting.id, baseline_variant_id: baseline.id, fact_ids: baseline.fact_ids, order: baseline.order }),
@@ -303,6 +348,15 @@ test('CareerPilot CN Web completes the campus workflow with structured artifacts
   assert.ok(restricted.every((field) => field.manual_required && !('draft' in field) && field.source_fact_ids.length === 0));
   assert.doesNotMatch(JSON.stringify(application), /11010120000101001X/);
 
+  const restrictedValue = '11010120000101001X';
+  response = await fetch(`${baseUrl}/api/cn/applications/${application.tracker_num}/fields`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ 'personal.identity_number': restrictedValue }),
+  });
+  assert.equal(response.status, 422);
+  assert.doesNotMatch(await response.text(), new RegExp(restrictedValue));
+  assert.doesNotMatch(await (await fetch(`${baseUrl}/application-materials/${application.tracker_num}`)).text(), new RegExp(restrictedValue));
+  assert.doesNotMatch(serverOutput, new RegExp(restrictedValue));
+
   response = await fetch(`${baseUrl}/api/cn/applications/${application.tracker_num}/fields`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ 'motivation.application': '希望在信息技术岗位持续学习并贡献已确认能力。' }),
   });
@@ -318,11 +372,8 @@ test('CareerPilot CN Web completes the campus workflow with structured artifacts
   response = await fetch(`${baseUrl}/api/run`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'evaluate', input: jd }),
   });
-  await assertStatus(response);
-  const stream = await response.text();
-  assert.doesNotMatch(stream, /VERDICT:/);
-  const artifactEvent = stream.trim().split('\n').map((line) => JSON.parse(line)).find((event) => event.type === 'artifact');
-  assert.equal(artifactEvent.artifact.job_id, posting.id);
-  assert.equal(artifactEvent.artifact.eligibility, 'eligible');
-  assert.equal(typeof artifactEvent.artifact.score, 'number');
+  assert.equal(response.status, 422, 'legacy evaluate entrypoint must not bypass explicit job confirmation');
+  const blocked = await response.text();
+  assert.match(blocked, /explicitly confirmed/);
+  assert.doesNotMatch(blocked, /VERDICT:|"type":"artifact"/);
 }, { timeout: 90_000 });

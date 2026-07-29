@@ -79,7 +79,8 @@ export function ApplicationPanel({ initial }: { initial: CareerPilotApplication 
                     onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: event.target.value }))}
                   />
                 )}
-                <span className="mt-1 block text-xs text-faint">事实：{item.source_fact_ids.join(", ") || "无"}{item.max_length ? ` · 上限 ${item.max_length} 字` : ""}</span>
+                <span className="mt-1 block text-xs text-faint">事实：{item.source_fact_ids.join(", ") || "无"}{item.max_length ? ` · 上限 ${item.max_length} 字` : ""} · {item.confirmation_status === "confirmed" ? "已确认" : item.confirmation_status === "manual_required" ? "官网手填" : "待确认"}</span>
+                {item.source_quote && <span className="mt-1 block text-xs text-muted">表单原文：{item.source_quote}</span>}
               </label>
             ))}
           </div>
@@ -95,6 +96,7 @@ export function ApplicationPanel({ initial }: { initial: CareerPilotApplication 
               <p className={item.status === "ready" ? "text-emerald-700 dark:text-emerald-400" : item.status === "manual_required" ? "text-brand-text" : "text-muted"}>
                 {item.status === "ready" ? "证据已就绪" : item.status === "manual_required" ? "本人手工提交，不保存副本" : "尚缺材料"}
               </p>
+              {item.source_quote && <p className="mt-1 text-xs text-faint">公告原文：{item.source_quote}</p>}
             </div>
           ))}
         </div>
@@ -114,4 +116,3 @@ export function ApplicationPanel({ initial }: { initial: CareerPilotApplication 
     </section>
   );
 }
-

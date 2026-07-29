@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
-import { evaluateJob, inferJobPosting, saveJobEvaluation } from './lib/careerpilot/job-core.mjs';
+import { confirmJobPosting, evaluateJob, inferJobPosting, saveJobEvaluation } from './lib/careerpilot/job-core.mjs';
 import {
   CN_STAGE_TO_CANONICAL,
   loadApplication,
@@ -53,11 +53,13 @@ function setup() {
     })),
   };
   writeFileSync(join(root, 'profile', 'candidate.yml'), yaml.dump(profile), 'utf8');
-  const posting = inferJobPosting([
+  const pendingPosting = inferJobPosting([
     '招聘单位：某商业银行', '岗位名称：信息科技岗', '岗位代码：BANK-2027-01',
     '面向2027届应届毕业生', '学历要求：本科及以上', '专业要求：计算机科学与技术',
     '报名截止：2027年05月31日',
   ].join('\n'));
+  pendingPosting.rules = pendingPosting.rules.map((rule) => ({ ...rule, confirmation_status: 'confirmed' }));
+  const posting = confirmJobPosting(pendingPosting);
   const report = evaluateJob(root, posting);
   saveJobEvaluation(root, posting, report);
   return { root, posting, report };
@@ -76,6 +78,44 @@ test('网申准备通过 TSV 合并创建兼容 tracker 行和中国申请侧车
   assert.deepEqual(reconcileApplication(root, application.tracker_num), {
     consistent: true, tracker_status: 'Evaluated', sidecar_status: 'Evaluated', stage: 'evaluated',
   });
+});
+
+test('网申准备接收岗位表单字段和特有材料，并生成事实引用与待确认草稿', async () => {
+  const { root, posting } = setup();
+  const { application } = await prepareApplication(root, posting.id, {
+    form_fields: [{
+      id: 'motivation.why_bank', label: '为什么选择本行', category: 'motivation', required: true,
+      max_length: 180, source_quote: '请结合个人经历说明为什么选择本行',
+    }],
+    materials: [{ id: 'employment_recommendation', label: '就业推荐表', required: true, source_quote: '请上传就业推荐表' }],
+  });
+  const custom = application.fields.find((item) => item.id === 'motivation.why_bank');
+  assert.equal(custom.definition_source, 'application_form');
+  assert.equal(custom.max_length, 180);
+  assert.equal(custom.confirmation_status, 'pending');
+  assert.ok(custom.source_fact_ids.length > 0);
+  assert.match(custom.draft, /信息科技岗|校园系统/);
+  assert.deepEqual(application.materials.find((item) => item.id === 'employment_recommendation'), {
+    id: 'employment_recommendation', label: '就业推荐表', required: true, status: 'missing', evidence_ids: [],
+    manual_required: false, definition_source: 'job_posting', source_quote: '请上传就业推荐表',
+  });
+  assert.equal('submit' in application, false);
+});
+
+test('已有申请侧车可在共享锁下刷新岗位特有字段和材料定义', async () => {
+  const { root, posting } = setup();
+  const first = await prepareApplication(root, posting.id);
+  const refreshed = await prepareApplication(root, posting.id, {
+    form_fields: [{
+      id: 'motivation.why_company', label: '为什么选择本单位', category: 'motivation', required: true,
+      max_length: 160, source_quote: '请说明为什么选择本单位',
+    }],
+    materials: [{ id: 'recommendation_form', label: '就业推荐表', required: true, source_quote: '请上传就业推荐表' }],
+  });
+  assert.equal(refreshed.application.tracker_num, first.application.tracker_num);
+  assert.equal(refreshed.application.fields.find((item) => item.id === 'motivation.why_company').definition_source, 'application_form');
+  assert.equal(refreshed.application.materials.find((item) => item.id === 'recommendation_form').definition_source, 'job_posting');
+  assert.equal(reconcileApplication(root, first.application.tracker_num).consistent, true);
 });
 
 test('身份证、家庭成员和详细住址始终只给手工填写提示，不保存值或证据引用', async () => {
@@ -107,9 +147,10 @@ test('受限字段值和超过字数上限的回答会被确定性校验拒绝',
 test('网申回答只更新允许字段，受限字段没有任何写入接口', async () => {
   const { root, posting } = setup();
   const { application } = await prepareApplication(root, posting.id);
-  const updated = updateApplicationFields(root, application.tracker_num, { 'motivation.application': '希望在信息科技岗位稳步成长' });
+  const updated = await updateApplicationFields(root, application.tracker_num, { 'motivation.application': '希望在信息科技岗位稳步成长' });
   assert.equal(updated.fields.find((item) => item.id === 'motivation.application').draft, '希望在信息科技岗位稳步成长');
-  assert.throws(
+  assert.equal(updated.fields.find((item) => item.id === 'motivation.application').confirmation_status, 'confirmed');
+  await assert.rejects(
     () => updateApplicationFields(root, application.tracker_num, { 'personal.identity_number': '11010120000101001X' }),
     (error) => error.code === 'RESTRICTED_FIELD',
   );
@@ -129,7 +170,7 @@ test('中国详细阶段通过 set-status 锁定路径同步到九种兼容状�
     ['signed', 'Hired'],
   ];
   for (const [stage, canonical] of stages) {
-    const result = updateApplicationStage(root, application.tracker_num, stage, { note: `测试阶段 ${stage}` });
+    const result = await updateApplicationStage(root, application.tracker_num, stage, { note: `测试阶段 ${stage}` });
     assert.equal(result.application.canonical_status, canonical);
     assert.equal(result.reconciliation.consistent, true);
   }
@@ -155,4 +196,41 @@ test('详细阶段与 tracker 不一致时只报告冲突，不静默覆盖', as
   assert.deepEqual(reconcileApplication(root, application.tracker_num), {
     consistent: false, tracker_status: 'Rejected', sidecar_status: 'Evaluated', stage: 'evaluated',
   });
+  await assert.rejects(
+    () => updateApplicationStage(root, application.tracker_num, 'submitted'),
+    (error) => error.code === 'APPLICATION_STATUS_CONFLICT'
+      && error.details.tracker_status === 'Rejected'
+      && error.details.sidecar_status === 'Evaluated',
+  );
+  assert.equal(loadApplication(root, application.tracker_num).current_stage, 'evaluated');
+  assert.match(readFileSync(trackerPath, 'utf8'), /\| Rejected \|/);
+});
+
+test('详细阶段复用规范报告身份保护，错链时拒绝同时修改 tracker 和侧车', async () => {
+  const { root, posting } = setup();
+  const { application } = await prepareApplication(root, posting.id);
+  const trackerPath = join(root, 'data', 'applications.md');
+  const original = readFileSync(trackerPath, 'utf8');
+  const mismatched = original.replace(/\[0*\d+\]\(([^)]*)\)/, '[999]($1)');
+  assert.notEqual(mismatched, original);
+  writeFileSync(trackerPath, mismatched, 'utf8');
+  await assert.rejects(
+    () => updateApplicationStage(root, application.tracker_num, 'submitted'),
+    (error) => error.code === 'TRACKER_REPORT_MISMATCH' && error.details.trackerNum === application.tracker_num,
+  );
+  assert.equal(loadApplication(root, application.tracker_num).current_stage, 'evaluated');
+  assert.equal(readFileSync(trackerPath, 'utf8'), mismatched);
+});
+
+test('同一申请的并发阶段更新在共享锁内串行化且不丢事件', async () => {
+  const { root, posting } = setup();
+  const { application } = await prepareApplication(root, posting.id);
+  await Promise.all([
+    updateApplicationStage(root, application.tracker_num, 'submitted', { note: '并发更新 A' }),
+    updateApplicationStage(root, application.tracker_num, 'qualification', { note: '并发更新 B' }),
+  ]);
+  const stored = loadApplication(root, application.tracker_num);
+  assert.equal(stored.events.length, 3);
+  assert.deepEqual(new Set(stored.events.slice(1).map((event) => event.note)), new Set(['并发更新 A', '并发更新 B']));
+  assert.equal(reconcileApplication(root, application.tracker_num).consistent, true);
 });

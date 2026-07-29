@@ -4,7 +4,7 @@
   "title": "ResumeVariant",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "template", "source_profile_sha256", "source_photo_sha256", "fact_ids", "order", "rewrites", "sensitive_authorizations", "status", "diff"],
+  "required": ["schema_version", "id", "template", "source_profile_sha256", "source_photo_sha256", "fact_ids", "order", "rewrites", "sensitive_authorizations", "status", "confirmation", "diff"],
   "properties": {
     "schema_version": { "const": 1 },
     "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
@@ -35,6 +35,16 @@
       }
     },
     "status": { "enum": ["draft", "ready", "exported"] },
+    "confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "confirmed_at", "preview_sha256"],
+      "properties": {
+        "status": { "enum": ["pending", "confirmed"] },
+        "confirmed_at": { "type": ["string", "null"] },
+        "preview_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
     "diff": {
       "type": "object",
       "additionalProperties": false,

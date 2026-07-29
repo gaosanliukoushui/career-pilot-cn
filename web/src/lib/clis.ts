@@ -12,17 +12,55 @@ export type CliSpec = {
   url: string;
   /** headless invocation args for a single prompt */
   args: (prompt: string) => string[];
+  /** Enforceable policy used by the Web proposal runner. */
+  proposalPolicy: "no-tools" | "read-only" | "unsupported";
 };
 
 export const KNOWN: CliSpec[] = [
-  { id: "claude", name: "Claude Code", bin: "claude", run: "claude -p", url: "https://claude.ai/code", args: (p) => ["-p", p] },
-  { id: "codex", name: "Codex", bin: "codex", run: "codex exec", url: "https://github.com/openai/codex", args: (p) => ["exec", p] },
-  { id: "gemini", name: "Gemini CLI", bin: "gemini", run: "gemini -p", url: "https://github.com/google-gemini/gemini-cli", args: (p) => ["-p", p] },
-  { id: "opencode", name: "OpenCode", bin: "opencode", run: "opencode run", url: "https://opencode.ai", args: (p) => ["run", p] },
-  { id: "copilot", name: "GitHub Copilot CLI", bin: "copilot", run: "copilot -p", url: "https://docs.github.com/en/copilot/github-copilot-in-the-cli", args: (p) => ["-p", p] },
-  { id: "qwen", name: "Qwen CLI", bin: "qwen", run: "qwen -p", url: "https://qwen.ai/qwencode", args: (p) => ["-p", p] },
-  { id: "antigravity", name: "Antigravity CLI", bin: "agy", run: "agy -p", url: "https://antigravity.google", args: (p) => ["-p", p] },
+  { id: "claude", name: "Claude Code", bin: "claude", run: "claude -p", url: "https://claude.ai/code", args: (p) => ["-p", p], proposalPolicy: "no-tools" },
+  { id: "codex", name: "Codex", bin: "codex", run: "codex exec", url: "https://github.com/openai/codex", args: (p) => ["exec", p], proposalPolicy: "read-only" },
+  { id: "gemini", name: "Gemini CLI", bin: "gemini", run: "gemini -p", url: "https://github.com/google-gemini/gemini-cli", args: (p) => ["-p", p], proposalPolicy: "unsupported" },
+  { id: "opencode", name: "OpenCode", bin: "opencode", run: "opencode run", url: "https://opencode.ai", args: (p) => ["run", p], proposalPolicy: "unsupported" },
+  { id: "copilot", name: "GitHub Copilot CLI", bin: "copilot", run: "copilot -p", url: "https://docs.github.com/en/copilot/github-copilot-in-the-cli", args: (p) => ["-p", p], proposalPolicy: "unsupported" },
+  { id: "qwen", name: "Qwen CLI", bin: "qwen", run: "qwen -p", url: "https://qwen.ai/qwencode", args: (p) => ["-p", p], proposalPolicy: "unsupported" },
+  { id: "antigravity", name: "Antigravity CLI", bin: "agy", run: "agy -p", url: "https://antigravity.google", args: (p) => ["-p", p], proposalPolicy: "unsupported" },
 ];
+
+export function proposalCapable(id: string): boolean {
+  return KNOWN.some((item) => item.id === id && item.proposalPolicy !== "unsupported");
+}
+
+export function proposalArgs(id: string, prompt: string): string[] {
+  if (id === "claude") {
+    return [
+      "-p", prompt, "--output-format", "json", "--permission-mode", "dontAsk",
+      "--disallowedTools", "Bash,Write,Edit,Read,WebFetch,WebSearch,Glob,Grep,Task,NotebookEdit",
+    ];
+  }
+  if (id === "codex") {
+    return [
+      "exec", prompt, "--sandbox", "read-only", "--ephemeral", "--ignore-user-config",
+      "--ignore-rules", "--skip-git-repo-check", "--color", "never",
+    ];
+  }
+  throw new Error(`CLI ${id} does not expose an enforceable Web proposal policy`);
+}
+
+export function minimalCliEnv(id: string, source: Record<string, string | undefined> = process.env): NodeJS.ProcessEnv {
+  const common = [
+    "PATH", "PATHEXT", "SystemRoot", "WINDIR", "COMSPEC", "TEMP", "TMP", "USERPROFILE", "HOME",
+    "APPDATA", "LOCALAPPDATA", "LANG", "LC_ALL", "TERM", "COLORTERM",
+  ];
+  const credentials = id === "claude"
+    ? ["ANTHROPIC_API_KEY", "CLAUDE_CONFIG_DIR"]
+    : id === "codex" ? ["OPENAI_API_KEY", "CODEX_HOME"] : [];
+  return {
+    NODE_ENV: process.env.NODE_ENV || "production",
+    ...Object.fromEntries([...common, ...credentials]
+      .filter((key) => typeof source[key] === "string")
+      .map((key) => [key, source[key] as string])),
+  } as NodeJS.ProcessEnv;
+}
 
 function searchDirs(): string[] {
   const home = os.homedir();
@@ -86,7 +124,11 @@ export function detectClis() {
   const dirs = searchDirs();
   return KNOWN.map((c) => {
     const found = findBin(c.bin, dirs);
-    return { id: c.id, name: c.name, run: c.run, url: c.url, installed: !!found, path: found };
+    return {
+      id: c.id, name: c.name, run: c.run, url: c.url, installed: !!found, path: found,
+      proposalPolicy: c.proposalPolicy,
+      proposalAvailable: Boolean(found) && c.proposalPolicy !== "unsupported",
+    };
   });
 }
 
@@ -96,4 +138,9 @@ export function resolveCli(id: string): { spec: CliSpec; binPath: string } | nul
   const binPath = findBin(spec.bin);
   if (!binPath) return null;
   return { spec, binPath };
+}
+
+export function resolveProposalCli(id: string): { spec: CliSpec; binPath: string } | null {
+  if (!proposalCapable(id)) return null;
+  return resolveCli(id);
 }

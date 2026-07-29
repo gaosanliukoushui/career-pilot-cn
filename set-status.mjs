@@ -43,11 +43,11 @@
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { extractTrackerReportNumbers, resolveColumns, parseTrackerRow } from './tracker-parse.mjs';
+import { resolveColumns, parseTrackerRow } from './tracker-parse.mjs';
 import { roleFuzzyMatch } from './role-matcher.mjs';
 import {
-  rebuildRow, resolveTrackerPath, trackerLockDirFor, acquireTrackerLock,
-  writeFileAtomic, loadCanonicalStates, resolveCanonicalState, normalizeCompany, cell,
+  applyCanonicalTrackerStatusChange, resolveCanonicalTrackerState, resolveTrackerPath, trackerLockDirFor, acquireTrackerLock,
+  writeFileAtomic, normalizeCompany,
 } from './tracker-utils.mjs';
 
 const CAREER_OPS = dirname(fileURLToPath(import.meta.url));
@@ -145,16 +145,10 @@ function failUsage(message) {
 
 // ── state validation (before anything touches the tracker) ──────
 
-let states;
 try {
-  states = loadCanonicalStates(STATES_FILE);
+  resolveCanonicalTrackerState(STATES_FILE, stateInput);
 } catch (err) {
-  failWith(EXIT_USAGE, 'states-error', `Cannot load canonical states from ${STATES_FILE}: ${err.message}`);
-}
-const newStatus = resolveCanonicalState(stateInput, states);
-if (!newStatus) {
-  const valid = states.map(s => s.label).join(' · ');
-  failWith(EXIT_USAGE, 'invalid-state', `"${stateInput}" is not a canonical state. Valid states: ${valid}`);
+  failWith(EXIT_USAGE, err.code === 'TRACKER_INVALID_STATE' ? 'invalid-state' : 'states-error', err.message);
 }
 
 // ── tracker access ───────────────────────────────────────────────
@@ -273,20 +267,6 @@ const target = resolveRow(rows);
 // has made the row ID disagree with its local report link, silently updating
 // that row can affect the wrong application. Company selectors remain usable,
 // and --force records an explicit decision to proceed despite the mismatch.
-if (/^\d+$/.test(selector) && !flags.force) {
-  const reportNums = extractTrackerReportNumbers(target.report);
-  const mismatched = reportNums.filter(num => num !== target.num);
-  if (mismatched.length > 0) {
-    failWith(
-      EXIT_AMBIGUOUS,
-      'report-number-mismatch',
-      `Tracker #${target.num} points to report ID(s) ${reportNums.map(num => `#${num}`).join(', ')}. ` +
-        'Use the company selector, repair the Report cell, or re-run with --force.',
-      { trackerNum: target.num, reportNums },
-    );
-  }
-}
-
 // --role is an explicit statement of which opening the caller means, but
 // resolveRow only consults it to break ties between 2+ candidates. A selector
 // matching exactly one row therefore returned that row without ever checking
@@ -321,43 +301,28 @@ if (flags.role && !flags.force && !roleMatchesTarget) {
     { trackerNum: target.num, rowRole: target.role, requestedRole: flags.role },
   );
 }
-const oldStatus = target.status;
-const note = flags.note != null ? cell(flags.note) : null;
-
-// Rebuild only the matched line: change the Status cell, append the note, keep
-// every other cell exactly as parsed.
-const parts = lines[target.lineIdx].split('|').map(s => s.trim());
-while (parts.length <= Math.max(colmap.status, colmap.notes ?? 0)) parts.push('');
-
-const statusChanged = parts[colmap.status] !== newStatus;
-parts[colmap.status] = newStatus;
-
-let noteChanged = false;
-if (note) {
-  if (colmap.notes == null) {
-    failWith(EXIT_USAGE, 'no-notes-column', 'Tracker has no Notes column — cannot apply --note');
+let mutation;
+try {
+  mutation = applyCanonicalTrackerStatusChange({
+    lines,
+    lineIndex: target.lineIdx,
+    columns: colmap,
+    requestedStatus: stateInput,
+    rawNote: flags.note,
+    statesPath: STATES_FILE,
+    expectedTrackerNum: target.num,
+    enforceReportIdentity: /^\d+$/.test(selector) && !flags.force,
+  });
+} catch (error) {
+  if (error.code === 'TRACKER_NOTES_COLUMN_MISSING') failWith(EXIT_USAGE, 'no-notes-column', error.message);
+  if (error.code === 'TRACKER_REPORT_MISMATCH') {
+    failWith(EXIT_AMBIGUOUS, 'report-number-mismatch', `${error.message}. Use the company selector, repair the Report cell, or re-run with --force.`, error.details);
   }
-  const existing = parts[colmap.notes] ?? '';
-  // Delimiter-aware idempotency: the note counts as already present only when
-  // it appears as a whole "; "-delimited entry (or as the entire field) — a
-  // bare substring of a longer entry ("sent" inside "sent CV") must not
-  // suppress a genuinely new note. Matching the full note text at entry
-  // boundaries (instead of splitting the field into segments) keeps retries
-  // idempotent even when the note itself contains "; ".
-  const hasNote = existing === note
-    || existing.startsWith(`${note}; `)
-    || existing.endsWith(`; ${note}`)
-    || existing.includes(`; ${note}; `);
-  if (!hasNote) {
-    parts[colmap.notes] = existing && existing !== '—' && existing !== '-' ? `${existing}; ${note}` : note;
-    noteChanged = true;
-  }
+  throw error;
 }
-
-const changed = statusChanged || noteChanged;
+const { changed, statusChanged, oldStatus, newStatus, note } = mutation;
 
 if (changed && !flags.dryRun) {
-  lines[target.lineIdx] = rebuildRow(parts);
   try {
     writeFileAtomic(APPS_FILE, lines.join('\n'));
   } catch (err) {

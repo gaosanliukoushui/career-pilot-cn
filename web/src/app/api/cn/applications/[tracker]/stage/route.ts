@@ -10,6 +10,7 @@ export async function POST(request: Request, context: { params: Promise<{ tracke
   const args = ["application-stage", tracker, body.stage];
   if (typeof body.note === "string" && body.note.trim()) args.push("--note", body.note.trim());
   const result = await runCareerPilot(args);
-  return Response.json(result.ok ? result.data : { error: result.error, details: result.details }, { status: result.ok ? 200 : 422 });
+  const status = result.ok ? 200 : result.code === "APPLICATION_STATUS_CONFLICT" ? 409
+    : result.code === "LOCK_TIMEOUT" ? 423 : 422;
+  return Response.json(result.ok ? result.data : { error: result.error, code: result.code, details: result.details }, { status });
 }
-

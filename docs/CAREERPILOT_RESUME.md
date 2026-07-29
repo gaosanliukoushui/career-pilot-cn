@@ -32,14 +32,16 @@ Phase 2 在 CandidateProfile 之上建立 `ResumeVariant`。简历不是新的�
 
 ```powershell
 node careerpilot.mjs resume-preview --template tech-two-page
-node careerpilot.mjs resume-save --template soe-one-page --ready
-node careerpilot.mjs resume-export --template soe-one-page --format md
-node careerpilot.mjs resume-export --template tech-two-page --format docx
-node careerpilot.mjs resume-export --template application-detail --format pdf
+node careerpilot.mjs resume-preview --template soe-one-page > preview.json
+(Get-Content preview.json -Raw | ConvertFrom-Json).variant | ConvertTo-Json -Depth 100 | node careerpilot.mjs resume-confirm --stdin > confirmed.json
+(Get-Content confirmed.json -Raw | ConvertFrom-Json).variant | ConvertTo-Json -Depth 100 | node careerpilot.mjs resume-export --variant-stdin --format md
 node careerpilot.mjs resume-list --approved
+node careerpilot.mjs resume-tailor-suggest --job job.example --baseline resume.example
 node careerpilot.mjs resume-tailor-preview --stdin
 node careerpilot.mjs resume-tailor-export --stdin
 ```
+
+`resume-export` 不再接收模板 ID 直接生成正式文件：必须通过 `--variant-stdin` 提交刚刚预览并显式确认、且仍通过哈希和事实门禁校验的 `ResumeVariant`。Markdown、DOCX 与 PDF 使用同一确认边界。
 
 可选的一次性授权参数为 `--authorize-photo` 和
 `--authorize-political-status`。正式文件只允许写入 `output/careerpilot/`；每个

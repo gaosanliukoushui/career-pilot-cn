@@ -16,7 +16,6 @@ export function CareerPilotCnFirstRun() {
         </ol>
         <div className="mt-7 flex flex-wrap gap-3">
           <Link href="/profile" className="rounded-md bg-brand px-5 py-2.5 font-medium text-brand-foreground">建立个人事实与证据</Link>
-          <Link href="/job-analysis" className="rounded-md border border-border px-5 py-2.5 font-medium hover:bg-surface-hover">先查看岗位分析入口</Link>
         </div>
         <p className="mt-5 text-xs text-faint">身份证号码、家庭成员和详细住址不会保存到本地文件；需要时仅提示本人在官网手工填写。</p>
       </section>

@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { resolveCli } from "@/lib/clis";
+import { minimalCliEnv, proposalArgs, resolveProposalCli } from "@/lib/clis";
 import { runCareerPilot } from "@/lib/careerpilot";
 import type { JobPosting } from "@/lib/cn-types";
 
@@ -27,8 +27,9 @@ function parseJsonOutput(stdout: string): unknown {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({})) as { posting?: JobPosting; cliId?: string };
   if (!body.posting || !body.cliId) return Response.json({ error: "缺少岗位结构或 AI 命令行工具" }, { status: 400 });
-  const resolved = resolveCli(body.cliId);
-  if (!resolved) return Response.json({ error: "所选 AI 命令行工具未安装" }, { status: 404 });
+  if (body.posting.confirmation?.status !== "confirmed") return Response.json({ error: "请先逐条确认岗位结构和资格规则" }, { status: 409 });
+  const resolved = resolveProposalCli(body.cliId);
+  if (!resolved) return Response.json({ error: "所选 AI 命令行工具未安装，或无法强制只读/无工具策略" }, { status: 404 });
   const contextResult = await runCareerPilot<{ facts?: Array<{ id: string; type: string; statement: string }>; structured?: unknown }>(["job-context"]);
   if (!contextResult.ok || !contextResult.data) return Response.json({ error: contextResult.error || "无法读取脱敏事实上下文" }, { status: 422 });
   const context = contextResult.data;
@@ -41,13 +42,11 @@ export async function POST(request: Request) {
     `已脱敏且允许用于匹配的候选人事实：${JSON.stringify(context)}`,
   ].join("\n\n");
   const { spec, binPath } = resolved;
-  const args = body.cliId === "claude"
-    ? ["-p", prompt, "--output-format", "json", "--permission-mode", "dontAsk", "--disallowedTools", "Bash,Write,Edit,Read,WebFetch,WebSearch,Glob,Grep,Task,NotebookEdit"]
-    : spec.args(prompt);
+  const args = proposalArgs(spec.id, prompt);
   const isolatedCwd = await fs.mkdtemp(path.join(os.tmpdir(), "careerpilot-cn-proposal-"));
   try {
     const output = await new Promise<string>((resolve, reject) => {
-      const child = spawn(binPath, args, { cwd: isolatedCwd, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+      const child = spawn(binPath, args, { cwd: isolatedCwd, env: minimalCliEnv(spec.id), stdio: ["ignore", "pipe", "pipe"] });
       let stdout = "";
       let stderr = "";
       const timer = setTimeout(() => { child.kill("SIGTERM"); reject(new Error("AI 匹配建议超时")); }, 120_000);

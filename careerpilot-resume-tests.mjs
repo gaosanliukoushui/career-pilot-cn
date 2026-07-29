@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { platform } from 'node:process';
 import yaml from 'js-yaml';
 import {
+  confirmResumeVariant,
   createResumeVariant,
   exportResume,
   renderResumeDocx,
@@ -90,6 +91,18 @@ writeFileSync(join(root, 'profile', 'evidence', 'photo.png'), Buffer.from('iVBOR
 
 const templates = ['soe-one-page', 'tech-two-page', 'application-detail'];
 const variants = templates.map((template) => createResumeVariant(root, { template }));
+
+test('主简历只能由实际预览草稿显式确认进入 ready，确认后变更会失效', () => {
+  const draft = createResumeVariant(root, { template: 'soe-one-page' });
+  assert.equal(draft.status, 'draft');
+  const { variant } = confirmResumeVariant(root, draft);
+  assert.equal(variant.status, 'ready');
+  assert.equal(variant.confirmation.status, 'confirmed');
+  assert.match(variant.confirmation.preview_sha256, /^[a-f0-9]{64}$/);
+  const changed = structuredClone(variant);
+  changed.order = [...changed.order].reverse();
+  assert.ok(validateResumeVariant(root, changed).errors.some((item) => item.code === 'confirmed_preview_hash_mismatch'));
+});
 
 test('三类模板均只采用通过发布门槛的事实', () => {
   for (const variant of variants) {
@@ -256,25 +269,33 @@ assert.match(documentXml, /Microsoft YaHei/);
 console.log('PASS DOCX 是可编辑的结构化 Word 文档并保留 Fact 标记');
 passed += 1;
 
-const markdownExport = await exportResume(root, variants[0], 'md', 'output/careerpilot/anonymous-soe.md');
+await assert.rejects(
+  () => exportResume(root, variants[0], 'md', 'output/careerpilot/unconfirmed.md'),
+  (error) => error.code === 'RESUME_NOT_CONFIRMED',
+);
+console.log('PASS 未确认主简历无法从核心或 CLI 导出');
+passed += 1;
+
+const confirmedExportVariant = confirmResumeVariant(root, variants[0]).variant;
+const markdownExport = await exportResume(root, confirmedExportVariant, 'md', 'output/careerpilot/anonymous-soe.md');
 assert.ok(existsSync(markdownExport.path));
 assert.ok(existsSync(`${markdownExport.path}.manifest.json`));
-assert.equal(JSON.parse(readFileSync(`${markdownExport.path}.manifest.json`, 'utf8')).fact_ids.length, variants[0].fact_ids.length);
+assert.equal(JSON.parse(readFileSync(`${markdownExport.path}.manifest.json`, 'utf8')).fact_ids.length, confirmedExportVariant.fact_ids.length);
 console.log('PASS 导出采用正式文件与追踪 manifest 的原子发布');
 passed += 1;
 
 const blockedOutput = join(root, 'output', 'careerpilot', 'blocked.md');
 mkdirSync(`${blockedOutput}.manifest.json`, { recursive: true });
-await assert.rejects(() => exportResume(root, variants[0], 'md', 'output/careerpilot/blocked.md'), /already exists/);
+await assert.rejects(() => exportResume(root, confirmedExportVariant, 'md', 'output/careerpilot/blocked.md'), /already exists/);
 assert.equal(existsSync(blockedOutput), false);
 console.log('PASS manifest 发布失败前不会留下正式简历文件');
 passed += 1;
 
-await assert.rejects(() => exportResume(root, variants[0], 'md', 'output/careerpilot/anonymous-soe.md'), /already exists/);
+await assert.rejects(() => exportResume(root, confirmedExportVariant, 'md', 'output/careerpilot/anonymous-soe.md'), /already exists/);
 console.log('PASS 已发布导出不可静默覆盖');
 passed += 1;
 
-const cleanupVariant = createResumeVariant(root, { template: 'soe-one-page' });
+const cleanupVariant = confirmResumeVariant(root, createResumeVariant(root, { template: 'soe-one-page' })).variant;
 const cleanupExport = await exportResume(root, cleanupVariant, 'md', 'output/careerpilot/cleanup-warning.md', {
   beforeCommittedCleanup() { throw new Error('simulated antivirus lock'); },
 });
@@ -294,7 +315,7 @@ console.log('PASS 导出拒绝事实资料在预览后发生漂移');
 passed += 1;
 
 if (platform === 'win32') {
-  await assert.rejects(() => exportResume(root, variants[0], 'md', 'Z:\\careerpilot-escape.md'), /output\/careerpilot/);
+  await assert.rejects(() => exportResume(root, confirmedExportVariant, 'md', 'Z:\\careerpilot-escape.md'), /output\/careerpilot/);
   console.log('PASS Windows 跨盘绝对路径不能绕过导出目录');
   passed += 1;
 }

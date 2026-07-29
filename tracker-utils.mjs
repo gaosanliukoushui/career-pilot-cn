@@ -13,6 +13,7 @@ import { join, dirname, basename, resolve, relative, isAbsolute, sep } from 'pat
 import { createHash, randomUUID } from 'crypto';
 import { tmpdir } from 'os';
 import yaml from 'js-yaml';
+import { extractTrackerReportNumbers, parseTrackerRow } from './tracker-parse.mjs';
 
 /**
  * Rebuild a markdown table row from the cells produced by `line.split('|')`.
@@ -64,6 +65,90 @@ export function normalizeCompany(name) {
  */
 export function cell(v) {
   return String(v ?? '').replace(/[\r\n]+/g, ' ').replace(/\s*\|\s*/g, ' / ').trim();
+}
+
+/**
+ * Apply the canonical Status/Notes cell mutation used by set-status and any
+ * domain transaction that must publish a sidecar under the same tracker lock.
+ * The caller remains responsible for canonical-state validation and commit.
+ */
+export function applyTrackerStatusChange(lines, lineIndex, columns, newStatus, rawNote = null) {
+  const parts = lines[lineIndex].split('|').map((value) => value.trim());
+  while (parts.length <= Math.max(columns.status, columns.notes ?? 0)) parts.push('');
+  const oldStatus = parts[columns.status];
+  const statusChanged = oldStatus !== newStatus;
+  parts[columns.status] = newStatus;
+  const note = rawNote == null ? null : cell(rawNote);
+  let noteChanged = false;
+  if (note) {
+    if (columns.notes == null) {
+      const error = new Error('Tracker has no Notes column — cannot apply note');
+      error.code = 'TRACKER_NOTES_COLUMN_MISSING';
+      throw error;
+    }
+    const existing = parts[columns.notes] ?? '';
+    const hasNote = existing === note || existing.startsWith(`${note}; `)
+      || existing.endsWith(`; ${note}`) || existing.includes(`; ${note}; `);
+    if (!hasNote) {
+      parts[columns.notes] = existing && !['—', '-'].includes(existing) ? `${existing}; ${note}` : note;
+      noteChanged = true;
+    }
+  }
+  if (statusChanged || noteChanged) lines[lineIndex] = rebuildRow(parts);
+  return { changed: statusChanged || noteChanged, statusChanged, noteChanged, oldStatus, newStatus, note };
+}
+
+/**
+ * Resolve one status through templates/states.yml and fail closed when it is
+ * not canonical. This is shared by the CLI and in-process domain writers.
+ */
+export function resolveCanonicalTrackerState(statesPath, requestedStatus) {
+  const states = loadCanonicalStates(statesPath);
+  const canonical = resolveCanonicalState(requestedStatus, states);
+  if (!canonical) {
+    const error = new Error(`"${requestedStatus}" is not a canonical state. Valid states: ${states.map((state) => state.label).join(' · ')}`);
+    error.code = 'TRACKER_INVALID_STATE';
+    error.validStates = states.map((state) => state.label);
+    throw error;
+  }
+  return canonical;
+}
+
+/**
+ * Canonical status mutation boundary. It validates states.yml, confirms the
+ * selected row still has the expected tracker identity, applies the same
+ * report-link mismatch guard as set-status, then mutates Status/Notes.
+ * Callers own the surrounding lock/commit so a domain sidecar can participate
+ * in the same transaction and compensate the tracker on failure.
+ */
+export function applyCanonicalTrackerStatusChange({
+  lines, lineIndex, columns, requestedStatus, rawNote = null, statesPath,
+  expectedTrackerNum = null, expectedReportPath = null, enforceReportIdentity = true,
+}) {
+  const canonical = resolveCanonicalTrackerState(statesPath, requestedStatus);
+  const row = parseTrackerRow(lines[lineIndex], columns);
+  if (!row || (expectedTrackerNum != null && row.num !== Number(expectedTrackerNum))) {
+    const error = new Error(`Tracker row identity changed before status mutation${expectedTrackerNum == null ? '' : `: expected #${expectedTrackerNum}`}`);
+    error.code = 'TRACKER_ROW_IDENTITY_MISMATCH';
+    throw error;
+  }
+  if (enforceReportIdentity) {
+    const reportNums = extractTrackerReportNumbers(row.report);
+    const mismatched = reportNums.filter((number) => number !== row.num);
+    const markdownLink = String(row.report || '').trim().match(/^\[(\d+)\]\((.+)\)$/);
+    const labelMismatch = markdownLink && Number(markdownLink[1]) !== row.num;
+    const normalizeReportPath = (value) => String(value || '').replaceAll('\\', '/').replace(/^(?:\.\.\/|\.\/)+/, '');
+    const expectedPath = normalizeReportPath(expectedReportPath);
+    const actualPath = normalizeReportPath(markdownLink?.[2]);
+    const pathMismatch = expectedPath && actualPath !== expectedPath;
+    if (mismatched.length || labelMismatch || pathMismatch) {
+      const error = new Error(`Tracker #${row.num} points to report ID(s) ${reportNums.map((number) => `#${number}`).join(', ')}`);
+      error.code = 'TRACKER_REPORT_MISMATCH';
+      error.details = { trackerNum: row.num, reportNums, reportCell: row.report, expectedReportPath: expectedReportPath || null };
+      throw error;
+    }
+  }
+  return applyTrackerStatusChange(lines, lineIndex, columns, canonical, rawNote);
 }
 
 /**

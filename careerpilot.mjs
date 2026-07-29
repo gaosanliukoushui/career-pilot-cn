@@ -46,13 +46,16 @@ function usage() {
       'node careerpilot.mjs preview-cv [--root PATH]',
       'node careerpilot.mjs audit [--root PATH]',
       'node careerpilot.mjs resume-preview [--stdin | --template soe-one-page|tech-two-page|application-detail] [--root PATH]',
-      'node careerpilot.mjs resume-save --template TEMPLATE [--ready] [--root PATH]',
-      'node careerpilot.mjs resume-export [--variant-stdin | --template TEMPLATE] --format md|html|docx|pdf [--output output/careerpilot/FILE] [--root PATH]',
-      'node careerpilot.mjs job-parse --stdin | --file PATH | --url URL [--root PATH]',
+      'node careerpilot.mjs resume-save --template TEMPLATE [--root PATH]',
+      'node careerpilot.mjs resume-confirm --stdin [--root PATH]',
+      'node careerpilot.mjs resume-export --variant-stdin --format md|html|docx|pdf [--output output/careerpilot/FILE] [--root PATH]',
+      'node careerpilot.mjs job-parse --stdin | --file PATH [--allowed-root PATH] | --url URL [--root PATH]',
+      'node careerpilot.mjs job-confirm --stdin [--root PATH]',
       'node careerpilot.mjs job-evaluate --stdin [--no-persist] [--root PATH]',
       'node careerpilot.mjs job-proposal-validate --stdin [--root PATH]',
       'node careerpilot.mjs job-show JOB_ID [--root PATH]',
       'node careerpilot.mjs resume-tailor-preview --job JOB_ID --baseline VARIANT_ID [--stdin] [--save] [--root PATH]',
+      'node careerpilot.mjs resume-tailor-suggest --job JOB_ID --baseline VARIANT_ID [--root PATH]',
       'node careerpilot.mjs resume-tailor-export --stdin --format md|html|docx|pdf [--output output/careerpilot/FILE] [--root PATH]',
       'node careerpilot.mjs application-prepare --job JOB_ID [--root PATH]',
       'node careerpilot.mjs application-stage TRACKER_NUM STAGE [--note TEXT] [--root PATH]',
@@ -63,6 +66,8 @@ function usage() {
       'node careerpilot.mjs profile-structure --stdin [--root PATH]',
       'node careerpilot.mjs resume-list [--approved] [--root PATH]',
       'node careerpilot.mjs resume-variant-show VARIANT_ID [--root PATH]',
+      'node careerpilot.mjs resume-workspace [--root PATH]',
+      'node careerpilot.mjs resume-tailoring-show PREVIEW_ID [--root PATH]',
     ],
   };
 }
@@ -188,23 +193,21 @@ async function main() {
           photo: args.includes('--authorize-photo'),
           political_status: args.includes('--authorize-political-status'),
         },
-        status: args.includes('--ready') ? 'ready' : 'draft',
+        status: 'draft',
       });
       process.stdout.write(`${JSON.stringify({ variant, path: saveResumeVariant(root, variant) })}\n`);
       return;
     }
+    case 'resume-confirm': {
+      if (!args.includes('--stdin')) throw new Error('resume-confirm requires --stdin');
+      const { confirmResumeVariant } = await loadResumeCore();
+      process.stdout.write(`${JSON.stringify(confirmResumeVariant(root, JSON.parse(await readStdin())))}\n`);
+      return;
+    }
     case 'resume-export': {
-      const { createResumeVariant, exportResume } = await loadResumeCore();
-      const variant = args.includes('--variant-stdin')
-        ? JSON.parse(await readStdin())
-        : createResumeVariant(root, {
-            template: option(args, '--template', 'soe-one-page'),
-            sensitive_authorizations: {
-              photo: args.includes('--authorize-photo'),
-              political_status: args.includes('--authorize-political-status'),
-            },
-            status: 'ready',
-          });
+      if (!args.includes('--variant-stdin')) throw new Error('resume-export requires a previewed and confirmed ResumeVariant via --variant-stdin');
+      const { exportResume } = await loadResumeCore();
+      const variant = JSON.parse(await readStdin());
       const result = await exportResume(
         root,
         variant,
@@ -218,7 +221,8 @@ async function main() {
       const { inferJobPosting, parseJobFile, parseJobUrl } = await import('./lib/careerpilot/job-core.mjs');
       let posting;
       if (args.includes('--file')) {
-        posting = await parseJobFile(required(option(args, '--file'), '--file'));
+        const allowedRoot = option(args, '--allowed-root');
+        posting = await parseJobFile(required(option(args, '--file'), '--file'), allowedRoot ? { allowed_root: allowedRoot } : {});
       } else if (args.includes('--url')) {
         posting = await parseJobUrl(required(option(args, '--url'), '--url'));
       } else if (args.includes('--stdin')) {
@@ -242,6 +246,17 @@ async function main() {
       const report = evaluateJob(root, posting, payload);
       const paths = args.includes('--no-persist') ? null : saveJobEvaluation(root, posting, report);
       process.stdout.write(`${JSON.stringify({ posting, report, paths })}\n`);
+      return;
+    }
+    case 'job-confirm': {
+      if (!args.includes('--stdin')) throw new Error('job-confirm requires --stdin');
+      const { confirmJobPosting } = await import('./lib/careerpilot/job-core.mjs');
+      const payload = JSON.parse(await readStdin());
+      const posting = confirmJobPosting(required(payload.posting, 'posting'), {
+        official_source_confirmed: payload.official_source_confirmed === true,
+        official_source_evidence: payload.official_source_evidence,
+      });
+      process.stdout.write(`${JSON.stringify(posting)}\n`);
       return;
     }
     case 'job-proposal-validate': {
@@ -277,13 +292,14 @@ async function main() {
     }
     case 'application-prepare': {
       const { prepareApplication } = await import('./lib/careerpilot/application-core.mjs');
-      const result = await prepareApplication(root, required(option(args, '--job'), '--job'));
+      const supplied = args.includes('--stdin') ? JSON.parse(await readStdin()) : {};
+      const result = await prepareApplication(root, required(option(args, '--job'), '--job'), supplied);
       process.stdout.write(`${JSON.stringify(result)}\n`);
       return;
     }
     case 'application-stage': {
       const { updateApplicationStage } = await import('./lib/careerpilot/application-core.mjs');
-      const result = updateApplicationStage(root, Number(required(positionals[0], 'TRACKER_NUM')), required(positionals[1], 'STAGE'), { note: option(args, '--note') });
+      const result = await updateApplicationStage(root, Number(required(positionals[0], 'TRACKER_NUM')), required(positionals[1], 'STAGE'), { note: option(args, '--note') });
       process.stdout.write(`${JSON.stringify(result)}\n`);
       return;
     }
@@ -297,7 +313,7 @@ async function main() {
       if (!args.includes('--stdin')) throw new Error('application-fields requires --stdin');
       const { updateApplicationFields } = await import('./lib/careerpilot/application-core.mjs');
       const updates = JSON.parse(await readStdin());
-      process.stdout.write(`${JSON.stringify({ application: updateApplicationFields(root, Number(required(positionals[0], 'TRACKER_NUM')), updates) })}\n`);
+      process.stdout.write(`${JSON.stringify({ application: await updateApplicationFields(root, Number(required(positionals[0], 'TRACKER_NUM')), updates) })}\n`);
       return;
     }
     case 'application-list': {
@@ -313,6 +329,25 @@ async function main() {
     case 'resume-variant-show': {
       const { resumeVariantContext } = await import('./lib/careerpilot/tailoring-core.mjs');
       process.stdout.write(`${JSON.stringify(resumeVariantContext(root, required(positionals[0], 'VARIANT_ID')))}\n`);
+      return;
+    }
+    case 'resume-workspace': {
+      const { listResumeWorkspace } = await import('./lib/careerpilot/tailoring-core.mjs');
+      process.stdout.write(`${JSON.stringify(listResumeWorkspace(root))}\n`);
+      return;
+    }
+    case 'resume-tailoring-show': {
+      const { loadTailoringPreview } = await import('./lib/careerpilot/tailoring-core.mjs');
+      process.stdout.write(`${JSON.stringify(loadTailoringPreview(root, required(positionals[0], 'PREVIEW_ID')))}\n`);
+      return;
+    }
+    case 'resume-tailor-suggest': {
+      const { generateTailoringRewriteCandidates } = await import('./lib/careerpilot/tailoring-core.mjs');
+      process.stdout.write(`${JSON.stringify(generateTailoringRewriteCandidates(
+        root,
+        required(option(args, '--job'), '--job'),
+        required(option(args, '--baseline'), '--baseline'),
+      ))}\n`);
       return;
     }
     case '--help':

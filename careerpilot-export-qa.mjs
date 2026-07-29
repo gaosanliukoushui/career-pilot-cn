@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import yaml from 'js-yaml';
 import JSZip from 'jszip';
-import { createResumeVariant, exportResume } from './lib/careerpilot/resume-core.mjs';
+import { confirmResumeVariant, createResumeVariant, exportResume } from './lib/careerpilot/resume-core.mjs';
 import { randomUUID } from 'node:crypto';
 
 const repoRoot = import.meta.dirname;
@@ -33,7 +33,7 @@ writeFileSync(join(qaRoot, 'profile', 'candidate.yml'), yaml.dump(profile, { noR
 
 const results = [];
 for (const template of ['soe-one-page', 'tech-two-page', 'application-detail']) {
-  const variant = createResumeVariant(qaRoot, { template, status: 'ready' });
+  const variant = confirmResumeVariant(qaRoot, createResumeVariant(qaRoot, { template })).variant;
   for (const format of ['md', 'docx', 'pdf']) {
     const relativePath = `output/careerpilot/runs/${runId}/${template}.${format}`;
     const result = await exportResume(qaRoot, variant, format, relativePath);

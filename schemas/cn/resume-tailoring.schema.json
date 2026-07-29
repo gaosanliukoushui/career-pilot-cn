@@ -4,7 +4,7 @@
   "title": "ResumeTailoringPreview",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "job_id", "source_job_sha256", "source_profile_sha256", "baseline_variant_id", "baseline_variant_sha256", "baseline_fact_count", "changed_fact_ids", "change_ratio", "maximum_change_ratio", "allowed", "block_reasons", "proposed_variant"],
+  "required": ["schema_version", "id", "job_id", "source_job_sha256", "source_profile_sha256", "baseline_variant_id", "baseline_variant_sha256", "baseline_fact_count", "changed_fact_ids", "change_ratio", "maximum_change_ratio", "allowed", "block_reasons", "rewrite_reviews", "changes", "proposed_variant"],
   "properties": {
     "schema_version": { "const": 1 },
     "id": { "type": "string", "pattern": "^tailoring\\.[a-f0-9]{16,64}$" },
@@ -18,8 +18,36 @@
     "change_ratio": { "type": "number", "minimum": 0 },
     "maximum_change_ratio": { "const": 0.3 },
     "allowed": { "type": "boolean" },
-    "block_reasons": { "type": "array", "uniqueItems": true, "items": { "enum": ["tailoring_limit_exceeded", "eligibility_blocked"] } },
+    "block_reasons": { "type": "array", "uniqueItems": true, "items": { "enum": ["tailoring_limit_exceeded", "eligibility_blocked", "rewrite_confirmation_pending"] } },
+    "rewrite_reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fact_id", "original_statement", "proposed_statement", "status"],
+        "properties": {
+          "fact_id": { "type": "string", "minLength": 1 },
+          "original_statement": { "type": "string", "minLength": 1 },
+          "proposed_statement": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["pending", "accepted", "rejected"] }
+        }
+      }
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fact_id", "type", "before", "after", "confirmation_status"],
+        "properties": {
+          "fact_id": { "type": "string" },
+          "type": { "enum": ["added", "removed", "rewritten", "reordered"] },
+          "before": { "type": ["string", "null"] },
+          "after": { "type": ["string", "null"] },
+          "confirmation_status": { "enum": ["confirmed", "pending", "rejected"] }
+        }
+      }
+    },
     "proposed_variant": { "type": "object" }
   }
 }
-

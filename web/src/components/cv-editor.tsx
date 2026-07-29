@@ -27,6 +27,7 @@ type Preview = {
     rewrites: Rewrite[];
     sensitive_authorizations: Record<string, boolean>;
     status: string;
+    confirmation: { status: "pending" | "confirmed"; confirmed_at: string | null; preview_sha256: string | null };
     diff: { added: string[]; removed: string[]; rewritten: unknown[]; reordered: { fact_id: string; from: number; to: number }[] };
   };
   markdown: string;
@@ -77,6 +78,7 @@ async function json<T>(response: Response): Promise<T> {
 export function CvEditor() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
+  const [confirmedVariant, setConfirmedVariant] = useState<Preview["variant"] | null>(null);
   const [audit, setAudit] = useState<Audit | null>(null);
   const [template, setTemplate] = useState<Template>("soe-one-page");
   const [cvText, setCvText] = useState("");
@@ -108,6 +110,7 @@ export function CvEditor() {
       if (sequence !== refreshSequence.current) return;
       setProfile(nextProfile);
       setPreview(nextPreview);
+      setConfirmedVariant(null);
       setAudit(nextAudit);
     } catch (error) {
       if (sequence !== refreshSequence.current) return;
@@ -177,7 +180,7 @@ export function CvEditor() {
       const response = await fetch("/api/resume-variants/export", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ variant: preview?.variant, format }),
+        body: JSON.stringify({ variant: confirmedVariant, format }),
       });
       if (!response.ok) throw new Error((await response.json()).error || "导出失败");
       const blob = await response.blob();
@@ -198,12 +201,28 @@ export function CvEditor() {
     }
   }
 
+  async function confirmMasterResume() {
+    if (!preview?.variant) return;
+    setBusy("确认主简历");
+    setMessage(null);
+    try {
+      const result = await json<{ variant: Preview["variant"] }>(await fetch("/api/cn/resumes/baselines", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ variant: preview.variant, confirmed: true }),
+      }));
+      setConfirmedVariant(result.variant);
+      setMessage("已确认当前预览为 ready 主简历；后续改动会要求重新确认。");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "主简历确认失败"); }
+    finally { setBusy(null); }
+  }
+
   function selectTemplate(nextTemplate: Template) {
     if (nextTemplate === template) return;
     refreshSequence.current += 1;
     setAuthorizePhoto(false);
     setAuthorizePolitical(false);
     setPreview(null);
+    setConfirmedVariant(null);
     setTemplate(nextTemplate);
   }
 
@@ -300,7 +319,7 @@ export function CvEditor() {
           <div className="rounded-2xl border border-border bg-surface/60 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><h2 className="text-sm font-semibold">差异审计</h2><p className="mt-1 text-xs text-muted">展示 {preview?.variant.diff.added.length || 0} · 删除 {preview?.variant.diff.removed.length || 0} · 改写 {preview?.variant.diff.rewritten.length || 0} · 排序 {preview?.variant.diff.reordered.length || 0}</p></div>
-              <div className="flex gap-2">{(["md", "docx", "pdf"] as const).map((format) => <button key={format} type="button" onClick={() => exportFile(format)} disabled={Boolean(busy) || !preview?.variant.fact_ids.length} className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-2 text-xs font-medium text-brand-foreground disabled:opacity-40"><FileDown className="size-3.5" />{format.toUpperCase()}</button>)}</div>
+              <div className="flex flex-wrap gap-2"><button type="button" onClick={confirmMasterResume} disabled={Boolean(busy) || !preview?.variant.fact_ids.length || Boolean(confirmedVariant)} className="rounded-lg border border-brand/40 px-3 py-2 text-xs font-medium text-brand disabled:opacity-40">{confirmedVariant ? "主简历已确认" : "确认当前预览为主简历"}</button>{(["md", "docx", "pdf"] as const).map((format) => <button key={format} type="button" onClick={() => exportFile(format)} disabled={Boolean(busy) || !confirmedVariant} className="inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-2 text-xs font-medium text-brand-foreground disabled:opacity-40"><FileDown className="size-3.5" />{format.toUpperCase()}</button>)}</div>
             </div>
             {!!preview?.variant.diff.removed.length && <p className="mt-3 break-all text-[10px] leading-4 text-faint">未进入正式输出：{preview.variant.diff.removed.join("、")}</p>}
           </div>
