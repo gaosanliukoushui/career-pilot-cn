@@ -59,7 +59,7 @@ function SourceChip({ ats, s }: { ats: AtsSource; s?: SourceState }) {
       )}
       <span className="text-[13px] font-medium text-foreground">{ATS_LABEL[ats]}</span>
       <div className="ml-auto flex flex-col items-end gap-1">
-        {state === "noisy" && <span className="text-[10px] text-faint">~{s?.unreachable} skipped</span>}
+        {state === "noisy" && <span className="text-[10px] text-faint">约 {s?.unreachable} 个已跳过</span>}
         <div className="co-src__track">
           <div className="co-src__bar" style={{ width: `${pct}%` }} />
         </div>
@@ -81,13 +81,13 @@ export function DiscoveringState() {
 
         <div className="co-ledger">
           <span className="size-1.5 rounded-full bg-emerald-500" />
-          0 tokens · $0.00 {companies > 0 && <span className="opacity-70">· {companies.toLocaleString()} companies</span>}
+          0 令牌 · $0.00 {companies > 0 && <span className="opacity-70">· {companies.toLocaleString()} 家公司</span>}
         </div>
 
         <div>
           <div className={`${instrumentSerif.className} co-disc__counter text-foreground`}>{shown}</div>
           <p className="mt-1 text-sm text-muted">
-            {phase === "revealing" ? "fresh roles found — free" : matchCount > 0 ? "fresh roles and counting…" : "scanning the network…"}
+            {phase === "revealing" ? "已找到新职位，全程免费" : matchCount > 0 ? "正在持续发现新职位…" : "正在扫描招聘网络…"}
           </p>
         </div>
 
@@ -99,7 +99,7 @@ export function DiscoveringState() {
 
         <p className="flex items-center gap-2 text-[13px] text-faint">
           <Loader2 className="size-3.5 animate-spin" />
-          {status || "Casting the net across the ATS network…"}
+          {status || "正在扫描 ATS 招聘网络…"}
         </p>
 
         {phase !== "revealing" && (

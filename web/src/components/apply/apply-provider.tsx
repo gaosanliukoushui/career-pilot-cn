@@ -78,7 +78,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     try {
       const r = await fetch("/api/apply/drive", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: id, cliId: cliId(), goal: "reach" }) });
       if (!r.body) {
-        setError("The agent couldn't start.");
+        setError("AI 助手无法启动。");
         setStatus("error");
         return;
       }
@@ -110,17 +110,17 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
             setStatus("ready"); // → the ready-effect auto-prefills if pending
           } else if (ev.t === "error") {
             finished = true;
-            setError(ev.message || "The agent couldn't reach a fillable form.");
+            setError(ev.message || "AI 助手无法到达可填写的表单。");
             setStatus("error");
           }
         }
       }
       if (!finished) {
-        setError("The agent stopped before reaching a form.");
+        setError("AI 助手在到达表单前停止了。");
         setStatus("error");
       }
     } catch (e) {
-      setError(`The agent couldn't reach the form: ${e instanceof Error ? e.message : "stream error"}.`);
+      setError(`AI 助手无法到达表单：${e instanceof Error ? e.message : "数据流错误"}。`);
       setStatus("error");
     }
   }, []);
@@ -161,7 +161,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
       setIssues(d.issues ?? []);
       setStatus("ready");
     } catch {
-      setError("Could not open the form.");
+      setError("无法打开表单。");
       setStatus("error");
     }
   }, []);
@@ -169,7 +169,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
   const prefill = useCallback(async () => {
     if (!sessionId.current) return;
     if (!cliId()) {
-      setError("Configure a CLI in Config first, then pre-fill from your CV.");
+      setError("请先在系统配置中选择命令行工具，再根据简历预填。");
       return;
     }
     setStatus("prefilling");
@@ -188,7 +188,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     try {
       const r = await fetch("/api/apply/prefill", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: sessionId.current, cliId: cliId() }) });
       if (!r.body) {
-        setError("Couldn't pre-fill — no response stream.");
+        setError("无法预填：未收到响应数据流。");
         setStatus("ready");
         return;
       }
@@ -217,19 +217,19 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
           } else if (ev.t === "done") {
             got = true;
             applyAnswers(ev.answers ?? {});
-            if ((ev.count ?? 0) === 0) setError("The planner returned 0 answers — see the diagnostics log below.");
-            else if (ev.truncated) setError("The planner was cut off — some fields were recovered, others may be blank. See diagnostics.");
+            if ((ev.count ?? 0) === 0) setError("规划器未返回回答，请查看下方诊断日志。");
+            else if (ev.truncated) setError("规划过程被中断，已恢复部分字段，其余可能为空，请查看诊断信息。");
           } else if (ev.t === "error") {
             sawError = true;
-            setError(ev.m ? `Couldn't pre-fill: ${ev.m}` : "Couldn't pre-fill from your CV.");
+            setError(ev.m ? `无法预填：${ev.m}` : "无法根据简历预填。");
             setPrefillLog((p) => [...p, `✗ ${ev.m ?? "error"}${ev.raw ? ` — raw tail: ${ev.raw.slice(0, 160)}` : ""}`]);
           }
         }
       }
-      if (!got && !sawError) setError("Pre-fill ended without answers — see the diagnostics log below.");
+      if (!got && !sawError) setError("预填结束但没有生成回答，请查看下方诊断日志。");
       setStatus("ready");
     } catch (e) {
-      setError(`Couldn't pre-fill from your CV: ${e instanceof Error ? e.message : "stream error"}. See diagnostics.`);
+      setError(`无法根据简历预填：${e instanceof Error ? e.message : "数据流错误"}。请查看诊断信息。`);
       setStatus("ready");
     }
   }, []);
@@ -272,7 +272,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
           return [...prev, ...(d.issues as ApplyIssue[]).filter((i) => !seen.has(i.message))];
         });
       }
-      if (d.navigated) setError("Heads up: the form's page changed during fill — review it carefully before submitting (career-ops never submits for you).");
+      if (d.navigated) setError("注意：填写过程中表单页面发生变化，请在提交前仔细检查（career-ops 不会替你提交）。");
       setStatus("done");
       // ESCALATION ("si no va, full agente"): if deterministic fill clearly
       // didn't land (most fields failed / mismatched), let the agent fill it.
@@ -283,7 +283,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
         await agentFillRef.current();
       }
     } catch {
-      setError("Fill failed.");
+      setError("填写失败。");
       setStatus("error");
     }
   }, [answers, fields]);
@@ -302,7 +302,7 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
     try {
       const r = await fetch("/api/apply/drive", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: sessionId.current, cliId: cliId(), goal: "full", answers: ans }) });
       if (!r.body) {
-        setError("The agent couldn't start filling.");
+        setError("AI 助手无法开始填写。");
         setStatus("error");
         return;
       }
@@ -326,16 +326,16 @@ export function ApplyProvider({ children }: { children: React.ReactNode }) {
           }
           if (ev.t === "step") setDriveSteps((p) => [...p, ev as DriveStep]);
           else if (ev.t === "done") {
-            setIssues((prev) => [...prev, { level: "info", code: "ai-filled", message: ev.filled ? "AI filled the form for you — review every answer on the real form, then submit it yourself." : "AI did its best but couldn't finish — check the real form before submitting." }]);
+            setIssues((prev) => [...prev, { level: "info", code: "ai-filled", message: ev.filled ? "AI 已填写表单，请在真实表单中检查每项回答后亲自提交。" : "AI 未能完成全部填写，请在提交前检查真实表单。" }]);
             setStatus("done");
           } else if (ev.t === "error") {
-            setError(ev.message || "The agent couldn't fill the form.");
+            setError(ev.message || "AI 助手无法填写表单。");
             setStatus("error");
           }
         }
       }
     } catch (e) {
-      setError(`The agent couldn't fill the form: ${e instanceof Error ? e.message : "stream error"}.`);
+      setError(`AI 助手无法填写表单：${e instanceof Error ? e.message : "数据流错误"}。`);
       setStatus("error");
     }
   }, []);

@@ -1,74 +1,36 @@
-import { NextResponse } from "next/server";
-import fs from "node:fs";
+import { spawn } from "node:child_process";
 import path from "node:path";
-import { careerOpsRoot } from "@/lib/career-ops";
-import { canonicalizeStatus } from "@/lib/core/states";
-import { atomicWrite } from "@/lib/core/safe-write";
+import { careerOpsRoot, rootScript } from "@/lib/career-ops";
 
-// Writeback: UPDATE the status cell of an EXISTING tracker row only. Never adds
-// rows — per the core data contract, new rows go through the TSV + merge flow.
-// HARDENED: validate against the 8 canonical states (states.yml SSOT); reject any
-// value with table-breaking chars (| \r \n **) that would scramble the row; detect
-// the Status column from the header (8- and 9-col layouts); atomic write.
-export async function POST(req: Request) {
-  let body: { n?: string; status?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "bad json" }, { status: 400 });
-  }
-  const { n, status } = body;
-  if (!n || typeof status !== "string" || !status.trim()) {
-    return NextResponse.json({ error: "n and status required" }, { status: 400 });
-  }
-  if (/[|\r\n*]/.test(status)) {
-    return NextResponse.json({ error: "invalid status (table-breaking characters)" }, { status: 400 });
-  }
-  const canon = canonicalizeStatus(status);
-  if (!canon) {
-    return NextResponse.json({ error: `not a canonical status: ${status}` }, { status: 400 });
-  }
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-  const file = path.join(careerOpsRoot(), "data", "applications.md");
-  let md: string;
-  try {
-    md = fs.readFileSync(file, "utf8");
-  } catch {
-    return NextResponse.json({ error: "tracker not found" }, { status: 404 });
+// The Web is a thin caller of set-status.mjs. State validation, row resolution,
+// locking, atomic replacement and note idempotency all remain in the canonical
+// tracker writer instead of being reimplemented in a route.
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({})) as { n?: string; status?: string; note?: string };
+  if (!body.n || typeof body.status !== "string" || !body.status.trim()) {
+    return Response.json({ error: "n and status required" }, { status: 400 });
   }
-
-  const lines = md.split("\n");
-  // Find the Status column index from the header row (robust to 8- vs 9-col).
-  let statusIdx = 6;
-  for (const l of lines) {
-    if (!l.trim().startsWith("|")) continue;
-    const cells = l.split("|").map((c) => c.trim().toLowerCase());
-    const idx = cells.findIndex((c) => c === "status");
-    if (idx > 0) {
-      statusIdx = idx;
-      break;
-    }
-    if (/^:?-{2,}:?$/.test(cells[1] ?? "")) break; // hit the separator → no header match, keep default
-  }
-
-  let changed = false;
-  for (let i = 0; i < lines.length; i++) {
-    if (!lines[i].trim().startsWith("|")) continue;
-    const parts = lines[i].split("|");
-    if (parts.length < 8) continue;
-    if (parts[1].trim() !== String(n)) continue;
-    if (statusIdx >= parts.length - 1) continue; // guard malformed row
-    parts[statusIdx] = ` ${canon} `;
-    lines[i] = parts.join("|");
-    changed = true;
-    break;
-  }
-  if (!changed) return NextResponse.json({ error: "row not found" }, { status: 404 });
-
-  try {
-    atomicWrite(file, lines.join("\n"));
-  } catch {
-    return NextResponse.json({ error: "write failed" }, { status: 500 });
-  }
-  return NextResponse.json({ ok: true, status: canon });
+  const args = [rootScript("set-status"), String(body.n), body.status.trim(), "--json"];
+  if (typeof body.note === "string" && body.note.trim()) args.push("--note", body.note.trim());
+  const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve) => {
+    const child = spawn(process.execPath, args, {
+      cwd: careerOpsRoot(),
+      env: { ...process.env, CAREER_OPS_TRACKER: path.join(careerOpsRoot(), "data", "applications.md") },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.on("error", (error) => resolve({ code: 1, stdout: "", stderr: error.message }));
+    child.on("close", (code) => resolve({ code, stdout, stderr }));
+  });
+  let payload: Record<string, unknown> = {};
+  try { payload = JSON.parse(result.stdout.trim() || "{}"); } catch { payload = { error: result.stderr.trim() || "status update failed" }; }
+  if (result.code === 0) return Response.json({ ok: true, ...payload });
+  const status = result.code === 2 ? 404 : result.code === 3 ? 409 : result.code === 4 ? 423 : 400;
+  return Response.json({ error: payload.error || result.stderr.trim() || "status update failed", ...payload }, { status });
 }

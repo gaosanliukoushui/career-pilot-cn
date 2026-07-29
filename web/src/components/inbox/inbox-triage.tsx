@@ -141,7 +141,7 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
   };
   const skip = (job: InboxJob) => {
     setHidden((h) => (h.includes(job.url) ? h : [...h, job.url]));
-    setUndo({ label: `Skipped ${job.company}`, fn: () => setHidden((h) => h.filter((u) => u !== job.url)) });
+    setUndo({ label: `已跳过 ${job.company}`, fn: () => setHidden((h) => h.filter((u) => u !== job.url)) });
   };
   const toggleSelect = (url: string) =>
     setSelected((s) => {
@@ -170,7 +170,7 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
   const scoreShortlist = () => {
     const batchId = `shortlist-${Date.now()}`;
     for (const it of shortlist) {
-      startJob({ title: `Score · ${it.company}`, subtitle: it.role, kind: "evaluate", input: it.url, page: "/pipeline", batchId });
+      startJob({ title: `评分 · ${it.company}`, subtitle: it.role, kind: "evaluate", input: it.url, page: "/pipeline", batchId });
     }
     setShortlist([]); // sent — the rows flip to Scoring… → badge via scoreByUrl
   };
@@ -203,11 +203,11 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
       {/* batch header: fresh slice by default, or the full filtered set */}
       <div className="mt-4 flex items-baseline justify-between gap-3">
         <p className="text-sm font-medium text-foreground">
-          {capped ? "Fresh — worth a look" : anyFacet ? `${filtered.length} match${filtered.length === 1 ? "" : "es"}` : "All roles"}
+          {capped ? "最新职位 · 值得看看" : anyFacet ? `${filtered.length} 个匹配职位` : "全部职位"}
         </p>
         {hiddenCount > 0 && (
           <button type="button" onClick={() => setHidden([])} className="text-xs text-faint transition-colors hover:text-foreground">
-            {hiddenCount} hidden · restore
+            已隐藏 {hiddenCount} 个 · 恢复
           </button>
         )}
       </div>
@@ -215,12 +215,12 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
       {/* multi-select action bar */}
       {selected.size > 0 && (
         <div className="mt-2 flex items-center gap-3 rounded-lg border border-brand/30 bg-brand-soft px-3 py-2 text-sm">
-          <span className="font-medium text-brand tabular-nums">{selected.size} selected</span>
+          <span className="font-medium text-brand tabular-nums">已选择 {selected.size} 个</span>
           <button type="button" onClick={saveSelected} className="rounded-md bg-brand px-2.5 py-1 text-xs font-medium text-brand-foreground max-sm:min-h-[44px]">
-            Save to shortlist
+            加入候选清单
           </button>
           <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-muted hover:text-foreground max-sm:min-h-[44px]">
-            Clear
+            清除
           </button>
         </div>
       )}
@@ -244,8 +244,8 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
         </ul>
       ) : (
         <div className="mt-3 rounded-2xl border border-dashed border-border bg-surface/30 px-6 py-10 text-center">
-          <p className="font-display text-lg">No matches</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted">Loosen the filters to see more of your inbox.</p>
+          <p className="font-display text-lg">没有匹配结果</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-muted">放宽筛选条件可查看更多待处理职位。</p>
         </div>
       )}
 
@@ -256,13 +256,13 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
           onClick={() => setShowAll(true)}
           className="mt-3 inline-flex w-full items-center justify-center gap-1 rounded-xl border border-border bg-surface/40 py-2.5 text-sm font-medium text-muted transition-colors hover:border-brand/40 hover:text-brand max-sm:min-h-[44px]"
         >
-          See all {ordered.length} in inbox →
+          查看待处理列表中的全部 {ordered.length} 个职位 →
         </button>
       )}
 
       {/* empty-shortlist guidance (only once there's nothing saved) */}
       {shortlist.length === 0 && (
-        <p className="mt-4 text-center text-xs text-faint">Save roles worth a look, then score them together — one token spend.</p>
+        <p className="mt-4 text-center text-xs text-faint">先保存值得关注的职位，再统一评分，只消耗一次令牌。</p>
       )}
 
       {/* undo toast (sits above the tray) */}
@@ -271,7 +271,7 @@ export function InboxTriage({ inbox }: { inbox: InboxJob[] }) {
           <div className="inline-flex items-center gap-3 rounded-full border border-border bg-surface px-4 py-2 text-sm shadow-lg">
             <span className="text-muted">{undo.label}</span>
             <button type="button" onClick={() => { undo.fn(); setUndo(null); }} className="inline-flex items-center gap-1 font-medium text-brand max-sm:min-h-[44px]">
-              <Undo2 className="size-3.5" /> Undo
+              <Undo2 className="size-3.5" /> 撤销
             </button>
           </div>
         </div>

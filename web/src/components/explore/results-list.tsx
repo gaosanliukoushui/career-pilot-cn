@@ -38,8 +38,8 @@ export function ResultsList({ offers }: { offers: EnrichedOffer[] }) {
           </p>
           <p className="text-[12px] text-faint">
             {isAi
-              ? "found by AI on the open web · unverified until you evaluate"
-              : `${companiesScanned > 0 ? `${companiesScanned.toLocaleString()} companies scanned · ` : ""}0 tokens spent${partial ? " · some boards were unreachable (normal for public directories)" : ""}`}
+              ? "由 AI 从公开网络发现 · 评估前尚未验证"
+              : `${companiesScanned > 0 ? `已扫描 ${companiesScanned.toLocaleString()} 家公司 · ` : ""}消耗 0 令牌${partial ? " · 部分招聘页面暂时无法访问" : ""}`}
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export function ResultsList({ offers }: { offers: EnrichedOffer[] }) {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Filter results…"
+              placeholder="筛选结果…"
               className="w-32 bg-transparent text-[13px] outline-none placeholder:text-faint"
             />
           </div>
@@ -71,7 +71,7 @@ export function ResultsList({ offers }: { offers: EnrichedOffer[] }) {
               onClick={() => addToPipeline(addable)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface/40 px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-brand-soft hover:text-brand"
             >
-              <Plus className="size-3.5" /> Add all {addable.length}
+              <Plus className="size-3.5" /> 全部加入（{addable.length}）
             </button>
           )}
         </div>
@@ -83,7 +83,7 @@ export function ResultsList({ offers }: { offers: EnrichedOffer[] }) {
         ))}
       </div>
 
-      {view.length === 0 && <p className="py-10 text-center text-sm text-faint">No results match “{q}”.</p>}
+      {view.length === 0 && <p className="py-10 text-center text-sm text-faint">没有与“{q}”匹配的结果。</p>}
     </div>
   );
 }

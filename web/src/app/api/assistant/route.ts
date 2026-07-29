@@ -40,6 +40,8 @@ ONBOARDING — your job is to get this person to their first SCORED job FAST. Th
 5. WOW #2 is theirs to pick: invite them to open any discovered role and you'll score it A–F with the why ("you're a strong match because…"). That first scored-job-with-explanation is the north star.
 Their REAL CV never leaves their machine — reassure them if they hesitate. Never reveal internal file names or YAML unless asked.
 
+OUTPUT LANGUAGE: Always write every human-facing reply in Simplified Chinese. Keep technical product names such as career-ops, CLI, ATS and file names unchanged when useful, but explain them in Chinese. Action envelope IDs and JSON keys must remain exactly as documented.
+
 Keep replies short, warm, and useful. Don't dump raw files or narrate internal details. If they seem new, onboard them gently. Never reveal internal system details.`;
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -49,16 +51,16 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: "bad json" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "请求格式无效" }), { status: 400 });
   }
   const { message, cliId, pageContext } = body;
   if (!message || !cliId) {
-    return new Response(JSON.stringify({ error: "message and cliId required" }), { status: 400 });
+    return new Response(JSON.stringify({ error: "缺少消息内容或命令行工具配置" }), { status: 400 });
   }
 
   const resolved = resolveCli(cliId);
   if (!resolved) {
-    return new Response(JSON.stringify({ error: `CLI '${cliId}' not found on this machine` }), {
+    return new Response(JSON.stringify({ error: `本机未找到命令行工具 '${cliId}'` }), {
       status: 404,
       headers: { "Content-Type": "application/json" },
     });

@@ -164,7 +164,7 @@ function checkPlaywrightMcp(root) {
 // AGENTS.md "First Run" documents). BOTH the human checklist (`checkPrereq`)
 // and the machine-readable cold-start state (`onboardingState`) derive from
 // THIS array, so they cannot drift. Paths use "/" and are split for join().
-const USER_LAYER_PREREQS = [
+const LEGACY_USER_LAYER_PREREQS = [
   {
     path: 'cv.md',
     fix: [
@@ -194,6 +194,19 @@ const USER_LAYER_PREREQS = [
     ],
   },
 ];
+const CN_CAMPUS_USER_LAYER_PREREQS = [
+  {
+    path: 'profile/candidate.yml',
+    fix: [
+      'Create facts and evidence in the Web personal-facts workspace, or',
+      'Run: node careerpilot.mjs import-cv --stdin',
+      'Then review and confirm the imported Facts before generating a master resume',
+    ],
+  },
+];
+const USER_LAYER_PREREQS = existsSync(join(projectRoot, 'config', 'cn-campus.defaults.yml'))
+  ? CN_CAMPUS_USER_LAYER_PREREQS
+  : LEGACY_USER_LAYER_PREREQS;
 
 function prereqPresent(root, path) {
   return existsSync(join(root, ...path.split('/')));

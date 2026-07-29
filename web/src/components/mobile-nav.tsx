@@ -105,7 +105,7 @@ export function MobileNav() {
       <style>{STYLE}</style>
 
       <header className="co-mnav flex items-center gap-2 border-b border-border px-4 pb-3 md:hidden">
-        <Link href="/" className="flex min-h-[44px] items-center gap-2" aria-label="career-ops home">
+        <Link href="/" className="flex min-h-[44px] items-center gap-2" aria-label="career-ops 首页">
           <CoMark size={26} />
           <span className={`${instrumentSerif.className} relative -top-px text-xl text-landing`}>career-ops</span>
         </Link>
@@ -114,7 +114,7 @@ export function MobileNav() {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            aria-label="Open menu"
+            aria-label="打开菜单"
             aria-expanded={open}
             className="relative inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
           >
@@ -130,7 +130,7 @@ export function MobileNav() {
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Navigation menu"
+        aria-label="导航菜单"
         inert={!open}
         className={cn("co-mdrawer border-l border-border bg-surface md:hidden", open && "open")}
         onTouchStart={onTouchStart}
@@ -138,11 +138,11 @@ export function MobileNav() {
         onTouchEnd={onTouchEnd}
       >
         <div className="flex items-center justify-between px-4 py-3">
-          <span className={`${instrumentSerif.className} text-lg text-landing`}>Menu</span>
+          <span className={`${instrumentSerif.className} text-lg text-landing`}>菜单</span>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Close menu"
+            aria-label="关闭菜单"
             className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
           >
             <X className="size-5" />
@@ -182,7 +182,7 @@ export function MobileNav() {
         <div className="co-msafe mt-auto space-y-3 border-t border-border px-4 pt-4">
           <UsageMeter />
           <div className="flex items-center justify-between">
-            <span className={`${instrumentSerif.className} text-sm text-faint`}>local-first · v0</span>
+            <span className={`${instrumentSerif.className} text-sm text-faint`}>本地优先 · v0</span>
             <ThemeToggle />
           </div>
         </div>

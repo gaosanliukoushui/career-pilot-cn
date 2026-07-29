@@ -98,15 +98,15 @@ export function ReportView({
         href="/pipeline"
         className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-brand"
       >
-        <ArrowLeft className="size-4" /> Pipeline
+        <ArrowLeft className="size-4" /> 申请管道
       </Link>
 
       <header className="mt-5">
         <p className="font-mono text-xs uppercase tracking-[0.18em] text-faint">#{id}</p>
         <div className="mt-2 flex items-center gap-3">
-          <CompanyLogo name={app?.company ?? meta?.title ?? `Report #${id}`} size={40} />
+          <CompanyLogo name={app?.company ?? meta?.title ?? `报告 #${id}`} size={40} />
           <h1 className="font-display text-3xl tracking-tight text-landing">
-            {app?.company ?? meta?.title ?? `Report #${id}`}
+            {app?.company ?? meta?.title ?? `报告 #${id}`}
           </h1>
         </div>
         {app?.role && <p className="mt-1 text-muted">{app.role}</p>}
@@ -118,7 +118,7 @@ export function ReportView({
           {(() => {
             const n = scoreNum(score ?? "");
             if (Number.isNaN(n)) return null;
-            return n >= 4.0 ? <Badge tone="good">Recommended</Badge> : <Badge tone="muted">Below the apply line</Badge>;
+            return n >= 4.0 ? <Badge tone="good">推荐申请</Badge> : <Badge tone="muted">低于申请线</Badge>;
           })()}
           {meta?.legitimacy && <Badge tone={legitimacyTone(meta.legitimacy)}>{meta.legitimacy}</Badge>}
           {app && <StatusSelect n={id} current={app.status} />}
@@ -143,7 +143,7 @@ export function ReportView({
                 rel="noreferrer"
                 className="inline-flex items-center justify-center gap-1 text-brand hover:underline max-sm:min-h-[44px]"
               >
-                posting <ExternalLink className="size-3" />
+                职位页面 <ExternalLink className="size-3" />
               </a>
             )}
           </div>
@@ -182,7 +182,7 @@ export function ReportView({
 
                 {verdict && (
                   <div className="rounded-2xl border border-brand/25 bg-brand-soft/50 px-5 py-4">
-                    <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.16em] text-brand/80">Verdict</p>
+                    <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.16em] text-brand/80">结论</p>
                     <article className="report-prose [&_p]:font-medium [&_p]:text-foreground">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{verdict.content}</ReactMarkdown>
                     </article>
@@ -216,7 +216,7 @@ export function ReportView({
                   <>
                     <div className="mt-6 flex items-center gap-3 text-[11px] uppercase tracking-[0.14em] text-faint">
                       <span className="h-px flex-1 bg-border" />
-                      Technical details · for developers
+                      技术细节 · 面向开发者
                       <span className="h-px flex-1 bg-border" />
                     </div>
                     {machine.map((s, i) => (
@@ -240,7 +240,7 @@ export function ReportView({
       ) : (
         <div className="mt-8 flex items-center gap-3 rounded-2xl border border-dashed border-border bg-surface/30 p-5 text-sm text-muted">
           <FileText className="size-5 shrink-0 text-faint" />
-          No report file found for #{id} in <code className="text-foreground">reports/</code>.
+          在 <code className="text-foreground">reports/</code> 中未找到 #{id} 的报告文件。
         </div>
       )}
     </div>

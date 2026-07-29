@@ -13,7 +13,7 @@ test('CareerPilot CN identifies the fork without removing upstream attribution',
   assert.equal(pkg.name, 'career-pilot-cn');
   assert.equal(pkg.repository.url, 'https://github.com/gaosanliukoushui/career-pilot-cn');
   const readme = read('README.cn.md');
-  assert.match(readme, /CareerPilot CN 二次开发/);
+  assert.match(readme, /CareerPilot CN (?:二次开发|首个正式版)/);
   assert.match(readme, /MIT.*career-ops/s);
   assert.match(read('LICENSE'), /Santiago Fernández de Valderrama/);
 });

@@ -16,12 +16,12 @@ export function QuickEvaluate() {
   function run() {
     const u = url.trim();
     if (!/^https?:\/\//i.test(u)) {
-      setHint("Paste a full job-posting URL (https://…).");
+      setHint("请粘贴完整的职位链接（https://…）。");
       return;
     }
-    startJob({ title: "Evaluate · pasted URL", subtitle: u, kind: "evaluate", input: u, page: "/" });
+    startJob({ title: "评估 · 已粘贴链接", subtitle: u, kind: "evaluate", input: u, page: "/" });
     setUrl("");
-    setHint("Evaluating — watch it in the Workers tray.");
+    setHint("正在评估，可在后台任务区查看进度。");
   }
 
   return (
@@ -37,19 +37,19 @@ export function QuickEvaluate() {
           onKeyDown={(e) => {
             if (e.key === "Enter") run();
           }}
-          placeholder="Paste a job URL to evaluate…"
+        placeholder="粘贴职位链接进行评估…"
           className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-faint"
         />
         <button
           onClick={run}
           className="shrink-0 rounded-full bg-brand px-4 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-200"
         >
-          Evaluate
+        评估
         </button>
       </div>
       <div className="mt-2 flex items-center gap-2">
         <CostBadge kind="spend" size="xs" />
-        <span className="text-xs text-faint">Evaluation runs on your own AI — your key, your machine.</span>
+      <span className="text-xs text-faint">评估由你自己的 AI 在本机运行，使用你自己的密钥。</span>
       </div>
       {hint && <p className="mt-1 text-xs text-faint">{hint}</p>}
     </div>

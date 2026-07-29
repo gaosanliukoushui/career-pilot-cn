@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/fit-proposal.schema.json",
+  "title": "FitProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dimensions", "strengths", "gaps"],
+  "properties": {
+    "dimensions": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "score", "candidate_fact_ids", "rationale"],
+        "properties": {
+          "id": { "enum": ["role_major", "evidence", "career_direction", "mobility", "development", "source_reliability"] },
+          "score": { "type": "number", "minimum": 0, "maximum": 5 },
+          "candidate_fact_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "rationale": { "type": "string", "minLength": 1, "maxLength": 500 }
+        }
+      }
+    },
+    "strengths": {
+      "type": "array",
+      "maxItems": 12,
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    },
+    "gaps": {
+      "type": "array",
+      "maxItems": 12,
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    }
+  }
+}

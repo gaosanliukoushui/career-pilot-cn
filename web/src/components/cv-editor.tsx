@@ -43,6 +43,30 @@ const TEMPLATES: { id: Template; name: string; note: string }[] = [
 ];
 const HIGH_RISK = new Set(["education", "grade", "ranking", "certificate", "award", "internship", "employment", "affiliation", "result", "quantified_result"]);
 const STATUS_LABEL = { unconfirmed: "待确认", confirmed: "已确认", rejected: "已拒绝", conflicted: "有冲突" } as const;
+const FACT_TYPE_LABEL: Record<string, string> = {
+  basic: "基本信息", education: "教育经历", grade: "成绩", ranking: "排名", skill: "技能",
+  certificate: "证书", award: "奖项", campus: "校园经历", internship: "实习经历",
+  employment: "工作经历", affiliation: "组织关系", project: "项目经历", result: "成果",
+  quantified_result: "量化成果",
+};
+const SENSITIVITY_LABEL: Record<string, string> = {
+  public: "公开", personal: "个人", sensitive: "敏感", restricted: "受限",
+};
+const USE_LABEL: Record<string, string> = {
+  resume: "简历", application_form: "网申表", interview: "面试",
+};
+const EVIDENCE_KIND_LABEL: Record<string, string> = {
+  user_confirmation: "用户确认", repository: "代码仓库", document: "文件", transcript: "成绩单",
+  certificate: "证书", official_link: "官方链接",
+};
+const EVIDENCE_STRENGTH_LABEL: Record<string, string> = { ordinary: "普通证据", strong: "强证据" };
+const REASON_LABEL: Record<string, string> = {
+  status_unconfirmed: "事实尚未确认", status_rejected: "事实已被拒绝", status_conflicted: "事实存在冲突",
+  use_not_allowed: "未授权用于简历", forbidden_sensitive_content: "包含禁止写入简历的敏感内容",
+  basic_requires_safe_subtype: "基本信息缺少安全分类", missing_evidence: "缺少证据",
+  evidence_integrity_mismatch: "证据完整性校验失败", evidence_unverifiable: "证据无法核验",
+  high_risk_requires_strong_evidence: "高风险事实需要强证据",
+};
 
 async function json<T>(response: Response): Promise<T> {
   const body = await response.json();
@@ -105,7 +129,7 @@ export function CvEditor() {
       }));
       setCvText("");
       await refresh();
-      setMessage("旧简历已导入为待确认 Facts，原文件已备份。");
+      setMessage("旧简历已导入为待确认事实，原文件已备份。");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "导入失败");
     } finally { setBusy(null); }
@@ -206,7 +230,7 @@ export function CvEditor() {
         <section className="space-y-5">
           <div className="rounded-2xl border border-border bg-surface/60 p-5">
             <h2 className="flex items-center gap-2 font-semibold text-foreground"><Upload className="size-4 text-brand" />导入旧简历</h2>
-            <p className="mt-1 text-xs leading-5 text-muted">粘贴 Markdown；系统只创建待确认 Facts，不会直接发布。</p>
+            <p className="mt-1 text-xs leading-5 text-muted">粘贴 Markdown；系统只创建待确认事实，不会直接发布。</p>
             <textarea value={cvText} onChange={(event) => setCvText(event.target.value)} placeholder="# 姓名\n\n## 项目经历\n- ..." className="mt-3 min-h-32 w-full resize-y rounded-xl border border-border bg-background p-3 font-mono text-xs outline-none focus:border-brand/50" />
             <button type="button" onClick={importCv} disabled={Boolean(busy) || !cvText.trim()} className="mt-3 w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-brand-foreground disabled:opacity-40">导入为待确认事实</button>
           </div>
@@ -226,7 +250,7 @@ export function CvEditor() {
 
         <section className="rounded-2xl border border-border bg-surface/60 p-5">
           <div className="flex items-center justify-between gap-3">
-            <div><h2 className="font-semibold">Fact 审阅队列</h2><p className="mt-1 text-xs text-muted">先补证，再确认；高风险事实只接受强证据。</p></div>
+            <div><h2 className="font-semibold">事实审阅队列</h2><p className="mt-1 text-xs text-muted">先补证，再确认；高风险事实只接受强证据。</p></div>
             <span className="text-xs text-muted">{profile?.candidate.display_name || "匿名候选人"}</span>
           </div>
           <div className="mt-4 max-h-[74vh] space-y-3 overflow-auto pr-1">
@@ -237,15 +261,15 @@ export function CvEditor() {
               const reasons = auditById.get(fact.id)?.reasons || [];
               return <article key={fact.id} className={cn("rounded-xl border p-4", publishable ? "border-emerald-500/25 bg-emerald-500/5" : "border-border bg-background/60")}>
                 <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                  <span className="rounded-full bg-foreground/5 px-2 py-1 font-mono">{fact.type}</span>
+                  <span className="rounded-full bg-foreground/5 px-2 py-1">{FACT_TYPE_LABEL[fact.type] || fact.type}</span>
                   <span className="rounded-full bg-foreground/5 px-2 py-1">{STATUS_LABEL[fact.status]}</span>
-                  <span className="rounded-full bg-foreground/5 px-2 py-1">敏感：{fact.sensitivity}</span>
+                  <span className="rounded-full bg-foreground/5 px-2 py-1">敏感级别：{SENSITIVITY_LABEL[fact.sensitivity] || fact.sensitivity}</span>
                   {publishable ? <span className="inline-flex items-center gap-1 text-emerald-700"><CheckCircle2 className="size-3" />可发布</span> : <span className="inline-flex items-center gap-1 text-amber-700"><AlertTriangle className="size-3" />被门槛拦截</span>}
                 </div>
                 <p className="mt-2 text-sm leading-6 text-foreground">{fact.statement}</p>
                 <p className="mt-2 break-all font-mono text-[10px] text-faint">{fact.id}</p>
-                <div className="mt-2 text-xs text-muted">用途：{fact.allowed_uses.join("、") || "无"} · 证据：{evidence.length ? evidence.map((item) => `${item.strength}/${item.kind}`).join("，") : "未关联"}</div>
-                {!!reasons.length && <p className="mt-2 text-xs text-amber-700">阻断原因：{reasons.join("、")}</p>}
+                <div className="mt-2 text-xs text-muted">用途：{fact.allowed_uses.map((use) => USE_LABEL[use] || use).join("、") || "无"} · 证据：{evidence.length ? evidence.map((item) => `${EVIDENCE_STRENGTH_LABEL[item.strength] || item.strength}/${EVIDENCE_KIND_LABEL[item.kind] || item.kind}`).join("，") : "未关联"}</div>
+                {!!reasons.length && <p className="mt-2 text-xs text-amber-700">阻断原因：{reasons.map((reason) => REASON_LABEL[reason] || reason).join("、")}</p>}
                 {highRisk && <input value={evidenceRefs[fact.id] || ""} onChange={(event) => setEvidenceRefs((current) => ({ ...current, [fact.id]: event.target.value }))} placeholder="高风险事实：填写 HTTPS 正式链接" className="mt-3 w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-brand/50" />}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button type="button" onClick={() => attachEvidence(fact)} disabled={busy === fact.id} className="rounded-lg border border-border px-3 py-1.5 text-xs hover:border-brand/40">{highRisk ? "关联强证据" : "添加用户确认证言"}</button>

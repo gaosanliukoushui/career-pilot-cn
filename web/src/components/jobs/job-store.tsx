@@ -5,6 +5,7 @@ import { scoreTone } from "@/lib/format";
 
 export type JobStep = { kind: "tool" | "status"; label: string; ts: number };
 export type JobResult = { score: number | null; summary: string; tone: "good" | "warn" | "bad" | "muted" };
+type EvaluationArtifact = { job_id: string; eligibility: string; recommendation: string; score: number; report_path: string };
 
 export type Job = {
   id: string;
@@ -68,7 +69,7 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
       const arr = raw ? JSON.parse(raw) : null;
       if (Array.isArray(arr)) {
         // anything left "running" from a previous session is stale → mark interrupted
-        setJobs(arr.map((j: Job) => (j.status === "running" ? { ...j, status: "error", steps: [...(j.steps || []), { kind: "status", label: "Interrupted (page reloaded)", ts: Date.now() }] } : j)));
+        setJobs(arr.map((j: Job) => (j.status === "running" ? { ...j, status: "error", steps: [...(j.steps || []), { kind: "status", label: "任务已中断（页面重新加载）", ts: Date.now() }] } : j)));
       }
     } catch {
       /* ignore */
@@ -109,25 +110,34 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
         kind: opts.kind,
         batchId: opts.batchId,
         status: "running",
-        steps: [{ kind: "status", label: "Starting…", ts: Date.now() }],
+        steps: [{ kind: "status", label: "正在启动…", ts: Date.now() }],
         text: "",
         startedAt: Date.now(),
       };
       setJobs((js) => [job, ...js]);
 
-      if (!cliId) {
-        patch(id, (j) => ({ ...j, status: "error", endedAt: Date.now(), steps: [...j.steps, { kind: "status", label: "No CLI configured — open Config", ts: Date.now() }] }));
+      if (!cliId && opts.kind !== "evaluate") {
+        patch(id, (j) => ({ ...j, status: "error", endedAt: Date.now(), steps: [...j.steps, { kind: "status", label: "尚未配置命令行工具，请打开系统配置", ts: Date.now() }] }));
         return id;
       }
 
       (async () => {
         let text = "";
         let verdictLine = ""; // latched separately so the 8000-char tail can't drop it
+        let evaluationArtifact: EvaluationArtifact | null = null;
         let doneTokens = 0; // per-run token cost, forwarded on the done event (#6)
         let doneCostUsd: number | null = null;
         const steps: JobStep[] = [];
         const finish = (status: "done" | "error", lastLabel?: string) => {
-          const result = status === "done" ? parseVerdict(verdictLine || text) : undefined;
+          const result = status === "done"
+            ? evaluationArtifact
+              ? {
+                  score: evaluationArtifact.score,
+                  summary: `资格：${evaluationArtifact.eligibility} · 建议：${evaluationArtifact.recommendation}`,
+                  tone: scoreTone(`${evaluationArtifact.score}`),
+                }
+              : parseVerdict(verdictLine || text)
+            : undefined;
           const cost = status === "done" && doneTokens > 0 ? { tokens: doneTokens, usd: doneCostUsd ?? undefined } : undefined;
           patch(id, (j) => ({
             ...j,
@@ -160,7 +170,7 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
           });
           if (!res.ok || !res.body) {
             const e = await res.json().catch(() => ({}));
-            finish("error", e.error || "Failed to start");
+            finish("error", e.error || "启动失败");
             return;
           }
           const reader = res.body.getReader();
@@ -189,12 +199,16 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
                   if (vm) verdictLine = vm[0];
                   text = full.slice(-8000);
                   patch(id, (j) => ({ ...j, text }));
+                } else if (ev.type === "artifact" && ev.artifact) {
+                  evaluationArtifact = ev.artifact as EvaluationArtifact;
+                  text = `岗位 ${evaluationArtifact.job_id}\n资格：${evaluationArtifact.eligibility}\n建议：${evaluationArtifact.recommendation}\n报告：${evaluationArtifact.report_path}`;
+                  patch(id, (j) => ({ ...j, text }));
                 } else if (ev.type === "done") {
                   // finish happens on stream-close; capture the per-run cost it carries
                   if (typeof ev.tokens === "number") doneTokens = ev.tokens;
                   if (typeof ev.costUsd === "number") doneCostUsd = ev.costUsd;
                 } else if (ev.type === "error") {
-                  finish("error", ev.msg || "Error");
+                  finish("error", ev.msg || "出错");
                   return;
                 }
               } catch {
@@ -202,9 +216,9 @@ export function JobsProvider({ children }: { children: React.ReactNode }) {
               }
             }
           }
-          finish("done", "Done");
+          finish("done", "已完成");
         } catch {
-          finish("error", "Connection error");
+          finish("error", "连接错误");
         }
       })();
 

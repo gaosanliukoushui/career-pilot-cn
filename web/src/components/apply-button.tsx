@@ -23,10 +23,10 @@ export function ApplyButton({ n, url, company, pdfReady }: { n: string; url?: st
       <button
         type="button"
         disabled
-        title={!hasUrl ? "No application URL on this report" : "Generate the tailored CV (PDF) first to apply"}
+        title={!hasUrl ? "报告中没有申请链接" : "请先生成定制简历 PDF"}
         className="inline-flex cursor-not-allowed items-center justify-center gap-1.5 rounded-full border border-border bg-surface/40 px-3.5 py-1 text-xs font-medium text-faint max-sm:min-h-[44px]"
       >
-        <Lock className="size-3.5" /> Apply
+        <Lock className="size-3.5" /> 申请
       </button>
     );
   }
@@ -38,9 +38,9 @@ export function ApplyButton({ n, url, company, pdfReady }: { n: string; url?: st
         router.push("/apply");
       }}
       className="inline-flex items-center justify-center gap-1.5 rounded-full bg-brand px-3.5 py-1 text-xs font-medium text-brand-foreground shadow-sm transition-colors hover:bg-brand-200 max-sm:min-h-[44px]"
-      title="Apply — opens the form pre-filled, you review and submit yourself"
+      title="打开预填申请表，由你审核并亲自提交"
     >
-      <Send className="size-3.5" /> Apply
+      <Send className="size-3.5" /> 申请
     </button>
   );
 }

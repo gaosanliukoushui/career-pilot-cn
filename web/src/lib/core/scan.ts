@@ -217,7 +217,7 @@ export function runDiscovery(filters: ExploreFilters, onEvent: (e: ScanEvent) =>
     child.on("error", (e) => {
       clearTimeout(killer);
       cleanupTempPortals(tempPortals);
-      onEvent({ kind: "error", message: e instanceof Error ? e.message : "scanner failed to start" });
+      onEvent({ kind: "error", message: e instanceof Error ? e.message : "扫描器启动失败" });
       resolve(offers);
     });
     child.on("close", () => {
@@ -262,7 +262,7 @@ export function runDiscovery(filters: ExploreFilters, onEvent: (e: ScanEvent) =>
         } else {
           // --json requested but stdout didn't parse — surface honestly rather than
           // silently returning 0 (defensive; shouldn't happen once the probe passed).
-          onEvent({ kind: "error", message: "The scanner returned no readable output." });
+          onEvent({ kind: "error", message: "扫描器未返回可读取的输出。" });
         }
         resolve(offers);
         return;

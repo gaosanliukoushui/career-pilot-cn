@@ -117,7 +117,7 @@ export async function driveSession(
   const resolved = resolveCli(cliId);
   const steps: DriveStep[] = [];
   if (!resolved || cliId !== "claude") {
-    return { reached: false, turns: 0, reason: "Agentic drive currently needs Claude Code (browser-driving CLI).", steps };
+    return { reached: false, turns: 0, reason: "AI 自动操作真实表单目前需要 Claude Code（可控制浏览器的命令行工具）。", steps };
   }
   const shot = async () => {
     try {
@@ -191,7 +191,7 @@ Reply ONE action JSON.`;
       if (act.action === "click" && loc) {
         const txt = (await loc.innerText().catch(() => "")) || (await loc.getAttribute("value").catch(() => "")) || "";
         if (SUBMIT_RX.test(txt)) {
-          note = "refused to click a submit control (the human submits)";
+          note = "已拒绝点击提交按钮（必须由用户亲自提交）";
           detail = `blocked submit "${txt.slice(0, 40)}"`;
         } else {
           detail = `click "${txt.slice(0, 40)}"`;

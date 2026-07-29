@@ -29,7 +29,7 @@ export function ExploreModeToggle({
         )}
       >
         <Compass className="size-4" />
-        <span className="font-medium">Scan</span>
+        <span className="font-medium">免费扫描</span>
         <span className="hidden sm:inline-flex">
           <CostBadge kind="free-network" size="xs" />
         </span>
@@ -44,11 +44,11 @@ export function ExploreModeToggle({
         )}
       >
         <Sparkles className="size-4" />
-        <span className="font-medium">AI search</span>
+        <span className="font-medium">AI 搜索</span>
         <span className="hidden sm:inline-flex">
           <CostBadge kind="spend" size="xs" />
         </span>
-        {!cliConfigured && <span className="text-[10px] text-faint">needs a CLI</span>}
+        {!cliConfigured && <span className="text-[10px] text-faint">需要命令行工具</span>}
       </button>
     </div>
   );

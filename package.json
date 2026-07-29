@@ -6,6 +6,10 @@
   "scripts": {
     "careerpilot": "node careerpilot.mjs",
     "careerpilot:resume-test": "node careerpilot-resume-tests.mjs",
+    "careerpilot:job-test": "node --test careerpilot-job-tests.mjs",
+    "careerpilot:tailoring-test": "node --test careerpilot-tailoring-tests.mjs",
+    "careerpilot:application-test": "node --test careerpilot-application-tests.mjs",
+    "careerpilot:test": "node careerpilot-profile-tests.mjs && node careerpilot-resume-tests.mjs && node --test careerpilot-job-tests.mjs careerpilot-tailoring-tests.mjs careerpilot-application-tests.mjs && node careerpilot-boundary-tests.mjs",
     "careerpilot:export-qa": "node careerpilot-export-qa.mjs && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-careerpilot-docx.ps1",
     "careerpilot:web-e2e": "node careerpilot-web-e2e.mjs",
     "doctor": "node doctor.mjs",

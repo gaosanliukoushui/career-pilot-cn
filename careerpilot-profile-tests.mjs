@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
@@ -9,11 +9,14 @@ import {
   attachEvidence,
   auditCandidateProfile,
   auditProjectedCv,
+  buildJobMatchContext,
   evaluateFactEligibility,
   importCvMarkdown,
   loadCandidateProfile,
+  migrateCandidateProfile,
   projectCv,
   updateFactStatus,
+  updateStructuredProfile,
   validateCandidateProfile,
 } from './lib/careerpilot/profile-core.mjs';
 
@@ -332,11 +335,106 @@ test('tracked anonymous sample satisfies the same CandidateProfile schema', () =
 
 test('unsupported Schema versions return a dedicated validation error', () => {
   const result = validateCandidateProfile({
-    schema_version: 2,
+    schema_version: 3,
     candidate: { display_name: '匿名候选人' },
     facts: [],
     evidence: [],
   });
   assert.equal(result.valid, false);
   assert.equal(result.errors[0].code, 'unsupported_schema_version');
+});
+
+test('v1 profiles remain readable without write-on-read and migrate explicitly with a backup', () => {
+  const root = mkdtempSync(join(tmpdir(), 'careerpilot-profile-v1-'));
+  const profilePath = join(root, 'profile', 'candidate.yml');
+  mkdirSync(join(root, 'profile'), { recursive: true });
+  const v1 = {
+    schema_version: 1,
+    candidate: { display_name: '匿名候选人' },
+    facts: [],
+    evidence: [],
+  };
+  const before = yaml.dump(v1);
+  writeFileSync(profilePath, before, 'utf8');
+
+  assert.equal(loadCandidateProfile(root).schema_version, 1);
+  assert.equal(readFileSync(profilePath, 'utf8'), before);
+  assert.equal(existsSync(`${profilePath}.v1.bak`), false);
+
+  const migrated = migrateCandidateProfile(root);
+  assert.equal(migrated.changed, true);
+  assert.equal(migrated.profile.schema_version, 2);
+  assert.deepEqual(migrated.profile.structured, {
+    education: {}, language_certificates: [], credentials: [], preferences: {},
+  });
+  assert.equal(readFileSync(`${profilePath}.v1.bak`, 'utf8'), before);
+  assert.equal(migrateCandidateProfile(root).changed, false);
+});
+
+test('v2 structured values must reference confirmed evidence-backed Facts allowed for matching', () => {
+  const profile = {
+    schema_version: 2,
+    candidate: { display_name: '匿名候选人' },
+    structured: {
+      education: { degree: { value: 'bachelor', fact_id: 'education.degree' } },
+      language_certificates: [],
+      credentials: [],
+      preferences: {},
+    },
+    facts: [{
+      id: 'education.degree', type: 'education', statement: '本科学历', status: 'confirmed',
+      sensitivity: 'personal', allowed_uses: ['job_match'], evidence_ids: ['evidence.degree'],
+    }],
+    evidence: [{
+      id: 'evidence.degree', kind: 'official_link', ref: 'https://example.invalid/degree',
+      strength: 'strong', verified_at: '2026-07-27T12:00:00.000Z',
+    }],
+  };
+  assert.deepEqual(validateCandidateProfile(profile), { valid: true, errors: [] });
+  profile.facts[0].status = 'unconfirmed';
+  assert.ok(validateCandidateProfile(profile).errors.some((item) => item.code === 'structured_fact_not_confirmed'));
+  profile.facts[0].status = 'confirmed';
+  profile.structured.education.degree.fact_id = 'education.missing';
+  assert.ok(validateCandidateProfile(profile).errors.some((item) => item.code === 'structured_fact_missing'));
+});
+
+test('AI matching context excludes sensitive and restricted Facts as well as direct contact fields', () => {
+  const root = mkdtempSync(join(tmpdir(), 'careerpilot-job-context-'));
+  mkdirSync(join(root, 'profile'), { recursive: true });
+  const profile = {
+    schema_version: 2,
+    candidate: { display_name: '匿名候选人', email: 'private@example.invalid', phone: '13800000000' },
+    structured: { education: {}, language_certificates: [], credentials: [], preferences: {} },
+    facts: [{
+      id: 'skill.java', type: 'skill', statement: '掌握 Java', status: 'confirmed', sensitivity: 'public',
+      allowed_uses: ['job_match'], evidence_ids: ['evidence.skill'],
+    }, {
+      id: 'basic.identity', type: 'basic', statement: '身份证号 11010120000101001X', status: 'confirmed', sensitivity: 'restricted',
+      allowed_uses: ['job_match'], evidence_ids: ['evidence.identity'],
+    }],
+    evidence: [{ id: 'evidence.skill', kind: 'user_confirmation', ref: 'confirmation:skill', strength: 'ordinary', verified_at: '2026-07-28T12:00:00.000Z' },
+      { id: 'evidence.identity', kind: 'user_confirmation', ref: 'confirmation:identity', strength: 'ordinary', verified_at: '2026-07-28T12:00:00.000Z' }],
+  };
+  writeFileSync(join(root, 'profile', 'candidate.yml'), yaml.dump(profile), 'utf8');
+  const context = buildJobMatchContext(root);
+  assert.deepEqual(context.facts, [{ id: 'skill.java', type: 'skill', statement: '掌握 Java' }]);
+  assert.doesNotMatch(JSON.stringify(context), /private@example|13800000000|11010120000101001X/);
+});
+
+test('structured high-risk qualifications require strong Evidence and update through the v2 write path', () => {
+  const root = mkdtempSync(join(tmpdir(), 'careerpilot-structured-update-'));
+  mkdirSync(join(root, 'profile'), { recursive: true });
+  const profile = {
+    schema_version: 2,
+    candidate: { display_name: '匿名候选人' },
+    structured: { education: {}, language_certificates: [], credentials: [], preferences: {} },
+    facts: [{ id: 'education.degree', type: 'education', statement: '本科学历', status: 'confirmed', sensitivity: 'personal', allowed_uses: ['job_match'], evidence_ids: ['evidence.degree'] }],
+    evidence: [{ id: 'evidence.degree', kind: 'official_link', ref: 'https://example.invalid/degree', strength: 'strong', verified_at: '2026-07-28T12:00:00.000Z' }],
+  };
+  writeFileSync(join(root, 'profile', 'candidate.yml'), yaml.dump(profile), 'utf8');
+  const structured = { education: { degree: { value: 'bachelor', fact_id: 'education.degree' } }, language_certificates: [], credentials: [], preferences: {} };
+  assert.deepEqual(updateStructuredProfile(root, structured).structured, structured);
+  profile.evidence[0] = { id: 'evidence.degree', kind: 'user_confirmation', ref: 'confirmation:degree', strength: 'ordinary', verified_at: '2026-07-28T12:00:00.000Z' };
+  profile.structured = structured;
+  assert.ok(validateCandidateProfile(profile).errors.some((item) => item.code === 'structured_fact_requires_strong_evidence'));
 });

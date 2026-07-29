@@ -20,7 +20,7 @@ export function FollowUpCard({ followup, onLogged }: { followup: FollowUp; onLog
       await fetch("/api/followups/log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ num: followup.num, company: followup.company, note: "Followed up" }),
+        body: JSON.stringify({ num: followup.num, company: followup.company, note: "已跟进" }),
       });
     } catch {
       /* best-effort */
@@ -39,7 +39,7 @@ export function FollowUpCard({ followup, onLogged }: { followup: FollowUp; onLog
             {followup.role && <span className="text-muted"> · {followup.role}</span>}
           </p>
           <p className="flex items-center gap-1 text-[11px] text-faint">
-            <Clock className="size-3" /> {followup.appliedDate ? `applied ${followup.appliedDate}` : "follow-up due"}
+            <Clock className="size-3" /> {followup.appliedDate ? `申请于 ${followup.appliedDate}` : "需要跟进"}
           </p>
         </div>
       </div>
@@ -50,15 +50,15 @@ export function FollowUpCard({ followup, onLogged }: { followup: FollowUp; onLog
           onClick={log}
           className={cn("inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-surface-hover px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:bg-brand-soft hover:text-brand max-sm:min-h-[44px]")}
         >
-          {state === "logging" ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} <span className="hidden sm:inline">Mark followed up</span><span className="sm:hidden">Followed up</span>
+          {state === "logging" ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />} <span>标记为已跟进</span>
         </button>
         {followup.num != null && (
-          <a href={`/pipeline/${followup.num}`} title="Open report" className="inline-flex shrink-0 items-center justify-center rounded p-1 text-faint transition hover:text-brand max-sm:min-h-[44px] max-sm:min-w-[44px]">
+          <a href={`/pipeline/${followup.num}`} title="打开报告" className="inline-flex shrink-0 items-center justify-center rounded p-1 text-faint transition hover:text-brand max-sm:min-h-[44px] max-sm:min-w-[44px]">
             <FileText className="size-4" />
           </a>
         )}
         <button type="button" onClick={() => setState("snoozed")} className="inline-flex shrink-0 items-center justify-center text-[11px] text-faint transition hover:text-foreground max-sm:min-h-[44px] max-sm:min-w-[44px]">
-          Snooze
+          稍后提醒
         </button>
       </div>
     </div>

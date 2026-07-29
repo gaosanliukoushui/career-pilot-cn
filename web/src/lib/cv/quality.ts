@@ -11,7 +11,7 @@ export function cvReadiness(md: string): CvReadiness {
   const hasSkills = /(^|\n)#{1,3}\s*(skills|technologies|competenc|habilidad)/i.test(text);
   const scoreable = words >= 80 && (hasExperience || hasSkills || words >= 200);
   let hint: string | undefined;
-  if (!scoreable) hint = words < 40 ? "That's very short — add your experience for real matches (you can save anyway)." : "Looks thin — add a role or two for better matches (you can save anyway).";
+  if (!scoreable) hint = words < 40 ? "内容较短，补充经历后匹配会更准确（仍可直接保存）。" : "内容略少，补充一两段经历后匹配会更准确（仍可直接保存）。";
   return { scoreable, words, hasExperience, hasSkills, hint };
 }
 

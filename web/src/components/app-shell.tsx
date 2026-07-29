@@ -16,7 +16,7 @@ import { BetaBanner } from "@/components/beta/beta-banner";
 import { WorkerPills } from "@/components/jobs/worker-pills";
 import { UsageMeter } from "@/components/usage-meter";
 import { instrumentSerif } from "@/lib/fonts";
-import { NAV_ITEMS, isActivePath } from "@/lib/nav-items";
+import { ADVANCED_NAV_ITEMS, PLANNED_NAV_ITEMS, PRIMARY_NAV_ITEMS, isActivePath } from "@/lib/nav-items";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -35,7 +35,53 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.map(({ href, label, icon: Icon, chip }) => {
+            {PRIMARY_NAV_ITEMS.map(({ href, label, icon: Icon, chip }) => {
+              const active = isActivePath(href, pathname);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                    active
+                      ? "bg-brand-soft text-brand-text"
+                      : "text-muted hover:bg-surface-hover hover:text-foreground",
+                  )}
+                >
+                  <Icon className="size-4" />
+                  {label}
+                  {chip && (
+                    <span className="ml-auto rounded-full border border-brand/30 bg-brand-soft px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brand-text">
+                      {chip}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+            <p className="mb-1 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">
+              后续阶段
+            </p>
+            {PLANNED_NAV_ITEMS.map(({ href, label, icon: Icon, chip }) => {
+              const active = isActivePath(href, pathname);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                    active ? "bg-brand-soft text-brand-text" : "text-muted hover:bg-surface-hover hover:text-foreground",
+                  )}
+                >
+                  <Icon className="size-4" />
+                  {label}
+                  {chip && <span className="ml-auto rounded-full border border-border px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-faint">{chip}</span>}
+                </Link>
+              );
+            })}
+            <p className="mb-1 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">
+              高级功能
+            </p>
+            {ADVANCED_NAV_ITEMS.map(({ href, label, icon: Icon, chip }) => {
               const active = isActivePath(href, pathname);
               return (
                 <Link
@@ -65,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="mt-auto space-y-3 pt-4">
             <UsageMeter />
             <div className="flex items-center justify-between px-1">
-              <span className={`${instrumentSerif.className} text-sm text-faint`}>local-first · v0</span>
+              <span className={`${instrumentSerif.className} text-sm text-faint`}>本地优先 · v0</span>
               <ThemeToggle />
             </div>
           </div>

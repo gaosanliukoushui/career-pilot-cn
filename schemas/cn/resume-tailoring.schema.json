@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/resume-tailoring.schema.json",
+  "title": "ResumeTailoringPreview",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "job_id", "source_job_sha256", "source_profile_sha256", "baseline_variant_id", "baseline_variant_sha256", "baseline_fact_count", "changed_fact_ids", "change_ratio", "maximum_change_ratio", "allowed", "block_reasons", "proposed_variant"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^tailoring\\.[a-f0-9]{16,64}$" },
+    "job_id": { "type": "string", "pattern": "^job\\.[a-f0-9]{16,64}$" },
+    "source_job_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "source_profile_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "baseline_variant_id": { "type": "string" },
+    "baseline_variant_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "baseline_fact_count": { "type": "integer", "minimum": 1 },
+    "changed_fact_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+    "change_ratio": { "type": "number", "minimum": 0 },
+    "maximum_change_ratio": { "const": 0.3 },
+    "allowed": { "type": "boolean" },
+    "block_reasons": { "type": "array", "uniqueItems": true, "items": { "enum": ["tailoring_limit_exceeded", "eligibility_blocked"] } },
+    "proposed_variant": { "type": "object" }
+  }
+}
+

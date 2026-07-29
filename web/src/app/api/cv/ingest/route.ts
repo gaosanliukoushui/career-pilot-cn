@@ -28,7 +28,7 @@ function readCanonicalMode(): string | null {
 function ingestPrompt(source: string): string {
   const mode = readCanonicalMode();
   if (mode) {
-    return `${mode}\n\n--- HEADLESS OUTPUT CONTRACT (the career-ops WEB is parsing your stream) ---\nFollow the mode above exactly. You are a PROPOSER running headless: emit ONLY the markdown between <<cv:start>> and <<cv:end>> (own lines, never in a code fence), then one <<cv:seed>>{...} line; or <<cv:error>>{"reason":"unreadable"} if you can't read it. Narrate one short line before <<cv:start>>.\n\n${source}`;
+    return `${mode}\n\n--- HEADLESS OUTPUT CONTRACT (the career-ops WEB is parsing your stream) ---\nFollow the mode above exactly. You are a PROPOSER running headless: emit ONLY the markdown between <<cv:start>> and <<cv:end>> (own lines, never in a code fence), then one <<cv:seed>>{...} line; or <<cv:error>>{"reason":"unreadable"} if you can't read it. Narrate one short line in Simplified Chinese before <<cv:start>>. Preserve the CV's source language instead of translating its content blindly.\n\n${source}`;
   }
   // Fallback mirrors the canonical examples/cv-example.md format (the SSOT the
   // project ships) so a web-parsed CV is the same shape as a hand-written one.
@@ -49,7 +49,7 @@ OUTPUT PROTOCOL:
 - You are a PROPOSER: do NOT write any file. Emit ONLY the markdown wrapped EXACTLY between a line \`<<cv:start>>\` and a line \`<<cv:end>>\` (each on its own line, never inside a code fence).
 - After \`<<cv:end>>\`, emit ONE more line: \`<<cv:seed>>{"title":"<their current/target role>","roles":["<3-5 role keywords>"],"location":"<their location or 'Remote'>"}\`
 - If the source is unreadable or empty, emit ONLY: \`<<cv:error>>{"reason":"unreadable"}\` and stop.
-- Narrate one short line BEFORE \`<<cv:start>>\` (e.g. "Reading your CV…").
+- Narrate one short line in Simplified Chinese BEFORE \`<<cv:start>>\` (e.g. "正在读取你的简历…"). Preserve the CV's source language instead of translating its content blindly.
 
 ${source}`;
 }
@@ -68,17 +68,17 @@ export async function POST(req: Request) {
       const body = (await req.json()) as { text?: string; cliId?: string };
       cliId = body.cliId || "";
       const text = (body.text || "").trim();
-      if (!text) return Response.json({ error: "empty cv text" }, { status: 400 });
+      if (!text) return Response.json({ error: "简历文本为空" }, { status: 400 });
       promptSource = TEXT_SRC(text);
     } else if (ctype.includes("multipart/form-data")) {
       const form = await req.formData();
       cliId = String(form.get("cliId") || "");
       const file = form.get("file");
-      if (!(file instanceof File)) return Response.json({ error: "no file" }, { status: 400 });
+      if (!(file instanceof File)) return Response.json({ error: "未选择文件" }, { status: 400 });
       // Reading a PDF/DOCX from a path needs the CLI's file tool, which only Claude
       // is granted here. Tell non-Claude users plainly instead of failing opaquely.
       if (cliId !== "claude" && /\.(pdf|docx)$/i.test(file.name)) {
-        return Response.json({ error: "PDF upload needs Claude Code — paste your CV text instead." }, { status: 400 });
+        return Response.json({ error: "上传 PDF 需要 Claude Code，请改为粘贴简历文本。" }, { status: 400 });
       }
       const ext = (file.name.match(/\.[a-z0-9]+$/i)?.[0] || ".pdf").toLowerCase();
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), "career-ops-cv-"));
@@ -86,16 +86,16 @@ export async function POST(req: Request) {
       fs.writeFileSync(tempFile, Buffer.from(await file.arrayBuffer()), { mode: 0o600 }); // PII → owner-only
       promptSource = FILE_SRC(tempFile);
     } else {
-      return Response.json({ error: "unsupported content-type" }, { status: 400 });
+      return Response.json({ error: "不支持的内容类型" }, { status: 400 });
     }
   } catch {
-    return Response.json({ error: "bad request" }, { status: 400 });
+    return Response.json({ error: "请求无效" }, { status: 400 });
   }
 
   const resolved = resolveCli(cliId);
   if (!resolved) {
     if (tempFile) cleanupTemp(tempFile);
-    return Response.json({ error: `CLI '${cliId}' not found on this machine` }, { status: 404 });
+    return Response.json({ error: `本机未找到命令行工具 '${cliId}'` }, { status: 404 });
   }
   const { spec, binPath } = resolved;
   const prompt = ingestPrompt(promptSource);
@@ -122,7 +122,7 @@ export async function POST(req: Request) {
     child = spawn(binPath, args, { cwd: careerOpsRoot(), env: process.env });
   } catch (e) {
     if (tempFile) cleanupTemp(tempFile); // never leak the CV temp if spawn throws sync
-    return Response.json({ error: e instanceof Error ? e.message : "failed to start the CLI" }, { status: 500 });
+    return Response.json({ error: e instanceof Error ? e.message : "命令行工具启动失败" }, { status: 500 });
   }
 
   const encoder = new TextEncoder();

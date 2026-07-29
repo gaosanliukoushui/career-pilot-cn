@@ -173,6 +173,9 @@ const scripts = [
   { name: 'careerpilot-boundary-tests.mjs', expectExit: 0 },
   { name: 'careerpilot-profile-tests.mjs', expectExit: 0 },
   { name: 'careerpilot-resume-tests.mjs', expectExit: 0 },
+  { name: 'careerpilot-job-tests.mjs', expectExit: 0 },
+  { name: 'careerpilot-tailoring-tests.mjs', expectExit: 0 },
+  { name: 'careerpilot-application-tests.mjs', expectExit: 0 },
   { name: 'tracker-columns-tests.mjs', expectExit: 0 },
   { name: 'agent-inbox-tests.mjs', expectExit: 0 },
   { name: 'followup-seed-tests.mjs', expectExit: 0 },
@@ -728,7 +731,7 @@ try {
       if (routeCallback) {
         let aborted = false;
         const mockRoute = {
-          request: () => ({ url: () => 'http://ssrf-blocked-host.local/sensitive-internal' }),
+          request: () => ({ url: () => 'http://127.0.0.1/sensitive-internal' }),
           abort: async () => {
             aborted = true;
           },
@@ -743,7 +746,11 @@ try {
     },
     async waitForTimeout() {},
     url() { return 'https://example.com/redirected'; },
-    async evaluate() { return 'body text'; }
+    _evaluateCall: 0,
+    async evaluate() {
+      this._evaluateCall += 1;
+      return this._evaluateCall === 1 ? 'body text' : [];
+    }
   };
 
   const redirectResult = await checkUrlLiveness(mockPageInstance, 'https://example.com/public-landing');
@@ -6668,6 +6675,26 @@ try {
 
 console.log('\n13. Batch rate-limit pause');
 
+function runBatchFixture(batchDir, fakeBin, args, options = {}) {
+  const { batchArgFile = '', ...runOptions } = options;
+  const fixtureRoot = dirname(batchDir);
+  const wrapper = join(fixtureRoot, 'run-batch-test.sh');
+  writeFileSync(wrapper, [
+    '#!/usr/bin/env bash',
+    'set -e',
+    'FIXTURE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
+    'export PATH="$FIXTURE_ROOT/bin:$PATH"',
+    batchArgFile ? `export BATCH_ARG_FILE="$FIXTURE_ROOT/${basename(batchArgFile)}"` : 'unset BATCH_ARG_FILE',
+    'exec "$FIXTURE_ROOT/batch/batch-runner.sh" "$@"',
+    '',
+  ].join('\n'));
+  return run(
+    getBash(),
+    [toBashPath(wrapper), ...args],
+    runOptions,
+  );
+}
+
 try {
   const tmp = mkdtempSync(join(tmpdir(), 'co-batch-rate-'));
   const batchDir = join(tmp, 'batch');
@@ -6703,8 +6730,8 @@ try {
     execFileSync('chmod', ['+x', join(fakeBin, 'claude')]);
   }
 
-  const env = { ...process.env, PATH: `${fakeBin}${delimiter}${process.env.PATH}` };
-  const out = run(getBash(), [toBashPath(join(batchDir, 'batch-runner.sh')), '--parallel', '1', '--max-retries', '3', '--rate-limit-sleep', '0'], {
+  const env = { ...process.env };
+  const out = runBatchFixture(batchDir, fakeBin, ['--parallel', '1', '--max-retries', '3', '--rate-limit-sleep', '0'], {
     cwd: tmp,
     env,
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -6723,7 +6750,7 @@ try {
     '1\thttps://example.com/one\tpaused_rate_limit\t2026-01-01T00:00:00Z\t2026-01-01T00:00:01Z\t001\t-\tsession-limit; paused\t0',
     '2\thttps://example.com/two\tfailed\t2026-01-01T00:00:00Z\t2026-01-01T00:00:01Z\t002\t-\tworker-crash\t1',
   ].join('\n') + '\n');
-  const dry = run(getBash(), [toBashPath(join(batchDir, 'batch-runner.sh')), '--resume-paused', '--dry-run'], {
+  const dry = runBatchFixture(batchDir, fakeBin, ['--resume-paused', '--dry-run'], {
     cwd: tmp,
     env,
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -6743,7 +6770,7 @@ try {
     '2\thttps://example.com/two\tcompleted\t2026-01-01T00:00:00Z\t2026-01-01T00:00:01Z\t002\tbad);system("oops")\t-\t0',
     '3\thttps://example.com/three\tskipped\t2026-01-01T00:00:00Z\t2026-01-01T00:00:01Z\t003\t3.5\tbelow-min-score\t0',
   ].join('\n') + '\n');
-  const statusOnly = run(getBash(), [toBashPath(join(batchDir, 'batch-runner.sh')), '--status'], {
+  const statusOnly = runBatchFixture(batchDir, fakeBin, ['--status'], {
     cwd: tmp,
     env,
     stdio: ['pipe', 'pipe', 'pipe'],
@@ -6808,8 +6835,7 @@ function makeTierFixture(profileYml) {
 try {
   const { tmp, batchDir, fakeBin } = makeTierFixture('spend_tier: economy\n');
   const argFile = join(tmp, 'claude-argv.txt');
-  const env = { ...process.env, PATH: `${fakeBin}${delimiter}${process.env.PATH}`, BATCH_ARG_FILE: argFile };
-  const out = run(getBash(), [toBashPath(join(batchDir, 'batch-runner.sh')), '--parallel', '1'], { cwd: tmp, env, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
+  const out = runBatchFixture(batchDir, fakeBin, ['--parallel', '1'], { cwd: tmp, batchArgFile: argFile, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
   const argv = existsSync(argFile) ? readFileSync(argFile, 'utf-8') : '';
   if (argv.includes('--model') && argv.includes('claude-haiku-4-5') && out.includes('spend_tier=economy')) {
     pass('economy spend_tier resolves to claude-haiku-4-5');
@@ -6823,8 +6849,7 @@ try {
 try {
   const { tmp, batchDir, fakeBin } = makeTierFixture('spend_tier: premium\n');
   const argFile = join(tmp, 'claude-argv.txt');
-  const env = { ...process.env, PATH: `${fakeBin}${delimiter}${process.env.PATH}`, BATCH_ARG_FILE: argFile };
-  const premiumOut = run(getBash(), [toBashPath(join(batchDir, 'batch-runner.sh')), '--parallel', '1'], { cwd: tmp, env, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
+  const premiumOut = runBatchFixture(batchDir, fakeBin, ['--parallel', '1'], { cwd: tmp, batchArgFile: argFile, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
   const premiumArgv = existsSync(argFile) ? readFileSync(argFile, 'utf-8') : '';
   if (premiumArgv.includes('--model') && premiumArgv.includes('claude-opus-5') && premiumOut.includes('spend_tier=premium')) {
     pass('premium spend_tier resolves to claude-opus-5');
@@ -6838,8 +6863,7 @@ try {
 try {
   const { tmp, batchDir, fakeBin } = makeTierFixture('spend_tier: premium\n');
   const argFile = join(tmp, 'claude-argv.txt');
-  const env = { ...process.env, PATH: `${fakeBin}${delimiter}${process.env.PATH}`, BATCH_ARG_FILE: argFile };
-  const overrideOut = run(getBash(), [toBashPath(join(batchDir, 'batch-runner.sh')), '--parallel', '1', '--model', 'claude-sonnet-5'], { cwd: tmp, env, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
+  const overrideOut = runBatchFixture(batchDir, fakeBin, ['--parallel', '1', '--model', 'claude-sonnet-5'], { cwd: tmp, batchArgFile: argFile, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
   const overrideArgv = existsSync(argFile) ? readFileSync(argFile, 'utf-8') : '';
   if (overrideArgv.includes('--model') && overrideArgv.includes('claude-sonnet-5') && !overrideArgv.includes('claude-opus-5') && overrideOut.includes('explicit --model override')) {
     pass('--model override takes precedence over spend_tier');
@@ -6853,8 +6877,7 @@ try {
 try {
   const { tmp, batchDir, fakeBin } = makeTierFixture('# no spend_tier key\nname: test\n');
   const argFile = join(tmp, 'claude-argv.txt');
-  const env = { ...process.env, PATH: `${fakeBin}${delimiter}${process.env.PATH}`, BATCH_ARG_FILE: argFile };
-  const standardDefaultOut = run(getBash(), [toBashPath(join(batchDir, 'batch-runner.sh')), '--parallel', '1'], { cwd: tmp, env, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
+  const standardDefaultOut = runBatchFixture(batchDir, fakeBin, ['--parallel', '1'], { cwd: tmp, batchArgFile: argFile, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
   const standardDefaultArgv = existsSync(argFile) ? readFileSync(argFile, 'utf-8') : '';
   if (standardDefaultArgv.includes('--model') && standardDefaultArgv.includes('claude-sonnet-5') && standardDefaultOut.includes('spend_tier=standard')) {
     pass('missing spend_tier key defaults to standard tier (claude-sonnet-5)');
@@ -6868,8 +6891,7 @@ try {
 try {
   const { tmp, batchDir, fakeBin } = makeTierFixture('spend_tier: turbo\n');
   const argFile = join(tmp, 'claude-argv.txt');
-  const env = { ...process.env, PATH: `${fakeBin}${delimiter}${process.env.PATH}`, BATCH_ARG_FILE: argFile };
-  const invalidTierOut = run(getBash(), [toBashPath(join(batchDir, 'batch-runner.sh')), '--parallel', '1'], { cwd: tmp, env, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
+  const invalidTierOut = runBatchFixture(batchDir, fakeBin, ['--parallel', '1'], { cwd: tmp, batchArgFile: argFile, stdio: ['pipe', 'pipe', 'pipe'] }) || '';
   const invalidTierArgv = existsSync(argFile) ? readFileSync(argFile, 'utf-8') : '';
   if (invalidTierArgv.includes('--model') && invalidTierArgv.includes('claude-sonnet-5') && invalidTierOut.includes('spend_tier=standard')) {
     pass('invalid spend_tier value falls back to standard tier (claude-sonnet-5)');

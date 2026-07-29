@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/match-report.schema.json",
+  "title": "MatchReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "job_id", "job_sha256", "profile_sha256", "evaluated_at", "eligibility", "fit", "recommendation", "strengths", "gaps", "override", "report_path"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^match\\.[a-f0-9]{16,64}$" },
+    "job_id": { "type": "string", "pattern": "^job\\.[a-f0-9]{16,64}$" },
+    "job_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "profile_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "evaluated_at": { "type": "string" },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "rule_results"],
+      "properties": {
+        "result": { "enum": ["eligible", "ineligible", "unknown"] },
+        "rule_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rule_id", "result", "candidate_fact_ids", "reason", "source_quote"],
+            "properties": {
+              "rule_id": { "type": "string" },
+              "result": { "enum": ["satisfied", "failed", "unknown"] },
+              "candidate_fact_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+              "reason": { "type": "string" },
+              "source_quote": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "fit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "dimensions"],
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 5 },
+        "dimensions": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "score", "weight", "candidate_fact_ids", "rationale"],
+            "properties": {
+              "id": { "enum": ["role_major", "evidence", "career_direction", "mobility", "development", "source_reliability"] },
+              "score": { "type": "number", "minimum": 0, "maximum": 5 },
+              "weight": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+              "candidate_fact_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+              "rationale": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "recommendation": { "enum": ["apply", "consider", "do_not_apply", "need_more_info"] },
+    "strengths": { "type": "array", "items": { "type": "string" } },
+    "gaps": { "type": "array", "items": { "type": "string" } },
+    "override": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["reason", "recorded_at"],
+      "properties": {
+        "reason": { "type": "string", "minLength": 3 },
+        "recorded_at": { "type": "string" }
+      }
+    },
+    "report_path": { "type": "string", "minLength": 1 }
+  }
+}

@@ -38,6 +38,7 @@ function usage() {
       'node careerpilot.mjs show [--root PATH]',
       'node careerpilot.mjs import-cv [CV_PATH] [--root PATH]',
       'node careerpilot.mjs import-cv --stdin [--root PATH]',
+      'node careerpilot.mjs migrate-profile [--root PATH]',
       'node careerpilot.mjs confirm|reject FACT_ID [--root PATH]',
       'node careerpilot.mjs set-status FACT_ID unconfirmed|confirmed|rejected|conflicted [--root PATH]',
       'node careerpilot.mjs attach-evidence FACT_ID --id ID --kind KIND --ref REF --strength ordinary|strong [--verified-at ISO] [--root PATH]',
@@ -45,8 +46,23 @@ function usage() {
       'node careerpilot.mjs preview-cv [--root PATH]',
       'node careerpilot.mjs audit [--root PATH]',
       'node careerpilot.mjs resume-preview [--stdin | --template soe-one-page|tech-two-page|application-detail] [--root PATH]',
-      'node careerpilot.mjs resume-save --template TEMPLATE [--root PATH]',
+      'node careerpilot.mjs resume-save --template TEMPLATE [--ready] [--root PATH]',
       'node careerpilot.mjs resume-export [--variant-stdin | --template TEMPLATE] --format md|html|docx|pdf [--output output/careerpilot/FILE] [--root PATH]',
+      'node careerpilot.mjs job-parse --stdin | --file PATH | --url URL [--root PATH]',
+      'node careerpilot.mjs job-evaluate --stdin [--no-persist] [--root PATH]',
+      'node careerpilot.mjs job-proposal-validate --stdin [--root PATH]',
+      'node careerpilot.mjs job-show JOB_ID [--root PATH]',
+      'node careerpilot.mjs resume-tailor-preview --job JOB_ID --baseline VARIANT_ID [--stdin] [--save] [--root PATH]',
+      'node careerpilot.mjs resume-tailor-export --stdin --format md|html|docx|pdf [--output output/careerpilot/FILE] [--root PATH]',
+      'node careerpilot.mjs application-prepare --job JOB_ID [--root PATH]',
+      'node careerpilot.mjs application-stage TRACKER_NUM STAGE [--note TEXT] [--root PATH]',
+      'node careerpilot.mjs application-show TRACKER_NUM [--root PATH]',
+      'node careerpilot.mjs application-fields TRACKER_NUM --stdin [--root PATH]',
+      'node careerpilot.mjs application-list [--root PATH]',
+      'node careerpilot.mjs job-context [--root PATH]',
+      'node careerpilot.mjs profile-structure --stdin [--root PATH]',
+      'node careerpilot.mjs resume-list [--approved] [--root PATH]',
+      'node careerpilot.mjs resume-variant-show VARIANT_ID [--root PATH]',
     ],
   };
 }
@@ -56,11 +72,14 @@ async function main() {
     attachEvidence,
     auditCandidateProfile,
     auditProjectedCv,
+    buildJobMatchContext,
     importCvMarkdown,
     loadCandidateProfile,
+    migrateCandidateProfile,
     previewCv,
     projectCv,
     updateFactStatus,
+    updateStructuredProfile,
     validateCandidateProfile,
   } = await import('./lib/careerpilot/profile-core.mjs');
   const loadResumeCore = () => import('./lib/careerpilot/resume-core.mjs');
@@ -78,6 +97,19 @@ async function main() {
     }
     case 'show':
       process.stdout.write(`${JSON.stringify(loadCandidateProfile(root))}\n`);
+      return;
+    case 'job-context':
+      process.stdout.write(`${JSON.stringify(buildJobMatchContext(root))}\n`);
+      return;
+    case 'profile-structure': {
+      if (!args.includes('--stdin')) throw new Error('profile-structure requires --stdin');
+      const payload = JSON.parse(await readStdin());
+      const structured = payload?.structured || payload;
+      process.stdout.write(`${JSON.stringify(updateStructuredProfile(root, structured, { authorizeUses: payload?.authorize_uses === true }))}\n`);
+      return;
+    }
+    case 'migrate-profile':
+      process.stdout.write(`${JSON.stringify(migrateCandidateProfile(root))}\n`);
       return;
     case 'import-cv': {
       let markdown;
@@ -156,6 +188,7 @@ async function main() {
           photo: args.includes('--authorize-photo'),
           political_status: args.includes('--authorize-political-status'),
         },
+        status: args.includes('--ready') ? 'ready' : 'draft',
       });
       process.stdout.write(`${JSON.stringify({ variant, path: saveResumeVariant(root, variant) })}\n`);
       return;
@@ -179,6 +212,107 @@ async function main() {
         option(args, '--output'),
       );
       process.stdout.write(`${JSON.stringify({ variant, ...result })}\n`);
+      return;
+    }
+    case 'job-parse': {
+      const { inferJobPosting, parseJobFile, parseJobUrl } = await import('./lib/careerpilot/job-core.mjs');
+      let posting;
+      if (args.includes('--file')) {
+        posting = await parseJobFile(required(option(args, '--file'), '--file'));
+      } else if (args.includes('--url')) {
+        posting = await parseJobUrl(required(option(args, '--url'), '--url'));
+      } else if (args.includes('--stdin')) {
+        const input = await readStdin();
+        let payload = null;
+        try { payload = JSON.parse(input); } catch { /* raw JD text */ }
+        posting = payload && typeof payload === 'object'
+          ? inferJobPosting(required(payload.raw_text, 'raw_text'), payload.source || { kind: 'pasted_text' }, payload.hints || {})
+          : inferJobPosting(input);
+      } else {
+        throw new Error('job-parse requires --stdin, --file, or --url');
+      }
+      process.stdout.write(`${JSON.stringify(posting)}\n`);
+      return;
+    }
+    case 'job-evaluate': {
+      if (!args.includes('--stdin')) throw new Error('job-evaluate requires --stdin');
+      const { evaluateJob, finalizeJobPosting, saveJobEvaluation } = await import('./lib/careerpilot/job-core.mjs');
+      const payload = JSON.parse(await readStdin());
+      const posting = finalizeJobPosting(required(payload.posting, 'posting'));
+      const report = evaluateJob(root, posting, payload);
+      const paths = args.includes('--no-persist') ? null : saveJobEvaluation(root, posting, report);
+      process.stdout.write(`${JSON.stringify({ posting, report, paths })}\n`);
+      return;
+    }
+    case 'job-proposal-validate': {
+      if (!args.includes('--stdin')) throw new Error('job-proposal-validate requires --stdin');
+      const { validateFitProposal } = await import('./lib/careerpilot/job-core.mjs');
+      process.stdout.write(`${JSON.stringify(validateFitProposal(root, JSON.parse(await readStdin())))}\n`);
+      return;
+    }
+    case 'job-show': {
+      const { loadJobEvaluation } = await import('./lib/careerpilot/job-core.mjs');
+      process.stdout.write(`${JSON.stringify(loadJobEvaluation(root, required(positionals[0], 'JOB_ID')))}\n`);
+      return;
+    }
+    case 'resume-tailor-preview': {
+      const { createTailoringPreview, saveTailoringPreview } = await import('./lib/careerpilot/tailoring-core.mjs');
+      const supplied = args.includes('--stdin') ? JSON.parse(await readStdin()) : {};
+      const preview = createTailoringPreview(
+        root,
+        required(option(args, '--job'), '--job'),
+        { ...supplied, baseline_variant_id: option(args, '--baseline', supplied.baseline_variant_id) },
+      );
+      const path = args.includes('--save') ? saveTailoringPreview(root, preview) : null;
+      process.stdout.write(`${JSON.stringify({ preview, path })}\n`);
+      return;
+    }
+    case 'resume-tailor-export': {
+      if (!args.includes('--stdin')) throw new Error('resume-tailor-export requires --stdin');
+      const { exportTailoredResume } = await import('./lib/careerpilot/tailoring-core.mjs');
+      const preview = JSON.parse(await readStdin());
+      const result = await exportTailoredResume(root, preview, required(option(args, '--format'), '--format'), option(args, '--output'));
+      process.stdout.write(`${JSON.stringify(result)}\n`);
+      return;
+    }
+    case 'application-prepare': {
+      const { prepareApplication } = await import('./lib/careerpilot/application-core.mjs');
+      const result = await prepareApplication(root, required(option(args, '--job'), '--job'));
+      process.stdout.write(`${JSON.stringify(result)}\n`);
+      return;
+    }
+    case 'application-stage': {
+      const { updateApplicationStage } = await import('./lib/careerpilot/application-core.mjs');
+      const result = updateApplicationStage(root, Number(required(positionals[0], 'TRACKER_NUM')), required(positionals[1], 'STAGE'), { note: option(args, '--note') });
+      process.stdout.write(`${JSON.stringify(result)}\n`);
+      return;
+    }
+    case 'application-show': {
+      const { loadApplication, reconcileApplication } = await import('./lib/careerpilot/application-core.mjs');
+      const trackerNum = Number(required(positionals[0], 'TRACKER_NUM'));
+      process.stdout.write(`${JSON.stringify({ application: loadApplication(root, trackerNum), reconciliation: reconcileApplication(root, trackerNum) })}\n`);
+      return;
+    }
+    case 'application-fields': {
+      if (!args.includes('--stdin')) throw new Error('application-fields requires --stdin');
+      const { updateApplicationFields } = await import('./lib/careerpilot/application-core.mjs');
+      const updates = JSON.parse(await readStdin());
+      process.stdout.write(`${JSON.stringify({ application: updateApplicationFields(root, Number(required(positionals[0], 'TRACKER_NUM')), updates) })}\n`);
+      return;
+    }
+    case 'application-list': {
+      const { listApplications } = await import('./lib/careerpilot/application-core.mjs');
+      process.stdout.write(`${JSON.stringify({ applications: listApplications(root) })}\n`);
+      return;
+    }
+    case 'resume-list': {
+      const { listResumeVariants } = await import('./lib/careerpilot/tailoring-core.mjs');
+      process.stdout.write(`${JSON.stringify({ variants: listResumeVariants(root, { approvedOnly: args.includes('--approved') }) })}\n`);
+      return;
+    }
+    case 'resume-variant-show': {
+      const { resumeVariantContext } = await import('./lib/careerpilot/tailoring-core.mjs');
+      process.stdout.write(`${JSON.stringify(resumeVariantContext(root, required(positionals[0], 'VARIANT_ID')))}\n`);
       return;
     }
     case '--help':

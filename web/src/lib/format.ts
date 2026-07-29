@@ -44,6 +44,22 @@ export const CANONICAL_STATES = [
   "SKIP",
 ] as const;
 
+export const STATUS_LABELS: Record<(typeof CANONICAL_STATES)[number], string> = {
+  Evaluated: "已评估",
+  Applied: "已申请",
+  Responded: "已回复",
+  Interview: "面试中",
+  Offer: "已获录用",
+  Rejected: "被拒绝",
+  Discarded: "已放弃",
+  SKIP: "已跳过",
+};
+
+export function statusLabel(status: string): string {
+  const canonical = CANONICAL_STATES.find((state) => state.toUpperCase() === canonStatus(status));
+  return canonical ? STATUS_LABELS[canonical] : status;
+}
+
 export function canonStatus(s: string): string {
   const k = s.trim().toLowerCase();
   if (k === "" || k === "—" || k === "-") return "DISCARDED";

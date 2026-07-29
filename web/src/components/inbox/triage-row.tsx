@@ -76,7 +76,7 @@ export function TriageRow({
           {source && <span className="rounded bg-surface-hover px-1 py-px font-medium text-muted">{ATS_LABEL[source]}</span>}
           {ago && <span>{ago}</span>}
           {/* 🔴 CRUDA: honest "not scored" — no fabricated match%. */}
-          {!evaluated && <span className="italic text-muted">not scored</span>}
+          {!evaluated && <span className="italic text-muted">未评分</span>}
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export function TriageRow({
           {scored!.running ? (
             <>
               <Loader2 className="size-3.5 animate-spin text-brand" />
-              <span className="text-brand max-sm:hidden">Scoring…</span>
+              <span className="text-brand max-sm:hidden">正在评分…</span>
             </>
           ) : (
             <Badge tone={scored!.tone}>{scored!.score}/5</Badge>
@@ -97,7 +97,7 @@ export function TriageRow({
           <button
             type="button"
             onClick={onSave}
-            title={shortlisted ? "In your shortlist" : "Save to shortlist"}
+            title={shortlisted ? "已在候选清单中" : "加入候选清单"}
             aria-pressed={shortlisted}
             className={cn(
               "inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors max-sm:min-h-[44px] max-sm:min-w-[44px]",
@@ -105,12 +105,12 @@ export function TriageRow({
             )}
           >
             {shortlisted ? <BookmarkCheck className="size-4" /> : <Bookmark className="size-4" />}
-            <span className="max-sm:hidden">{shortlisted ? "Saved" : "Save"}</span>
+            <span className="max-sm:hidden">{shortlisted ? "已保存" : "保存"}</span>
           </button>
           <button
             type="button"
             onClick={onSkip}
-            title="Skip — hide from the inbox"
+            title="跳过并从待处理列表隐藏"
             className="inline-flex items-center justify-center rounded-md p-1 text-faint transition-colors hover:bg-surface-hover hover:text-foreground max-sm:min-h-[44px] max-sm:min-w-[44px]"
           >
             <X className="size-4" />

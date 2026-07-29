@@ -59,6 +59,11 @@ const requiredSystemPaths = [
   'batch/README.md',
   'examples/',
   'config/profile.example.yml',
+  'config/cn-campus.defaults.yml',
+  'modes/cn-campus/',
+  'schemas/cn/',
+  'lib/careerpilot/',
+  'web/',
   '.env.example',
   '.claude-plugin/',
   '.qwen/',
@@ -248,7 +253,7 @@ if (staticRelativeImport.test(source)) {
   pass('update-system.mjs is self-loading — no static relative imports (#1706)');
 }
 
-for (const userPath of ['cv.md', 'config/profile.yml', 'modes/_profile.md', 'portals.yml', 'data/', 'reports/']) {
+for (const userPath of ['cv.md', 'config/profile.yml', 'modes/_profile.md', 'portals.yml', 'data/', 'reports/', 'profile/']) {
   if (userPaths.includes(userPath)) pass(`USER_PATHS protects ${userPath}`);
   else fail(`USER_PATHS missing ${userPath}`);
 }

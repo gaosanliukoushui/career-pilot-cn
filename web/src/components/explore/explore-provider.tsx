@@ -157,7 +157,7 @@ export function ExploreProvider({ children }: { children: React.ReactNode }) {
     setDroppedNoDate(0);
     setPartial(false);
     setError("");
-    setStatus("Casting the net across the ATS network…");
+    setStatus("正在扫描 ATS 招聘网络…");
     const init: Partial<Record<AtsSource, SourceState>> = {};
     for (const a of f.ats) init[a] = { state: "queued" };
     setSources(init);
@@ -180,9 +180,9 @@ export function ExploreProvider({ children }: { children: React.ReactNode }) {
       });
       if (r.status === 400) {
         const d = await r.json().catch(() => ({}));
-        sawError = d.error || "The scanner isn't available.";
+        sawError = d.error || "扫描器当前不可用。";
       } else if (!r.body) {
-        sawError = "No response stream.";
+        sawError = "未收到响应数据流。";
       } else {
         const reader = r.body.getReader();
         const dec = new TextDecoder();
@@ -205,7 +205,7 @@ export function ExploreProvider({ children }: { children: React.ReactNode }) {
             switch (ev.kind) {
               case "atsStart":
                 setPhase("scanning");
-                setStatus(`Walking ${ATS_LABEL[ev.ats as AtsSource] ?? ev.ats} — ${ev.companies.toLocaleString()} companies`);
+                setStatus(`正在扫描 ${ATS_LABEL[ev.ats as AtsSource] ?? ev.ats} · ${ev.companies.toLocaleString()} 家公司`);
                 setSources((s) => ({ ...s, [ev.ats]: { ...s[ev.ats as AtsSource], state: "active", companies: ev.companies } }));
                 break;
               case "progress":
@@ -248,7 +248,7 @@ export function ExploreProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (e) {
-      sawError = e instanceof Error ? e.message : "stream error";
+      sawError = e instanceof Error ? e.message : "数据流错误";
     }
 
     // Mark any still-active sources as swept (stream ended).
@@ -262,7 +262,7 @@ export function ExploreProvider({ children }: { children: React.ReactNode }) {
     if (acc.length > 0) {
       setMatchCount(acc.length);
       setPhase("revealing");
-      setStatus(`${acc.length} fresh role${acc.length === 1 ? "" : "s"} found — free.`);
+      setStatus(`免费找到 ${acc.length} 个新职位。`);
       window.setTimeout(() => setPhase("results"), 850);
     } else if (sawError) {
       setError(sawError);
@@ -360,7 +360,7 @@ export function ExploreProvider({ children }: { children: React.ReactNode }) {
     setAiTrace([]);
     setAiCost({ searches: 0, candidates: 0, fetches: 0 });
     setError("");
-    setStatus("Casting across the open web…");
+    setStatus("正在搜索公开网络…");
     if (typeof window !== "undefined") window.history.replaceState(null, "", `/explore?${aiToParams(intent)}`);
 
     let knownUrls = new Set<string>();
@@ -407,9 +407,9 @@ export function ExploreProvider({ children }: { children: React.ReactNode }) {
       }
       if (r.status === 400) {
         const d = await r.json().catch(() => ({}));
-        sawError = d.error || "AI search isn't available.";
+        sawError = d.error || "AI 搜索当前不可用。";
       } else if (!r.body) {
-        sawError = "No response stream.";
+        sawError = "未收到响应数据流。";
       } else {
         const reader = r.body.getReader();
         const dec = new TextDecoder();
@@ -421,14 +421,14 @@ export function ExploreProvider({ children }: { children: React.ReactNode }) {
         handle(parser.flush());
       }
     } catch (e) {
-      sawError = e instanceof Error ? e.message : "stream error";
+      sawError = e instanceof Error ? e.message : "数据流错误";
     }
 
     runningRef.current = false;
     if (acc.length > 0) {
       setMatchCount(acc.length);
       setPhase("revealing");
-      setStatus(`${acc.length} candidate${acc.length === 1 ? "" : "s"} found.`);
+      setStatus(`找到 ${acc.length} 个候选职位。`);
       window.setTimeout(() => setPhase("results"), 850);
     } else if (sawError) {
       setError(sawError);

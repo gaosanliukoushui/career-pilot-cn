@@ -39,14 +39,14 @@ export function ApplyView() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && a.open(input.trim())}
-            placeholder="Paste an application form URL (Ashby, Lever, Greenhouse…)"
+            placeholder="粘贴申请表链接（Ashby、Lever、Greenhouse 等）"
             className="min-w-0 flex-1 bg-transparent py-1.5 text-sm outline-none placeholder:text-faint"
           />
           <button
             onClick={() => a.open(input.trim())}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-4 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-200"
           >
-            <Wand2 className="size-4" /> Read form
+            <Wand2 className="size-4" /> 读取表单
           </button>
         </div>
         {a.error && (
@@ -57,7 +57,7 @@ export function ApplyView() {
                 <p className="text-sm text-amber-800 dark:text-amber-300">{a.error}</p>
                 {a.url && /^https?:\/\//.test(a.url) && (
                   <a href={a.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline">
-                    Open the form directly <ExternalLink className="size-3" />
+                    直接打开真实表单 <ExternalLink className="size-3" />
                   </a>
                 )}
               </div>
@@ -87,7 +87,7 @@ export function ApplyView() {
         <div className="co-rise mb-4 flex items-baseline justify-between gap-3">
           <h2 className="font-display text-xl text-landing drop-shadow-sm">{a.title || "Application"}</h2>
           <button onClick={a.reset} className="inline-flex items-center gap-1 text-xs text-faint transition-colors hover:text-foreground">
-            <RotateCcw className="size-3" /> new
+            <RotateCcw className="size-3" /> 新建
           </button>
         </div>
       )}
@@ -95,7 +95,7 @@ export function ApplyView() {
       {/* opening: big magic hero + skeleton fields (no layout jump when real ones arrive) */}
       {opening && (
         <>
-          <ProcessingHero title="Reading your form…" subtitle="Opening the real application on your machine and reading every field." />
+          <ProcessingHero title="正在读取申请表…" subtitle="正在本机打开真实申请页面并读取每个字段。" />
           <FieldSkeleton />
         </>
       )}
@@ -120,7 +120,7 @@ export function ApplyView() {
                 <Sparkles className="size-4 text-brand" />
               </span>
               <div className="min-w-0">
-                <div className="text-sm font-medium text-foreground">Drafting your answers…</div>
+                <div className="text-sm font-medium text-foreground">正在起草回答…</div>
                 <RotatingStatus />
               </div>
               <Loader2 className="ml-auto size-4 shrink-0 animate-spin text-brand" />
@@ -134,17 +134,17 @@ export function ApplyView() {
               className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand-soft px-3.5 py-1.5 text-sm font-medium text-brand transition-colors hover:bg-brand/15 disabled:opacity-50"
             >
               {prefilling ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-              {prefilling ? "Drafting from your CV…" : "Pre-fill from my CV"}
+              {prefilling ? "正在根据简历起草…" : "根据我的简历预填"}
             </button>
-            <span className="text-xs text-muted">…or ask the corner assistant to write/revise any answer.</span>
+            <span className="text-xs text-muted">……也可以让右下角助手撰写或修改任意回答。</span>
           </div>
 
           {(prefilling || a.prefillLog.length > 0) && (
             <details className="mb-4 rounded-lg border border-border bg-surface/60 backdrop-blur-sm" open={false}>
               <summary className="flex cursor-pointer select-none items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted">
-                <Terminal className="size-3.5" /> Pre-fill diagnostics
+                <Terminal className="size-3.5" /> 预填诊断信息
                 {prefilling && <Loader2 className="size-3 animate-spin text-brand" />}
-                <span className="ml-auto text-faint">{a.prefillLog.length} steps</span>
+                <span className="ml-auto text-faint">{a.prefillLog.length} 个步骤</span>
               </summary>
               <div className="max-h-52 overflow-y-auto border-t border-border px-3 py-2">
                 <ol className="space-y-0.5 font-mono text-[11px] leading-relaxed text-muted">
@@ -183,18 +183,18 @@ export function ApplyView() {
               className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground shadow-lg shadow-brand/25 transition-all hover:bg-brand-200 hover:shadow-brand/40 disabled:opacity-50"
             >
               {filling ? <Loader2 className="size-4 animate-spin" /> : <ArrowUpRight className="size-4" />}
-              {filling ? "Filling the real form…" : "Fill the real form & review"}
+              {filling ? "正在填写真实表单…" : "填写真实表单并审核"}
             </button>
             <button
               onClick={a.agentFill}
               disabled={filling || prefilling}
-              title="Let the AI drive the real form and fill it field-by-field (for tricky / multi-step forms). It never submits."
+              title="让 AI 在真实表单中逐项填写，适合复杂或多步骤表单；系统不会自动提交。"
               className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2.5 text-sm font-medium text-muted transition-colors hover:border-brand/40 hover:text-brand disabled:opacity-50"
             >
-              <MousePointerClick className="size-4" /> Let the AI fill it
+              <MousePointerClick className="size-4" /> 让 AI 填写
             </button>
             <p className="inline-flex items-center gap-1.5 text-xs text-muted">
-              <ShieldCheck className="size-3.5 text-emerald-500" /> Never submits — you click Submit yourself.
+              <ShieldCheck className="size-3.5 text-emerald-500" /> 系统绝不会自动提交，最终由你亲自点击提交。
             </p>
           </div>
 
@@ -203,7 +203,7 @@ export function ApplyView() {
 
           {(filling || done) && a.steps.length > 0 && (
             <div className="co-rise mt-6">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-faint">Behind the scenes</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-faint">后台处理过程</div>
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {a.steps.map((s, i) => (
                   <figure key={i} className="shrink-0">
@@ -213,7 +213,7 @@ export function ApplyView() {
                     ) : (
                       <div className="flex h-24 w-36 items-center justify-center rounded-md border border-dashed border-border text-faint">…</div>
                     )}
-                    <figcaption className={cn("mt-1 w-36 truncate text-[10px]", s.ok ? "text-faint" : "text-amber-500")}>{s.label || "field"}</figcaption>
+                    <figcaption className={cn("mt-1 w-36 truncate text-[10px]", s.ok ? "text-faint" : "text-amber-500")}>{s.label || "字段"}</figcaption>
                   </figure>
                 ))}
               </div>
@@ -223,8 +223,8 @@ export function ApplyView() {
             <div className="co-rise mt-4 flex items-start gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm backdrop-blur-sm">
               <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-500" />
               <div>
-                <span className="font-medium text-emerald-700 dark:text-emerald-400">The real form is now in front, pre-filled.</span>{" "}
-                <span className="text-muted">Review it and click Submit yourself — career-ops never submits for you.</span>
+                <span className="font-medium text-emerald-700 dark:text-emerald-400">真实表单已打开并完成预填。</span>{" "}
+                <span className="text-muted">请仔细检查后亲自点击提交，career-ops 永远不会替你提交。</span>
               </div>
             </div>
           )}
@@ -235,7 +235,7 @@ export function ApplyView() {
 }
 
 // ── Watch the agent reach the form live (it navigates, never submits) ───────
-const DRIVE_VERB: Record<string, string> = { click: "Clicked", type: "Typed into", select: "Selected", scroll: "Scrolled", "parse-error": "Thinking…", stuck: "Stuck", reached_form: "Reached the form" };
+const DRIVE_VERB: Record<string, string> = { click: "已点击", type: "已输入", select: "已选择", scroll: "已滚动", "parse-error": "正在思考…", stuck: "遇到阻碍", reached_form: "已到达表单" };
 function DrivePanel({ steps, filling }: { steps: DriveStep[]; filling?: boolean }) {
   const last = steps[steps.length - 1];
   return (
@@ -246,8 +246,8 @@ function DrivePanel({ steps, filling }: { steps: DriveStep[]; filling?: boolean 
           <span className="co-ring absolute inset-0 rounded-full border-2 border-brand/30 border-t-brand" />
           <MousePointerClick className="size-6 text-brand" />
         </span>
-        <div className="font-display text-2xl text-landing">{filling ? "AI is filling the form…" : "Reaching your form…"}</div>
-        <p className="max-w-sm text-sm text-muted">{filling ? "The AI is driving the real form field-by-field on your machine — it never submits; you review and submit." : "The AI is navigating the real application on your machine to reach the form — it never submits."}</p>
+        <div className="font-display text-2xl text-landing">{filling ? "AI 正在填写表单…" : "正在进入申请表…"}</div>
+        <p className="max-w-sm text-sm text-muted">{filling ? "AI 正在本机逐项填写真实表单；系统不会提交，你需要审核并亲自提交。" : "AI 正在本机进入真实申请表；系统不会自动提交。"}</p>
       </div>
       {last?.thumb ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -281,7 +281,7 @@ function ApplyIssues({ issues }: { issues: ApplyIssue[] }) {
       {warns.length > 0 && (
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 backdrop-blur-sm">
           <div className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-amber-700 dark:text-amber-400">
-            <AlertTriangle className="size-4" /> A few things to check
+            <AlertTriangle className="size-4" /> 请重点检查以下内容
           </div>
           <ul className="space-y-1 text-xs text-amber-800/90 dark:text-amber-300/90">
             {warns.map((i, k) => (
@@ -304,9 +304,9 @@ function ApplyIssues({ issues }: { issues: ApplyIssue[] }) {
 // ── Journey rail: Reading → Drafting → Review ───────────────────────────────
 function PhaseRail({ phase }: { phase: number }) {
   const steps = [
-    { label: "Reading form", icon: ScanLine },
-    { label: "Drafting answers", icon: PenLine },
-    { label: "Review & submit", icon: CheckCircle2 },
+    { label: "读取表单", icon: ScanLine },
+    { label: "起草回答", icon: PenLine },
+    { label: "审核并提交", icon: CheckCircle2 },
   ];
   return (
     <div className="mb-6 flex items-center gap-2.5">
@@ -344,11 +344,11 @@ function PhaseRail({ phase }: { phase: number }) {
 // Honest, calming rotation of what the planner is actually doing, so the (~1-2min)
 // draft doesn't feel stalled. Crossfades every ~2.8s.
 const DRAFT_MSGS = [
-  "Reading your CV…",
-  "Reading the role and company…",
-  "Matching your experience to each question…",
-  "Writing every answer in your own voice…",
-  "Flagging anything that needs your call…",
+  "正在读取你的简历…",
+  "正在分析职位和公司…",
+  "正在把你的经历与每个问题匹配…",
+  "正在用符合你表达习惯的方式撰写回答…",
+  "正在标记需要你亲自确认的内容…",
 ];
 function RotatingStatus() {
   const [i, setI] = useState(0);
@@ -429,17 +429,17 @@ function FieldRow({
   return (
     <div className={flash ? "co-flash" : ""} style={flash ? { animationDelay: `${Math.min(index * 70, 900)}ms` } : undefined}>
       <label className="mb-1.5 flex items-center gap-1 text-sm font-medium">
-        {f.label || <span className="text-faint">Untitled field</span>}
+        {f.label || <span className="text-faint">未命名字段</span>}
         {f.required && <Asterisk className="size-3 text-brand" />}
-        {needs && <span className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">you confirm</span>}
+        {needs && <span className="ml-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">需要你确认</span>}
       </label>
       {writing ? (
         <div className={cn("co-skel", f.type === "textarea" ? "h-[68px]" : "h-9")} />
       ) : f.type === "textarea" ? (
-        <textarea rows={3} maxLength={f.maxLength} value={value} onChange={(e) => onChange(e.target.value)} placeholder={needs ? "You fill this one." : "…"} className={cn(base, "resize-none")} />
+        <textarea rows={3} maxLength={f.maxLength} value={value} onChange={(e) => onChange(e.target.value)} placeholder={needs ? "此项需要你填写。" : "…"} className={cn(base, "resize-none")} />
       ) : (f.type === "select" || f.type === "radio") && f.options && f.options.length > 0 ? (
         <select value={value} onChange={(e) => onChange(e.target.value)} className={base}>
-          <option value="">Choose…</option>
+          <option value="">请选择…</option>
           {f.options.map((o, i) => (
             <option key={i} value={o}>
               {o}
@@ -448,20 +448,20 @@ function FieldRow({
         </select>
       ) : f.type === "checkbox" ? (
         <label className="flex items-center gap-2 text-sm text-muted">
-          <input type="checkbox" checked={value === "true" || value === "yes"} onChange={(e) => onChange(e.target.checked ? "true" : "")} className="size-4 accent-brand" /> {f.label || "Yes"}
+          <input type="checkbox" checked={value === "true" || value === "yes"} onChange={(e) => onChange(e.target.checked ? "true" : "")} className="size-4 accent-brand" /> {f.label || "是"}
         </label>
       ) : f.type === "file" ? (
         /resume|résumé|\bcv\b|curriculum|currículum|lebenslauf/i.test(f.label || "") ? (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
-            <FileCheck2 className="size-4 shrink-0" /> Your tailored CV (PDF) will be attached automatically — you can swap it on the real form.
+            <FileCheck2 className="size-4 shrink-0" /> 定制简历 PDF 会自动附加，你可以在真实表单中替换。
           </div>
         ) : (
           <div className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-sm text-muted">
-            <Paperclip className="size-4 shrink-0" /> Attach this file yourself on the real form at the handoff.
+            <Paperclip className="size-4 shrink-0" /> 切换到真实表单后，请手动附加此文件。
           </div>
         )
       ) : (
-        <input type={["email", "tel", "url", "number", "date"].includes(f.type) ? f.type : "text"} maxLength={f.maxLength} value={value} onChange={(e) => onChange(e.target.value)} placeholder={needs ? "You fill this one." : "…"} className={base} />
+        <input type={["email", "tel", "url", "number", "date"].includes(f.type) ? f.type : "text"} maxLength={f.maxLength} value={value} onChange={(e) => onChange(e.target.value)} placeholder={needs ? "此项需要你填写。" : "…"} className={base} />
       )}
     </div>
   );

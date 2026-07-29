@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/application.schema.json",
+  "title": "Application",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "job_id", "tracker_num", "created_at", "updated_at", "current_stage", "canonical_status", "deadline", "fields", "materials", "events"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^application\\.\\d+$" },
+    "job_id": { "type": "string", "pattern": "^job\\.[a-f0-9]{16,64}$" },
+    "tracker_num": { "type": "integer", "minimum": 1 },
+    "created_at": { "type": "string" },
+    "updated_at": { "type": "string" },
+    "current_stage": { "$ref": "#/$defs/stage" },
+    "canonical_status": { "enum": ["Evaluated", "Applied", "Responded", "Interview", "Offer", "Hired", "Rejected", "Discarded", "SKIP"] },
+    "deadline": { "type": ["string", "null"] },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "category", "required", "sensitivity", "manual_required", "source_fact_ids", "max_length"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9._-]+$" },
+          "label": { "type": "string", "minLength": 1 },
+          "category": { "enum": ["personal", "education", "grades", "experience", "certificates", "motivation", "preferences", "materials"] },
+          "required": { "type": "boolean" },
+          "sensitivity": { "enum": ["public", "personal", "sensitive", "restricted"] },
+          "manual_required": { "type": "boolean" },
+          "source_fact_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+          "max_length": { "type": ["integer", "null"], "minimum": 1 },
+          "draft": {}
+        }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "status", "evidence_ids", "manual_required"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "status": { "enum": ["ready", "missing", "manual_required"] },
+          "evidence_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+          "manual_required": { "type": "boolean" }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stage", "canonical_status", "recorded_at", "note"],
+        "properties": {
+          "stage": { "$ref": "#/$defs/stage" },
+          "canonical_status": { "type": "string" },
+          "recorded_at": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "stage": {
+      "enum": ["evaluated", "pending_apply", "submitted", "qualification", "assessment_notice", "written_test_notice", "written_test_completed", "interview_first", "interview_professional", "interview_hr", "medical", "background_review", "political_review", "intended_offer", "signed", "ineligible", "withdrawn", "closed", "expired", "rejected"]
+    }
+  }
+}
+

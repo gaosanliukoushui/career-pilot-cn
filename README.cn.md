@@ -1,6 +1,8 @@
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/wordmark-dark.svg"><img src="docs/wordmark-light.svg" alt="career-ops" width="250" height="56"></picture></p>
 
-> **CareerPilot CN 二次开发分支：** 本仓库是在 MIT 许可的 [career-ops](https://github.com/santifer/career-ops) 基础上开发的中国校招本地 AI 求职工作台。CareerPilot CN 是独立项目名称，不代表获得 career-ops 商标授权。当前上游基线为 `career-ops v1.22.0`（commit `2901944`）。使用说明见[事实与证据中心](docs/CAREERPILOT_PROFILE.md)和[中文简历与导出工作台](docs/CAREERPILOT_RESUME.md)。
+> **CareerPilot CN 首个正式版：** 本仓库是在 MIT 许可的 [career-ops](https://github.com/santifer/career-ops) 基础上开发的中国校招本地 AI 求职工作台，首版聚焦央企、地方国企、银行和运营商。已交付事实与证据中心、中文主简历、官网 JD/PDF/DOCX 导入、资格硬筛、证据化匹配、30% 简历定制上限、网申材料和中国招聘阶段跟踪。CareerPilot CN 是独立项目名称，不代表获得 career-ops 商标授权。当前上游基线仍冻结在 `career-ops v1.22.0`（commit `2901944`）。使用说明见[首个正式版指南](docs/CAREERPILOT_CN_FIRST_RELEASE.md)、[事实与证据中心](docs/CAREERPILOT_PROFILE.md)和[中文简历与导出工作台](docs/CAREERPILOT_RESUME.md)。
+
+快速开始：运行 Web 后打开 `/profile` 建立结构化资格资料，再到 `/job-analysis` 粘贴招聘公告、官网链接或上传文本型 PDF/DOCX。系统先给出 `eligible / ineligible / unknown` 资格结论，再计算六维匹配；身份证、家庭成员和详细住址不会落盘。
 
 <div align="center">
 

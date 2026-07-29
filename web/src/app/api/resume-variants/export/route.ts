@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "请求内容不是有效 JSON" }, { status: 400 });
   }
   if (!body.format || !MIME[body.format]) return Response.json({ error: "仅支持 Markdown、DOCX 和 PDF" }, { status: 400 });
-  if (!body.variant?.template) return Response.json({ error: "缺少已审阅的 ResumeVariant" }, { status: 400 });
+  if (!body.variant?.template) return Response.json({ error: "缺少已审阅的简历版本" }, { status: 400 });
   const file = `${body.variant.template}-${randomUUID()}.${body.format}`;
   const relativeOutput = path.posix.join("output", "careerpilot", file);
   const args = ["resume-export", "--variant-stdin", "--format", body.format, "--output", relativeOutput];

@@ -22,14 +22,14 @@ export function WorkerPills() {
   return (
     <div className="mt-4 border-t border-border pt-3">
       <div className="mb-2 flex items-center gap-2 px-1">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">Workers</span>
-        {running > 0 && <span className="text-[10px] tabular-nums text-brand">{running} running</span>}
-        <Link href="/jobs" className="ml-auto text-faint transition-colors hover:text-foreground" title="History" aria-label="Worker history">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">后台任务</span>
+        {running > 0 && <span className="text-[10px] tabular-nums text-brand">{running} 个运行中</span>}
+        <Link href="/jobs" className="ml-auto text-faint transition-colors hover:text-foreground" title="历史记录" aria-label="任务历史记录">
           <History className="size-3.5" />
         </Link>
         {finished > 0 && (
-          <button onClick={clearFinished} className="text-[10px] text-faint transition-colors hover:text-foreground" title="Clear finished">
-            clear
+          <button onClick={clearFinished} className="text-[10px] text-faint transition-colors hover:text-foreground" title="清除已完成任务">
+            清除
           </button>
         )}
       </div>
@@ -55,7 +55,7 @@ export function WorkerPills() {
                         removeJob(j.id);
                       }}
                       className="text-faint opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                      aria-label="Dismiss job"
+                      aria-label="关闭任务"
                     >
                       <X className="size-3" />
                     </button>

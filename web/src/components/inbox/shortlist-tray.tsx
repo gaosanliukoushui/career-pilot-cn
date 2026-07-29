@@ -39,8 +39,8 @@ export function ShortlistTray({
 
   const n = items.length;
   const costText = estimate.tokens
-    ? `≈ ${fmtTokens(estimate.tokens)} tokens${estimate.usd != null ? ` · ≈ $${estimate.usd.toFixed(2)}` : ""}`
-    : "uses your tokens";
+    ? `约 ${fmtTokens(estimate.tokens)} 令牌${estimate.usd != null ? ` · 约 $${estimate.usd.toFixed(2)}` : ""}`
+    : "会消耗你的令牌";
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 sm:bottom-4">
@@ -76,12 +76,12 @@ export function ShortlistTray({
               className="inline-flex items-center gap-1.5 text-sm font-medium max-sm:min-h-[44px]"
             >
               <ChevronDown className={cn("size-4 text-muted transition-transform", open && "rotate-180")} />
-              Shortlist <span className="tabular-nums text-brand-text">({n})</span>
+              候选清单 <span className="tabular-nums text-brand-text">({n})</span>
             </button>
 
             {open && (
               <button type="button" onClick={onClear} className="text-xs text-faint transition-colors hover:text-foreground max-sm:min-h-[44px]">
-                Clear
+                清除
               </button>
             )}
 
@@ -93,7 +93,7 @@ export function ShortlistTray({
                   className="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-200 max-sm:min-h-[44px]"
                 >
                   <Sparkles className="size-4" />
-                  <span>Score {n}</span>
+                  <span>为 {n} 个职位评分</span>
                   <span className="hidden text-xs font-normal text-brand-foreground/80 sm:inline">· {costText}</span>
                 </button>
               ) : (
@@ -105,7 +105,7 @@ export function ShortlistTray({
           {/* cost line — always visible on mobile (where it doesn't fit in the button) */}
           <div className="flex items-center gap-2 border-t border-border/60 px-3 py-1.5 text-[11px] text-muted sm:hidden">
             <CostBadge kind="spend" size="xs" />
-            <span>{costText} — the only step that spends</span>
+            <span>{costText} ——这是唯一会消耗令牌的步骤</span>
           </div>
         </div>
       </div>
@@ -129,12 +129,12 @@ function ConfirmScore({
   if (!hasCli) {
     return (
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-muted">No AI configured.</span>
+        <span className="text-muted">尚未配置 AI。</span>
         <Link href="/config" className="inline-flex items-center gap-1 rounded-full border border-brand/40 bg-brand-soft px-3 py-1.5 font-medium text-brand max-sm:min-h-[44px]">
-          <Settings className="size-3.5" /> Set up
+          <Settings className="size-3.5" /> 去配置
         </Link>
         <button type="button" onClick={onCancel} className="text-faint hover:text-foreground max-sm:min-h-[44px]">
-          Cancel
+          取消
         </button>
       </div>
     );
@@ -149,10 +149,10 @@ function ConfirmScore({
         onClick={onConfirm}
         className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-200 max-sm:min-h-[44px]"
       >
-        Score {n} now
+        立即为 {n} 个职位评分
       </button>
       <button type="button" onClick={onCancel} className="rounded-full px-2 py-2 text-xs text-faint transition-colors hover:text-foreground max-sm:min-h-[44px]">
-        Cancel
+        取消
       </button>
     </div>
   );

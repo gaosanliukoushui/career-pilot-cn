@@ -8,14 +8,13 @@ export default function PortalsPage() {
     <div className="mx-auto max-w-3xl px-6 py-8">
       <div className="flex items-center gap-3">
         <Radar className="size-6 text-brand" />
-        <h1 className="font-display text-2xl tracking-tight text-landing">Portals</h1>
+        <h1 className="font-display text-2xl tracking-tight text-landing">招聘门户</h1>
       </div>
       <p className="mt-1.5 max-w-xl text-sm text-muted">
-        The companies career-ops watches for new roles. Run a health check to catch company boards that have quietly
-        broken — a broken link means that company silently disappears from every future scan.
+        career-ops 会持续关注这些公司的新职位。运行健康检查可发现悄然失效的招聘页面；链接失效会导致该公司从后续扫描结果中消失。
       </p>
       <p className="mt-1.5 text-xs text-faint">
-        Backed by <code className="text-muted">portals.yml</code> — edit it directly or ask the assistant.
+        数据来自 <code className="text-muted">portals.yml</code>，你可以直接编辑，也可以让助手代为配置。
       </p>
       <div className="mt-6">
         <PortalsView />

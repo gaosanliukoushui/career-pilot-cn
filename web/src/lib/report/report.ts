@@ -129,40 +129,40 @@ export function issueBody(d: Diag, description: string): string {
   const fmt = (n?: number) => (typeof n === "number" ? String(n) : "?");
   const shapeLines = s
     ? [
-        "## Data shape (counts only — no contents)",
-        `- **Setup:** ${s.setup?.phase || "?"}${s.setup?.missing?.length ? ` · missing: ${s.setup.missing.join(", ")}` : ""}`,
-        `- **Inbox:** ${fmt(s.data?.inbox?.parsed)}/${fmt(s.data?.inbox?.candidates)} rows parsed · **Tracker:** ${fmt(s.data?.tracker?.parsed)}/${fmt(s.data?.tracker?.candidates)} rows parsed`,
-        `- **Reports:** ${fmt(s.data?.reports)} · **PDFs:** ${fmt(s.data?.pdfs)} · **Follow-ups engine:** ${d.followupsAvailable === null ? "?" : d.followupsAvailable ? "ok" : "DEGRADED"}`,
-        `- **Core capabilities:** scan --json ${s.capabilities?.scanJson ? "yes" : "no"} · tracker delete ${s.capabilities?.trackerDelete ? "yes" : "no"}`,
-        `- **Server:** node ${s.runtime?.node || "?"} · ${s.runtime?.platform || "?"}/${s.runtime?.arch || "?"}`,
+        "## 数据概况（仅数量，不含具体内容）",
+        `- **设置：** ${s.setup?.phase || "?"}${s.setup?.missing?.length ? ` · 缺少：${s.setup.missing.join("、")}` : ""}`,
+        `- **待处理职位：** 已解析 ${fmt(s.data?.inbox?.parsed)}/${fmt(s.data?.inbox?.candidates)} 行 · **申请追踪器：** 已解析 ${fmt(s.data?.tracker?.parsed)}/${fmt(s.data?.tracker?.candidates)} 行`,
+        `- **报告：** ${fmt(s.data?.reports)} · **PDF：** ${fmt(s.data?.pdfs)} · **跟进引擎：** ${d.followupsAvailable === null ? "?" : d.followupsAvailable ? "正常" : "功能受限"}`,
+        `- **核心能力：** scan --json ${s.capabilities?.scanJson ? "是" : "否"} · 删除追踪记录 ${s.capabilities?.trackerDelete ? "是" : "否"}`,
+        `- **服务器：** node ${s.runtime?.node || "?"} · ${s.runtime?.platform || "?"}/${s.runtime?.arch || "?"}`,
         "",
       ]
     : [];
   return [
-    "## What happened",
-    scrub(description).trim() || "_(describe what you were doing and what went wrong)_",
+    "## 问题描述",
+    scrub(description).trim() || "_（请描述当时进行的操作以及出现的问题）_",
     "",
-    "## Environment",
-    `- **Version:** \`${d.version || "?"}\`${d.coreVersion ? ` · core \`${d.coreVersion}\`` : ""} · ${d.channel}${d.sha ? ` · \`${d.sha}\`` : ""}`,
+    "## 运行环境",
+    `- **版本：** \`${d.version || "?"}\`${d.coreVersion ? ` · 核心 \`${d.coreVersion}\`` : ""} · ${d.channel}${d.sha ? ` · \`${d.sha}\`` : ""}`,
     `- **CLI:** ${d.cli || "—"}`,
-    `- **Screen:** \`${d.route}\``,
-    `- **Browser:** ${scrub(d.ua)}`,
-    `- **Viewport:** ${d.viewport}`,
-    `- **Fingerprint:** \`${fingerprint(d)}\``,
+    `- **页面：** \`${d.route}\``,
+    `- **浏览器：** ${scrub(d.ua)}`,
+    `- **视口：** ${d.viewport}`,
+    `- **指纹：** \`${fingerprint(d)}\``,
     "",
     ...shapeLines,
-    "## Recent errors",
-    d.logs.length ? "```\n" + d.logs.join("\n") + "\n```" : "_(none captured)_",
+    "## 最近错误",
+    d.logs.length ? "```\n" + d.logs.join("\n") + "\n```" : "_（未捕获到错误）_",
     "",
     "---",
-    "_Filed from the in-app bug reporter (report-format: v1). Contains NO CV, profile, application answers, or job URLs._",
+    "_由应用内问题报告器生成（报告格式：v1）。不包含简历、个人资料、申请回答或职位链接。_",
   ]
     .join("\n")
     .slice(0, 6000);
 }
 
 export function issueUrl(d: Diag, description: string): string {
-  const title = `[web ${d.channel}] ${(scrub(description) || "bug report").replace(/\s+/g, " ").trim().slice(0, 70)}`;
+  const title = `[web ${d.channel}] ${(scrub(description) || "问题报告").replace(/\s+/g, " ").trim().slice(0, 70)}`;
   const params = new URLSearchParams({ title, body: issueBody(d, description), labels: "web-alpha,area:web" });
   return `https://github.com/${REPO}/issues/new?${params.toString()}`;
 }

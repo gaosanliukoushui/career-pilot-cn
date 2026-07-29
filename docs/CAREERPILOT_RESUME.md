@@ -32,10 +32,13 @@ Phase 2 在 CandidateProfile 之上建立 `ResumeVariant`。简历不是新的�
 
 ```powershell
 node careerpilot.mjs resume-preview --template tech-two-page
-node careerpilot.mjs resume-save --template soe-one-page
+node careerpilot.mjs resume-save --template soe-one-page --ready
 node careerpilot.mjs resume-export --template soe-one-page --format md
 node careerpilot.mjs resume-export --template tech-two-page --format docx
 node careerpilot.mjs resume-export --template application-detail --format pdf
+node careerpilot.mjs resume-list --approved
+node careerpilot.mjs resume-tailor-preview --stdin
+node careerpilot.mjs resume-tailor-export --stdin
 ```
 
 可选的一次性授权参数为 `--authorize-photo` 和
@@ -59,6 +62,22 @@ node careerpilot.mjs resume-export --template application-detail --format pdf
 还会锁定已授权照片的 SHA-256，并拒绝证据目录外路径、符号链接、伪造图片与
 超限文件。导出使用新文件名且禁止覆盖：manifest 先发布，正式简历作为最后一个
 排他原子提交点，避免留下无法追踪的正式文件。
+
+## 岗位简历与 30% 上限
+
+岗位简历必须从状态为 `ready` 或 `exported` 的同模板主简历生成，并绑定岗位 ID、
+主简历 SHA-256、CandidateProfile SHA-256 和全部引用的 Fact ID。改动比例按发生增删、
+改写或相对顺序变化的唯一事实数除以主简历事实总数计算，同一事实只计一次。
+
+- `0%` 到 `30%` 可以进入逐条确认与导出；
+- 超过 `30%` 时核心层直接拒绝，Web 和 CLI 都没有越权参数；
+- 改写必须引用已有 Fact ID，不能新增数字、经历、证书或改变否定含义；
+- 预览后岗位、档案或主简历哈希变化时必须重新生成；
+- 岗位分析本身不再自动生成 PDF，只有用户确认改写后才能导出。
+
+Web 的 `/job-analysis` 页面在资格评估完成后提供岗位简历面板；原有 `/cv` 页面继续负责
+主简历和通用模板。`POST /api/cn/resumes/tailor-preview` 只计算并保存待确认预览，
+`POST /api/cn/resumes/tailor-export` 再次校验全部哈希、资格门槛和 30% 上限后才导出。
 
 ## 字体与格式
 

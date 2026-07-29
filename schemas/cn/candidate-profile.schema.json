@@ -6,7 +6,25 @@
   "additionalProperties": false,
   "required": ["schema_version", "candidate", "facts", "evidence"],
   "properties": {
-    "schema_version": { "const": 1 },
+    "schema_version": { "enum": [1, 2] },
+    "candidate": { "$ref": "#/$defs/candidate" },
+    "structured": { "$ref": "#/$defs/structuredProfile" },
+    "facts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/fact" }
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidence" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "schema_version": { "const": 2 } } },
+      "then": { "properties": { "structured": {} }, "required": ["structured"] }
+    }
+  ],
+  "$defs": {
     "candidate": {
       "type": "object",
       "additionalProperties": false,
@@ -20,16 +38,113 @@
         "political_status": { "type": "string" }
       }
     },
-    "facts": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/fact" }
+    "factRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "fact_id"],
+      "properties": {
+        "value": {},
+        "fact_id": { "type": "string", "minLength": 1 }
+      }
     },
-    "evidence": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/evidence" }
-    }
-  },
-  "$defs": {
+    "education": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "degree": {
+          "allOf": [
+            { "$ref": "#/$defs/factRef" },
+            { "type": "object", "properties": { "value": { "enum": ["secondary", "associate", "bachelor", "master", "doctorate"] } } }
+          ]
+        },
+        "institution": { "$ref": "#/$defs/factRef" },
+        "major_name": { "$ref": "#/$defs/factRef" },
+        "major_code": { "$ref": "#/$defs/factRef" },
+        "graduation_date": {
+          "allOf": [
+            { "$ref": "#/$defs/factRef" },
+            { "type": "object", "properties": { "value": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" } } }
+          ]
+        },
+        "cohort": {
+          "allOf": [
+            { "$ref": "#/$defs/factRef" },
+            { "type": "object", "properties": { "value": { "type": "integer", "minimum": 2000, "maximum": 2100 } } }
+          ]
+        },
+        "fresh_graduate_status": {
+          "allOf": [
+            { "$ref": "#/$defs/factRef" },
+            { "type": "object", "properties": { "value": { "enum": ["domestic", "overseas", "not_fresh", "unknown"] } } }
+          ]
+        }
+      }
+    },
+    "languageCertificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "fact_id"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "level": { "type": "string" },
+        "score": { "type": "number", "minimum": 0 },
+        "fact_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "credential": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "fact_id"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "level": { "type": "string" },
+        "fact_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "preferenceChoice": {
+      "allOf": [
+        { "$ref": "#/$defs/factRef" },
+        { "type": "object", "properties": { "value": { "enum": ["yes", "no", "unknown"] } } }
+      ]
+    },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "locations": {
+          "allOf": [
+            { "$ref": "#/$defs/factRef" },
+            { "type": "object", "properties": { "value": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } } }
+          ]
+        },
+        "relocation": { "$ref": "#/$defs/preferenceChoice" },
+        "rotation": { "$ref": "#/$defs/preferenceChoice" },
+        "grassroots_service": { "$ref": "#/$defs/preferenceChoice" },
+        "travel": { "$ref": "#/$defs/preferenceChoice" },
+        "adjustment": { "$ref": "#/$defs/preferenceChoice" }
+      }
+    },
+    "structuredProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["education", "language_certificates", "credentials", "preferences"],
+      "properties": {
+        "education": { "$ref": "#/$defs/education" },
+        "language_certificates": { "type": "array", "items": { "$ref": "#/$defs/languageCertificate" } },
+        "credentials": { "type": "array", "items": { "$ref": "#/$defs/credential" } },
+        "political_status": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "fact_id", "sensitivity"],
+          "properties": {
+            "value": { "type": "string", "minLength": 1 },
+            "fact_id": { "type": "string", "minLength": 1 },
+            "sensitivity": { "const": "sensitive" }
+          }
+        },
+        "preferences": { "$ref": "#/$defs/preferences" }
+      }
+    },
     "fact": {
       "type": "object",
       "additionalProperties": false,
@@ -37,7 +152,7 @@
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
         "type": {
-          "enum": ["basic", "education", "grade", "ranking", "skill", "certificate", "award", "campus", "internship", "employment", "affiliation", "project", "result", "quantified_result"]
+          "enum": ["basic", "education", "grade", "ranking", "skill", "certificate", "award", "campus", "internship", "employment", "affiliation", "project", "result", "quantified_result", "preference"]
         },
         "subtype": { "enum": ["email", "phone", "city_region"] },
         "statement": { "type": "string", "minLength": 1 },
@@ -46,7 +161,7 @@
         "allowed_uses": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "enum": ["resume", "application_form", "interview"] }
+          "items": { "enum": ["resume", "application_form", "interview", "job_match"] }
         },
         "evidence_ids": {
           "type": "array",

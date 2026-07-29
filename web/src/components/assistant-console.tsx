@@ -34,7 +34,7 @@ const NAV_RE = /<<\s*go:\s*(\/[a-z0-9/_-]*)\s*>>/gi;
 const REMEMBER_RE = /<<\s*remember:\s*([^>]+?)\s*>>/gi;
 
 const GREETING =
-  "Hi — I'm your career-ops assistant. I can walk you through onboarding, answer questions about your pipeline, or take you where you need to go. What would you like to do?";
+  "你好，我是你的 career-ops 求职助手。我可以带你完成设置、解答申请管道相关问题，或直接帮你进入需要的页面。现在想先做什么？";
 
 // ── envelope parsing: act ONLY on complete <<act:ID {json}>> envelopes ────────
 function codeRanges(s: string): [number, number][] {
@@ -350,7 +350,7 @@ export function AssistantConsole() {
       });
       if (!res.ok || !res.body) {
         const err = await res.json().catch(() => ({}));
-        setStreamText(`⚠️ ${err.error || "Assistant unavailable."}`);
+        setStreamText(`⚠️ ${err.error || "助手当前不可用。"}`);
         return;
       }
       const reader = res.body.getReader();
@@ -406,9 +406,9 @@ export function AssistantConsole() {
           }
         }
       }
-      if (!acc.trim()) setStreamText("_(no output — is the CLI authenticated?)_");
+      if (!acc.trim()) setStreamText("_（没有输出，请检查命令行工具是否已登录。）_");
     } catch {
-      setStreamText("⚠️ Connection error.");
+      setStreamText("⚠️ 连接错误。");
     } finally {
       setBusy(false);
       router.refresh();
@@ -445,28 +445,28 @@ export function AssistantConsole() {
     const chips: { label: string; send: string }[] = [];
     const rep = pathname.match(/^\/pipeline\/(.+)$/);
     if (rep) {
-      chips.push({ label: "Why this score?", send: "Walk me through why this offer scored the way it did — strengths and red flags." });
-      chips.push({ label: "Should I apply?", send: "Given my profile, should I apply to this one? Be honest." });
-      chips.push({ label: "Draft a cover letter", send: "Draft a short, sharp cover letter for this role." });
+      chips.push({ label: "为什么是这个评分？", send: "请用中文解释这个职位为什么得到当前评分，包括我的优势和风险点。" });
+      chips.push({ label: "我应该申请吗？", send: "请根据我的资料判断是否应该申请这个职位，直说结论和原因。" });
+      chips.push({ label: "起草求职信", send: "请用中文为这个职位起草一封简短有力的求职信。" });
       return chips;
     }
     const pending = pipeline.inbox.filter((j) => !j.done);
     if (!pipeline.applications.length && !pending.length) {
       return [
-        { label: "Help me get set up", send: "Help me get started with career-ops — what do you need from me?" },
-        { label: "Improve my CV", send: "Look at my CV and suggest the highest-impact improvements." },
+        { label: "帮我完成设置", send: "请用中文带我完成 career-ops 的初始化，需要我提供什么？" },
+        { label: "优化我的简历", send: "请查看我的简历，并用中文提出影响最大的改进建议。" },
       ];
     }
     if (pending.length) {
       const counts = new Map<string, number>();
       for (const j of pending) counts.set(j.company, (counts.get(j.company) ?? 0) + 1);
       const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-      if (top && top[1] > 1) chips.push({ label: `Evaluate all ${top[0]} (${top[1]})`, send: `Evaluate all the pending ${top[0]} postings in my inbox.` });
-      chips.push({ label: `Triage inbox (${pending.length})`, send: `I have ${pending.length} postings in my inbox — which should I evaluate first, and why?` });
+      if (top && top[1] > 1) chips.push({ label: `评估 ${top[0]} 的全部职位（${top[1]}）`, send: `请评估待处理列表中 ${top[0]} 的所有职位。` });
+      chips.push({ label: `筛选待处理职位（${pending.length}）`, send: `我有 ${pending.length} 个待处理职位，请用中文告诉我应该优先评估哪些，以及原因。` });
     }
     const strong = pipeline.applications.filter((a) => scoreNum(a.score) >= 4.5).length;
-    if (strong) chips.push({ label: "Strong matches to act on", send: "Show me my strongest matches (4.5+) I haven't applied to yet, and tell me which to prioritise." });
-    chips.push({ label: "What should I do today?", send: "Look at my pipeline and tell me the 3 highest-leverage things I should do today." });
+    if (strong) chips.push({ label: "优先处理高匹配职位", send: "请用中文列出尚未申请的高匹配职位（4.5 分以上），并告诉我优先顺序。" });
+    chips.push({ label: "今天该做什么？", send: "请查看我的申请管道，用中文告诉我今天最值得做的三件事。" });
     return chips.slice(0, 4);
   }, [pathname, pipeline.inbox, pipeline.applications]);
 
@@ -476,10 +476,10 @@ export function AssistantConsole() {
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-5 right-5 z-50 flex items-center justify-center gap-2 rounded-full border border-border bg-surface/90 py-1.5 pl-1.5 pr-4 shadow-lg backdrop-blur transition-colors hover:bg-surface-hover max-sm:min-h-[44px]"
-          aria-label="Open assistant"
+          aria-label="打开助手"
         >
           <CoMark size={26} />
-          <span className="text-sm font-medium">Ask</span>
+          <span className="text-sm font-medium">助手</span>
         </button>
       )}
 
@@ -488,13 +488,13 @@ export function AssistantConsole() {
           <header className="flex items-center gap-2.5 border-b border-border px-4 py-3">
             <CoMark size={26} />
             <div className="flex-1">
-              <div className="text-sm font-semibold tracking-tight">Assistant</div>
-              <div className="text-xs text-faint">{cliId ? `via ${cliId}` : "no CLI configured"}</div>
+              <div className="text-sm font-semibold tracking-tight">智能助手</div>
+              <div className="text-xs text-faint">{cliId ? `通过 ${cliId}` : "尚未配置命令行工具"}</div>
             </div>
-            <Button variant="ghost" size="icon" onClick={resetChat} className="text-muted" aria-label="New chat" title="New chat">
+            <Button variant="ghost" size="icon" onClick={resetChat} className="text-muted" aria-label="新对话" title="新对话">
               <RotateCcw className="size-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="text-muted" aria-label="Close assistant">
+            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="text-muted" aria-label="关闭助手">
               <X className="size-4" />
             </Button>
           </header>
@@ -550,7 +550,7 @@ export function AssistantConsole() {
               onClick={() => setOpen(false)}
               className="mx-4 mb-2 flex items-center gap-2 rounded-lg border border-border bg-surface/50 px-3 py-2 text-xs text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
             >
-              <Settings className="size-3.5" /> Pick a CLI in Config to enable the assistant →
+              <Settings className="size-3.5" /> 请先在系统配置中选择命令行工具 →
             </Link>
           )}
 
@@ -565,7 +565,7 @@ export function AssistantConsole() {
                     send();
                   }
                 }}
-                placeholder={cliId ? "Ask anything…" : "Configure a CLI first"}
+                placeholder={cliId ? "请输入问题…" : "请先配置命令行工具"}
                 rows={1}
                 disabled={!cliId}
                 className="max-h-32 flex-1 resize-none rounded-xl border border-border bg-surface/60 px-3 py-2 text-sm outline-none transition-colors placeholder:text-faint focus:border-brand/50 disabled:opacity-50"
@@ -574,7 +574,7 @@ export function AssistantConsole() {
                 onClick={() => send()}
                 disabled={busy || !input.trim() || !cliId}
                 className="rounded-xl bg-brand p-2 text-brand-foreground transition-colors hover:bg-brand-200 disabled:opacity-40"
-                aria-label="Send"
+                aria-label="发送"
               >
                 {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               </button>
@@ -613,7 +613,7 @@ function PartView({
     if (!job)
       return (
         <Link href={`/jobs/${part.jobId}`} className="block rounded-xl border border-border bg-surface/40 p-2.5 text-xs text-faint hover:text-foreground">
-          Worker finished earlier — open log →
+          任务已在之前完成，打开日志 →
         </Link>
       );
     return (
@@ -621,7 +621,7 @@ function PartView({
         job={job}
         variant="inline"
         trailing={
-          <Link href={`/jobs/${job.id}`} className="text-faint transition-colors hover:text-brand" aria-label="Open worker">
+          <Link href={`/jobs/${job.id}`} className="text-faint transition-colors hover:text-brand" aria-label="打开任务">
             <ArrowUpRight className="size-3.5" />
           </Link>
         }
@@ -635,9 +635,9 @@ function PartView({
       <div className="rounded-xl border border-border bg-surface/40 p-2.5">
         <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium">
           <Sparkles className="size-3.5 text-brand" />
-          {part.jobIds.length} evaluations
+          {part.jobIds.length} 个评估任务
           <span className="ml-auto tabular-nums text-faint">
-            {done}/{part.jobIds.length} done
+            {done}/{part.jobIds.length} 已完成
           </span>
         </div>
         <div className="space-y-1.5">
@@ -647,7 +647,7 @@ function PartView({
               job={j!}
               variant="inline"
               trailing={
-                <Link href={`/jobs/${j!.id}`} className="text-faint transition-colors hover:text-brand" aria-label="Open worker">
+                <Link href={`/jobs/${j!.id}`} className="text-faint transition-colors hover:text-brand" aria-label="打开任务">
                   <ArrowUpRight className="size-3.5" />
                 </Link>
               }
@@ -667,17 +667,17 @@ function PartView({
               onClick={() => onConfirm(part.cid, true)}
               className="rounded-full bg-brand px-3 py-1 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand-200"
             >
-              Confirm
+              确认
             </button>
             <button
               onClick={() => onConfirm(part.cid, false)}
               className="rounded-full border border-border px-3 py-1 text-xs text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
             >
-              Cancel
+              取消
             </button>
           </div>
         ) : (
-          <div className="mt-1 text-xs text-faint">{part.state === "done" ? "✓ started" : "cancelled"}</div>
+          <div className="mt-1 text-xs text-faint">{part.state === "done" ? "✓ 已开始" : "已取消"}</div>
         )}
       </div>
     );

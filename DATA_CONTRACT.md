@@ -41,6 +41,9 @@ These files contain your personal data, customizations, and work product. Update
 | `output/*` | Your generated PDFs |
 | `jds/*` | Your saved job descriptions |
 | `profile/*` | CareerPilot CN candidate Facts, Evidence indexes/files, generated manifests, migration backups, and local resume variants |
+| `data/careerpilot/jobs/*` | Imported JobPosting snapshots and source hashes |
+| `data/careerpilot/matches/*` | Deterministic eligibility and evidence-backed MatchReport sidecars |
+| `data/careerpilot/applications/*` | China campus application fields, materials, detailed stages, and audit events |
 
 ## System Layer (safe to auto-update)
 
@@ -103,8 +106,11 @@ These files contain system logic, scripts, templates, and instructions that impr
 | `VERSION` | Current version number |
 | `DATA_CONTRACT.md` | This file |
 | `writing-samples/README.md` | System-owned onboarding documentation for the writing-samples directory |
-| `schemas/cn/*` | CareerPilot CN JSON Schemas for candidate facts, evidence, and resume variants |
-| `lib/careerpilot/*` | Shared deterministic domain, publication-policy, projection, and export services |
+| `schemas/cn/*` | CareerPilot CN Schemas for CandidateProfile, JobPosting, MatchReport, ResumeTailoringPreview, ResumeVariant, and Application |
+| `lib/careerpilot/*` | Shared deterministic profile, eligibility, matching, tailoring, application, publication-policy, projection, and export services |
+| `modes/cn-campus/*` | Read-only China campus AI proposal prompts and workflow constraints |
+| `config/cn-campus.defaults.yml` | System-owned China campus product defaults and feature grouping |
+| `web/*` | Web-first CareerPilot CN interface and thin API adapters |
 | `examples/cn-profile/*` | Fully anonymous CareerPilot CN fixtures used by tests and demos |
 
 ## The Rule

@@ -85,37 +85,37 @@ export function ConfigForm() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="font-display text-2xl tracking-tight text-landing">Config</h1>
+      <h1 className="font-display text-2xl tracking-tight text-landing">系统配置</h1>
       <p className="mt-1 text-sm text-muted">
-        Run career-ops on your own AI, right on your computer. Your CV and data never leave your machine.
+        在你的电脑上使用自己的 AI 运行 career-ops。简历和求职数据不会离开本机。
       </p>
 
       {/* Engine mode */}
       <label className="mt-8 mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-        AI Engine
+        AI 引擎
       </label>
       <div className="grid gap-2 sm:grid-cols-3">
         <ModeCard
           active={mode === "cli"}
           onClick={() => setMode("cli")}
           icon={Terminal}
-          title="Use an AI tool you have"
-          hint="Recommended"
+          title="使用已安装的 AI 工具"
+          hint="推荐"
         />
         <ModeCard
           active={mode === "key"}
           onClick={() => setMode("key")}
           icon={KeyRound}
-          title="Paste an AI key"
-          hint="Coming soon"
+          title="粘贴 AI 密钥"
+          hint="即将推出"
           disabled
         />
         <ModeCard
           active={mode === "manual"}
           onClick={() => setMode("manual")}
           icon={TerminalSquare}
-          title="No setup needed"
-          hint="Coming soon"
+          title="无需配置"
+          hint="即将推出"
           disabled
         />
       </div>
@@ -124,18 +124,18 @@ export function ConfigForm() {
         {mode === "cli" && (
           <div>
             <p className="mb-1 text-sm text-muted">
-              career-ops uses an AI tool you already have — signed in, your own usage, nothing to paste.
+              career-ops 使用你已安装并登录的 AI 工具，消耗你自己的额度，无需粘贴密钥。
             </p>
-            <p className="mb-3 text-xs text-faint">Works with Claude Code, Codex, OpenCode and more — free ones work great.</p>
+            <p className="mb-3 text-xs text-faint">支持 Claude Code、Codex、OpenCode 等工具，免费方案也能很好地工作。</p>
             {clis === null ? (
               <div className="flex items-center gap-2 text-sm text-muted">
-                <Loader2 className="size-4 animate-spin" /> Checking what&apos;s on your computer…
+                <Loader2 className="size-4 animate-spin" /> 正在检查电脑上已安装的工具…
               </div>
             ) : installed.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-surface/30 p-4 text-sm text-muted">
-                No AI tool yet? Free options like <span className="text-foreground">OpenCode</span> with Qwen or GLM work great.{" "}
+                还没有 AI 工具？可以免费使用 <span className="text-foreground">OpenCode</span> 搭配 Qwen 或 GLM。{" "}
                 <a href="https://career-ops.org/docs/free-ai-engine" target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-brand hover:underline">
-                  Get one free <ExternalLink className="size-3" />
+                  获取免费工具 <ExternalLink className="size-3" />
                 </a>
               </div>
             ) : (
@@ -189,7 +189,7 @@ export function ConfigForm() {
                           rel="noreferrer"
                           className="inline-flex shrink-0 items-center justify-center gap-1 text-xs text-brand hover:underline max-sm:min-h-[44px]"
                         >
-                          Install <ExternalLink className="size-3" />
+                          安装 <ExternalLink className="size-3" />
                         </a>
                       )}
                     </div>
@@ -197,12 +197,12 @@ export function ConfigForm() {
                 })}
                 {installed.length === 0 && (
                   <p className="rounded-xl border border-dashed border-border bg-surface/30 p-4 text-xs text-muted">
-                    No supported CLI found on your PATH. Install one (e.g. Claude Code, Gemini CLI, OpenCode) to get started.
+                    在 PATH 中未找到受支持的命令行工具。请安装 Claude Code、Gemini CLI 或 OpenCode 等工具后开始使用。
                   </p>
                 )}
                 <p className="mt-2 text-[11px] leading-relaxed text-faint">
-                  Best on <span className="text-muted">Claude Code</span> (live progress, the agentic apply + AI search,
-                  reliable evaluation persistence). Other CLIs work for the core flows with reduced features.
+                  使用 <span className="text-muted">Claude Code</span> 时体验最佳（实时进度、智能填表、AI 搜索和可靠的评估记录）。
+                  其他命令行工具也支持核心流程，但部分功能会受限。
                 </p>
               </div>
             )}
@@ -213,7 +213,7 @@ export function ConfigForm() {
           <div className="space-y-5">
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                Provider
+                服务提供商
               </label>
               <div className="grid gap-2 sm:grid-cols-2">
                 {PROVIDERS.map((p) => (
@@ -235,9 +235,9 @@ export function ConfigForm() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                Paste an AI key
+                粘贴 AI 密钥
               </label>
-              <p className="mb-2 text-xs text-faint">Bring a key from OpenAI, Anthropic, and others.</p>
+              <p className="mb-2 text-xs text-faint">可使用 OpenAI、Anthropic 等服务提供商的密钥。</p>
               <input
                 type="password"
                 value={apiKey}
@@ -247,7 +247,7 @@ export function ConfigForm() {
                 className="w-full rounded-xl border border-border bg-surface/60 px-4 py-2.5 font-mono text-sm outline-none transition-colors placeholder:text-faint focus:border-brand/50"
               />
               <p className="mt-2 text-xs text-faint">
-                Stored only in this browser — never sent anywhere but your chosen provider.
+                密钥仅保存在此浏览器中，只会发送给你选择的服务提供商。
               </p>
             </div>
           </div>
@@ -255,14 +255,14 @@ export function ConfigForm() {
 
         {mode === "manual" && (
           <div className="rounded-xl border border-dashed border-border bg-surface/30 p-4 text-sm text-muted">
-            The easiest way in — no keys, nothing to set up. On the roadmap.
+            最简单的使用方式：无需密钥、无需配置。该功能已列入开发计划。
           </div>
         )}
       </div>
 
       {/* Appearance / privacy */}
       <label className="mt-8 mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-        Appearance
+        外观与隐私
       </label>
       <button
         type="button"
@@ -270,10 +270,10 @@ export function ConfigForm() {
         className="flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-surface/50 px-4 py-3 text-left transition-colors hover:bg-surface-hover"
       >
         <span className="min-w-0">
-          <span className="block text-sm font-medium text-foreground">Company logos</span>
+          <span className="block text-sm font-medium text-foreground">公司标志</span>
           <span className="mt-0.5 block text-xs text-faint">
-            Show each company&apos;s real logo. Fetched once through your local server and cached on
-            disk — only the employer domain is sent to a third party. Off = colored monograms only.
+            显示各公司的真实标志。图片会通过本地服务获取一次并缓存在磁盘；只有雇主域名会发送给第三方。
+            关闭后仅显示彩色文字标记。
           </span>
         </span>
         <span
@@ -298,9 +298,9 @@ export function ConfigForm() {
           className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-5 py-2 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand-200 max-sm:min-h-[44px]"
         >
           {saved ? <Check className="size-4" /> : null}
-          {saved ? "Saved" : "Save config"}
+          {saved ? "已保存" : "保存配置"}
         </button>
-        <span className="text-xs text-faint">Local-first · on our roadmap</span>
+        <span className="text-xs text-faint">本地优先 · 持续完善中</span>
       </div>
     </div>
   );

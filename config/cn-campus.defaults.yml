@@ -1,0 +1,20 @@
+product_profile: cn-campus
+language:
+  output: zh-CN
+market:
+  country: CN
+  currency: CNY
+  recruitment_track: campus
+  priority_employers: [central_soe, local_soe, bank, telecom]
+navigation:
+  primary: [today, profile, resumes, job_analysis, application_materials, applications]
+  advanced: [portals, overseas_ats, batch, outreach, cover_letters, followups, offer_prep, market_modes]
+privacy:
+  never_persist: [identity_number, family_members, full_address]
+resume_tailoring:
+  maximum_changed_fact_ratio: 0.30
+  require_approved_baseline: true
+eligibility:
+  strict_by_default: true
+  allow_reasoned_override: true
+

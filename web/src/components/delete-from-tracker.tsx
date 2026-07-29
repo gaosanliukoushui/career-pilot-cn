@@ -27,12 +27,12 @@ export function DeleteFromTracker({ n }: { n: string }) {
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setErr(d.error || "This row can’t be removed.");
+        setErr(d.error || "无法移除这条记录。");
         return;
       }
       setOrphan(d.orphanReport ?? null);
     } catch {
-      setErr("Couldn’t reach the tracker.");
+      setErr("无法连接申请追踪器。");
     }
   }
 
@@ -47,7 +47,7 @@ export function DeleteFromTracker({ n }: { n: string }) {
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setErr(d.error || "Delete failed.");
+        setErr(d.error || "删除失败。");
         setBusy(false);
         return;
       }
@@ -55,7 +55,7 @@ export function DeleteFromTracker({ n }: { n: string }) {
       router.push("/pipeline");
       router.refresh();
     } catch {
-      setErr("Delete failed.");
+      setErr("删除失败。");
       setBusy(false);
     }
   }
@@ -66,16 +66,16 @@ export function DeleteFromTracker({ n }: { n: string }) {
         onClick={openConfirm}
         className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted max-sm:min-h-[44px] transition-colors hover:border-red-400/50 hover:text-red-500"
       >
-        <Trash2 className="size-3.5" /> Remove from tracker
+        <Trash2 className="size-3.5" /> 从追踪器中移除
       </button>
     );
   }
 
   return (
     <div className="rounded-lg border border-red-400/30 bg-red-500/[0.06] p-3 text-xs">
-      <p className="font-medium text-foreground">Permanently remove application #{n} from your tracker?</p>
+      <p className="font-medium text-foreground">确定从追踪器中永久移除申请 #{n} 吗？</p>
       <p className="mt-1 text-muted">
-        This can’t be undone.{orphan ? ` Its report file (${orphan}) is left on disk.` : ""}
+        此操作无法撤销。{orphan ? ` 报告文件（${orphan}）仍会保留在磁盘上。` : ""}
       </p>
       {err && <p className="mt-1.5 text-red-500">{err}</p>}
       <div className="mt-2.5 flex gap-2">
@@ -84,14 +84,14 @@ export function DeleteFromTracker({ n }: { n: string }) {
           onClick={confirmDelete}
           className="inline-flex items-center gap-1.5 rounded-md bg-red-500 px-2.5 py-1 font-medium max-sm:min-h-[44px] text-white transition-colors hover:bg-red-600 disabled:opacity-50"
         >
-          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />} Delete
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />} 删除
         </button>
         <button
           disabled={busy}
           onClick={() => setOpen(false)}
           className="rounded-md border border-border px-2.5 py-1 text-muted max-sm:min-h-[44px] transition-colors hover:text-foreground disabled:opacity-50"
         >
-          Cancel
+          取消
         </button>
       </div>
     </div>

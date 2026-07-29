@@ -158,17 +158,21 @@ export function doctorState(): {
       return false;
     }
   };
-  const prereqs: [string, string][] = [
-    ["cv.md", "cv.md"],
-    ["config/profile.yml", "config/profile.yml"],
-    ["modes/_profile.md", "modes/_profile.md"],
-    ["portals.yml", "portals.yml"],
-  ];
+  const cnCampus = has("config/cn-campus.defaults.yml");
+  const prereqs: [string, string][] = cnCampus
+    ? [["profile/candidate.yml", "profile/candidate.yml"]]
+    : [
+        ["cv.md", "cv.md"],
+        ["config/profile.yml", "config/profile.yml"],
+        ["modes/_profile.md", "modes/_profile.md"],
+        ["portals.yml", "portals.yml"],
+      ];
   const missing = prereqs.filter(([rel]) => !has(rel)).map(([, label]) => label);
   const hasCv = has("cv.md");
-  const hasData = readApplications().length > 0 || readInbox().some((j) => !j.done);
+  const hasData = has("profile/candidate.yml") || readApplications().length > 0 || readInbox().some((j) => !j.done);
   const onboardingNeeded = missing.length > 0;
-  const phase: LifecyclePhase = !hasCv && !hasData ? "first-run" : onboardingNeeded ? "in-between" : "established";
+  const primaryProfileReady = cnCampus ? has("profile/candidate.yml") : hasCv;
+  const phase: LifecyclePhase = !primaryProfileReady && !hasData ? "first-run" : onboardingNeeded ? "in-between" : "established";
   return { phase, onboardingNeeded, missing, hasCv, hasData };
 }
 

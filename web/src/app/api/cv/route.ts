@@ -30,17 +30,17 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "bad json" }, { status: 400 });
+    return NextResponse.json({ error: "请求内容不是有效 JSON" }, { status: 400 });
   }
   if (typeof body.content !== "string") {
-    return NextResponse.json({ error: "content required" }, { status: 400 });
+    return NextResponse.json({ error: "缺少简历内容" }, { status: 400 });
   }
   if (Buffer.byteLength(body.content, "utf8") > MAX_CV_BYTES) {
-    return NextResponse.json({ error: "CV is too large (over 200KB)" }, { status: 413 });
+    return NextResponse.json({ error: "简历文件过大（超过 200KB）" }, { status: 413 });
   }
   return NextResponse.json(
     {
-      error: "cv.md 现在是事实库生成的只读视图，请导入旧简历或编辑 Fact。",
+      error: "cv.md 现在是事实库生成的只读视图，请导入旧简历或编辑事实。",
       code: "CV_READ_ONLY",
       next: "/api/candidate-profile/import-cv",
     },

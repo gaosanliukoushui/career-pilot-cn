@@ -118,6 +118,7 @@ career-dashboard.exe
 
 # Playwright MCP server run artifacts (ephemeral, machine-local)
 .playwright-mcp/
+/.playwright-cli/
 
 # Planning (local scratchpad)
 plan/

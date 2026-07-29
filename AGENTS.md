@@ -105,6 +105,23 @@ Some users enable plugins (external integrations). If an enabled plugin ships a 
 
 ### First Run — Onboarding (IMPORTANT)
 
+#### CareerPilot CN override
+
+When `config/cn-campus.defaults.yml` exists, the China campus workflow is the default. Run
+`node doctor.mjs --json`, but treat only `profile/candidate.yml` as the initial prerequisite.
+Do **not** require `cv.md`, `config/profile.yml`, `modes/_profile.md`, or `portals.yml` before
+onboarding. Guide the user through `/profile` in this order: establish confirmed Facts, attach
+Evidence, fill CandidateProfile v2 structured fields by Fact reference, then create a `ready`
+master resume in `/cv`. Never create or guess personal facts. CandidateProfile v1 is read-only
+until the user explicitly runs `node careerpilot.mjs migrate-profile`, which must create a backup.
+The default market is China, output language is Simplified Chinese, and currency is CNY.
+
+After the CN prerequisites are ready, the default workflow is `/job-analysis` → qualification
+confirmation → deterministic eligibility and matching → optional resume tailoring →
+`/application-materials` → application stage. Overseas scanning, outreach, English cover letters,
+fixed follow-up cadence, overseas contract analysis, and other market modes remain advanced
+features and must not be presented as the default flow.
+
 **Before doing ANYTHING else, check if the system is set up.** On the first message of each session, run the cold-start check (this doc and `doctor.mjs` share the same prerequisite list, so they can never drift):
 
 ```bash

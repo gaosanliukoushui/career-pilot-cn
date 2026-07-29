@@ -60,7 +60,7 @@ export function AiHuntTrace({ trace }: { trace: AiTraceChunk[] }) {
       <style>{STYLE}</style>
       <div className="flex items-center gap-2 border-b border-border/60 px-4 py-2.5">
         <span className="co-reason__dot" />
-        <span className="text-[12px] font-medium text-foreground">Reasoning live</span>
+        <span className="text-[12px] font-medium text-foreground">实时推理</span>
         <Sparkles className="ml-auto size-3.5 text-brand/70" />
       </div>
       <div ref={bodyRef} className="co-reason__body flex max-h-52 flex-col gap-2 overflow-y-auto px-4 py-3">

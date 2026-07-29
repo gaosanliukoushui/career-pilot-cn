@@ -1,6 +1,6 @@
 import { pipelineSummary, doctorState } from "@/lib/career-ops";
 import { OnboardingBanner } from "@/components/onboarding-banner";
-import { FirstRunHome } from "@/components/home/first-run-home";
+import { CareerPilotCnFirstRun } from "@/components/cn/cn-first-run";
 import { TodayDashboard } from "@/components/home/today-dashboard";
 
 export const dynamic = "force-dynamic"; // always read fresh local files at request time (never at build — CI has no user data)
@@ -9,7 +9,7 @@ export default function Home() {
   const { phase, onboardingNeeded } = doctorState();
   // First run (truly empty install): the CV-upload takeover IS the home — value
   // before commitment. The full dashboard returns once they have a CV or any data.
-  if (phase === "first-run") return <FirstRunHome />;
+  if (phase === "first-run") return <CareerPilotCnFirstRun />;
 
   const { inbox, applications } = pipelineSummary();
   // Established / in-between: the dual-loop retention dashboard. Show the setup

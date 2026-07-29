@@ -26,7 +26,7 @@ const port = 20_500 + Math.floor(Math.random() * 500);
 let output = '';
 const server = spawn(process.execPath, [join(webRoot, 'node_modules', 'next', 'dist', 'bin', 'next'), 'dev', '-H', '127.0.0.1', '-p', String(port)], {
   cwd: webRoot,
-  env: { ...process.env, CAREER_OPS_ROOT: dataRoot, NEXT_TELEMETRY_DISABLED: '1' },
+  env: { ...process.env, CAREER_OPS_ROOT: dataRoot, NEXT_TELEMETRY_DISABLED: '1', BUILD_DIST: `.next-e2e-${port}` },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 server.stdout.on('data', (chunk) => (output += chunk.toString()));
@@ -53,7 +53,7 @@ try {
   await page.getByRole('button', { name: '导入为待确认事实' }).click();
   await page.getByText('完成匿名校园项目', { exact: true }).waitFor();
   await page.getByRole('button', { name: '添加用户确认证言' }).click();
-  await page.getByText(/ordinary\/user_confirmation/).waitFor();
+  await page.getByText(/普通证据\/用户确认/).waitFor();
   await page.getByRole('button', { name: '确认', exact: true }).click();
   await page.getByText('可发布').waitFor();
   await page.getByText('技术岗位版', { exact: true }).click();
