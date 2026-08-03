@@ -93,7 +93,7 @@
     "dotenv": "^17.0.0",
     "js-yaml": "^4.1.1",
     "jszip": "^3.10.1",
-    "playwright": "1.62.0"
+    "playwright": "1.62.1"
   },
   "devDependencies": {
     "pdfjs-dist": "^6.1.200"
