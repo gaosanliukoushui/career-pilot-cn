@@ -96,6 +96,6 @@
     "playwright": "1.62.0"
   },
   "devDependencies": {
-    "pdfjs-dist": "^6.1.200"
+    "pdfjs-dist": "^6.2.108"
   }
 }
