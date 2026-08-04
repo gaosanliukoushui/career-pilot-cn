@@ -516,6 +516,7 @@ export async function inlineLocalFonts(html) {
  *   maxPages?: number,
  *   strictPages?: boolean,
  *   updateManifest?: boolean,
+ *   quiet?: boolean,
  *   launchBrowser?: (options: {headless: boolean}) => Promise<import('playwright').Browser>
  * }} [opts]
  * @returns {Promise<{outputPath: string, pageCount: number, size: number}>}
@@ -576,14 +577,16 @@ export async function renderHtmlToPdf(html, outputPath, opts = {}) {
       strictPages: opts.strictPages ?? false,
     });
 
-    console.log(`✅ PDF generated: ${outputPath}`);
-    console.log(`📊 Pages: ${pageCount}`);
-    console.log(`📦 Size: ${(pdfBuffer.length / 1024).toFixed(1)} KB`);
+    if (!opts.quiet) {
+      console.log(`✅ PDF generated: ${outputPath}`);
+      console.log(`📊 Pages: ${pageCount}`);
+      console.log(`📦 Size: ${(pdfBuffer.length / 1024).toFixed(1)} KB`);
+    }
 
     if (opts.updateManifest !== false) {
       try {
         updatePDFManifest(reportNum, outputPath, inputPath, format);
-        console.log(`🔗 Manifest: data/pdf-index.tsv updated${reportNum ? ` (report ${reportNum})` : ' (no --report given)'}`);
+        if (!opts.quiet) console.log(`🔗 Manifest: data/pdf-index.tsv updated${reportNum ? ` (report ${reportNum})` : ' (no --report given)'}`);
       } catch (err) {
         // The PDF itself succeeded — never fail the run over manifest bookkeeping.
         console.error(`⚠️  Manifest update failed: ${err.message}`);
@@ -594,13 +597,13 @@ export async function renderHtmlToPdf(html, outputPath, opts = {}) {
   } finally {
     if (browser) {
       await browser.close().catch((err) => {
-        console.warn(`⚠️  Browser cleanup failed: ${err.message}`);
+        if (!opts.quiet) console.warn(`⚠️  Browser cleanup failed: ${err.message}`);
       });
     }
     // Clean up temp file
     await unlink(tmpHtmlPath).catch((err) => {
       if (err?.code !== 'ENOENT') {
-        console.warn(`⚠️  Temporary HTML cleanup failed: ${err.message}`);
+        if (!opts.quiet) console.warn(`⚠️  Temporary HTML cleanup failed: ${err.message}`);
       }
     });
   }

@@ -19,12 +19,18 @@ data/parser-output/**/*.json
 !data/parser-output/.gitkeep
 !data/parser-output/**/.gitkeep
 data/cache/ats-companies/
+# CareerPilot CN Campaigns, private job snapshots, applications, and audit history.
+data/careerpilot/
 # Received offers/contracts, promise notes, prep reports (PII — never commit)
 data/offers/*
 !data/offers/.gitkeep
 data/upskill/
 reports/*.md
 !reports/.gitkeep
+# Private company comparison and replay reports live below this directory.
+reports/careerpilot-cn/
+# Deterministic MatchReport Markdown generated from private Campaign snapshots.
+reports/careerpilot/
 output/*
 !output/.gitkeep
 batch/logs/*
@@ -122,6 +128,7 @@ career-dashboard.exe
 
 # Planning (local scratchpad)
 plan/
+/tmp/
 
 # Web
 .career-ops-web/logo-cache/

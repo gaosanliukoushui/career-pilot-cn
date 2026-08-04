@@ -25,6 +25,7 @@ export type JobPosting = {
     fetched_at?: string;
     page_title?: string;
     capture_method?: "browser" | "http";
+    capture_provider?: string;
     official?: boolean;
     official_basis?: "unconfirmed" | "user_confirmed" | "employer_domain" | "official_platform";
     official_evidence?: string;
@@ -40,6 +41,77 @@ export type JobPosting = {
   rules: JobRule[];
   posting_status: "unknown" | "active" | "closed" | "expired";
   confirmation: { status: "pending" | "confirmed"; confirmed_at: string | null; structure_sha256: string | null };
+};
+
+export type CampaignConstraint = {
+  id: string;
+  kind: "max_applications" | "mutually_exclusive";
+  value: unknown;
+  confirmation_status: "pending" | "confirmed" | "rejected";
+  source_quote: string;
+};
+
+export type CampaignRankingEntry = {
+  rank: number;
+  job_id: string;
+  title: string;
+  eligibility: EligibilityResult;
+  recommendation: Recommendation;
+  fit_score: number;
+  fact_coverage: number;
+  gap_count: number;
+  hard_rule_results: MatchReport["eligibility"]["rule_results"];
+  evidence_fact_ids: string[];
+  gaps: string[];
+  unknowns: string[];
+};
+
+export type Campaign = {
+  schema_version: 1;
+  id: string;
+  name: string;
+  employer: string;
+  recruitment_batch: string;
+  deadline: string | null;
+  constraints: CampaignConstraint[];
+  jobs: Array<{ job_id: string; content_sha256: string; source_ref: string; status: "included" | "excluded"; exclusion_reason: string | null; added_at: string }>;
+  ranking: { status: "pending" | "ready"; generated_at: string | null; source_sha256: string | null; profile_sha256: string | null; entries: CampaignRankingEntry[] };
+  selection: { status: "pending" | "confirmed"; job_ids: string[]; confirmed_at: string | null; reason: string | null; ranking_sha256: string | null };
+  audit_events: Array<{ type: string; recorded_at: string; details: Record<string, unknown> }>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ResumeStyleProfile = {
+  schema_version: 1;
+  preset: "compact-photo" | "compact-no-photo" | "technical-two-page";
+  density: "balanced" | "full";
+  font_family: "Microsoft YaHei" | "Noto Sans CJK SC" | "SimSun";
+  font_size_pt: number;
+  page_margin_cm: number;
+  section_order: string[];
+  project_bullet_limit: number;
+  photo: { enabled: boolean; crop: "contain" | "center-3x4"; width_cm: number; height_cm: number };
+};
+
+export type ResumeArtifactManifestV2 = {
+  schema_version: 2;
+  campaign_id: string;
+  job_id: string;
+  target_job_title: string;
+  output: string;
+  content_sha256: string;
+  format: "md" | "html" | "docx" | "pdf";
+  qa: { fact_traceability: true; semantic_match: true; page_count: number | null; page_budget: number; text_layer: string; render_status: string };
+};
+
+export type RuntimeCapabilityReport = {
+  schema_version: 1;
+  playwright_cli: { available: boolean; launchable: boolean; error: string | null };
+  project_browser_mcp_config: { configured: boolean; files: string[] };
+  external_runtimes: Record<"codex_browser" | "chrome" | "edge", { declared: boolean; [key: string]: unknown }>;
+  active_import_mode: "codex_browser_capture" | "batch_url" | "text_or_file";
+  fallback_order: Array<"codex_browser_capture" | "batch_url" | "text_or_file">;
 };
 
 export type FitDimension = {
@@ -78,6 +150,8 @@ export type CareerPilotApplication = {
   current_stage: string;
   canonical_status: string;
   deadline: string | null;
+  official_url?: string | null;
+  pre_submission_checklist?: Array<{ id: string; label: string; status: "ready" | "missing" | "manual_required" }>;
   fields: Array<{
     id: string;
     label: string;

@@ -19,7 +19,7 @@ const BLOCK_LABELS: Record<string, string> = {
   rewrite_confirmation_pending: "仍有候选改写待逐条接受或拒绝",
 };
 
-export function ResumeTailoringPanel({ jobId, initialPreviewId }: { jobId: string; initialPreviewId?: string }) {
+export function ResumeTailoringPanel({ jobId, initialPreviewId, campaignId, onFinalExport }: { jobId: string; initialPreviewId?: string; campaignId?: string; onFinalExport?: (manifestPath: string) => void }) {
   const [baselines, setBaselines] = useState<Baseline[]>([]);
   const [baselineId, setBaselineId] = useState("");
   const [facts, setFacts] = useState<ResumeFact[]>([]);
@@ -134,8 +134,9 @@ export function ResumeTailoringPanel({ jobId, initialPreviewId }: { jobId: strin
   async function exportResume(format: string) {
     if (!preview?.allowed) return;
     setBusy(true); setMessage("");
-    const response = await fetch("/api/cn/resumes/tailor-export", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ preview, format }) });
+    const response = await fetch("/api/cn/resumes/tailor-export", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ preview, format, campaign_id: campaignId }) });
     const data = await response.json();
+    if (response.ok && campaignId && ["docx", "pdf"].includes(format)) onFinalExport?.(`${data.path}.manifest.json`);
     setMessage(response.ok ? `已导出：${data.path}；导出记录已进入简历工作室` : data.error || "导出失败");
     setBusy(false);
   }

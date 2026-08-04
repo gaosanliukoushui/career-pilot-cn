@@ -178,6 +178,17 @@ test('明确且有原文依据的学历、专业、届别和英语规则确定�
   assert.ok(eligibility.rule_results.every((item) => item.result === 'satisfied'));
 });
 
+test('CET kind 加 level 的结构化档案能满足 CET4 最低等级要求', () => {
+  const profile = profileFixture();
+  profile.structured.language_certificates = [
+    { kind: 'CET', level: 'CET-6', fact_id: 'certificate.cet4' },
+  ];
+  const posting = confirmedPosting(inferJobPosting(jd.replace('大学英语四级成绩达到425分', '大学英语四级成绩合格')));
+  const english = evaluateEligibility(profile, posting).rule_results.find((item) => item.rule_id.includes('language_certificate'));
+  assert.equal(english?.result, 'satisfied');
+  assert.deepEqual(english?.candidate_fact_ids, ['certificate.cet4']);
+});
+
 test('专业代码、毕业时间范围、资格证书和地点规则均由原文确定性计算', () => {
   const extended = [
     jd,
@@ -325,6 +336,19 @@ test('央企、地方国企、银行和运营商招聘公告均使用中国单�
     ['中国移动校园招聘\n岗位名称：网络岗', 'telecom'],
   ];
   for (const [text, type] of samples) assert.equal(inferJobPosting(text).employer.type, type);
+});
+
+test('Moka SPA 快照从职位详情字段识别岗位、所属部门、地点和在招状态', () => {
+  const posting = inferJobPosting([
+    '首页', '校园招聘', '数字化-AI应用开发', '分享', '11 - 30 K/月|全职|其他|示例汽车科技公司|湖北·武汉市',
+    '申请职位', '职位描述', '【工作职责】', '负责 AI Agent 系统的设计与开发。',
+    '职位信息', '职位名称', '职位名称', '数字化-AI应用开发', '所属部门', '所属部门', '示例汽车科技公司',
+    '工作地点', '工作地点', '湖北·武汉市', '申请职位',
+  ].join('\n'));
+  assert.equal(posting.title, '数字化-AI应用开发');
+  assert.equal(posting.employer.name, '示例汽车科技公司');
+  assert.deepEqual(posting.locations, ['湖北·武汉市']);
+  assert.equal(posting.posting_status, 'active');
 });
 
 test('四类中国招聘单位均具备资格通过、失败和信息不足黄金矩阵', () => {

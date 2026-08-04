@@ -54,11 +54,21 @@ function usage() {
       'node careerpilot.mjs job-evaluate --stdin [--no-persist] [--root PATH]',
       'node careerpilot.mjs job-proposal-validate --stdin [--root PATH]',
       'node careerpilot.mjs job-show JOB_ID [--root PATH]',
+      'node careerpilot.mjs campaign-create --stdin [--root PATH]',
+      'node careerpilot.mjs campaign-import --campaign ID --stdin [--allowed-root PATH] [--root PATH]',
+      'node careerpilot.mjs campaign-rank --campaign ID [--root PATH]',
+      'node careerpilot.mjs campaign-select --campaign ID --job JOB_ID[,JOB_ID] --stdin [--root PATH]',
+      'node careerpilot.mjs campaign-exclude --campaign ID --job JOB_ID --stdin [--root PATH]',
+      'node careerpilot.mjs campaign-show ID [--root PATH]',
+      'node careerpilot.mjs campaign-list [--root PATH]',
+      'node careerpilot.mjs campaign-constraints --campaign ID --stdin [--root PATH]',
+      'node careerpilot.mjs capabilities --json [--stdin] [--root PATH]',
+      'node careerpilot.mjs cleanup --dry-run|--apply --older-than DAYS [--root PATH]',
       'node careerpilot.mjs resume-tailor-preview --job JOB_ID --baseline VARIANT_ID [--stdin] [--save] [--root PATH]',
       'node careerpilot.mjs resume-tailor-suggest --job JOB_ID --baseline VARIANT_ID [--root PATH]',
-      'node careerpilot.mjs resume-tailor-export --stdin --format md|html|docx|pdf [--output output/careerpilot/FILE] [--root PATH]',
+      'node careerpilot.mjs resume-tailor-export --stdin --format md|html|docx|pdf [--campaign ID] [--output output/careerpilot/FILE] [--root PATH]',
       'node careerpilot.mjs application-prepare --job JOB_ID [--root PATH]',
-      'node careerpilot.mjs application-stage TRACKER_NUM STAGE [--note TEXT] [--root PATH]',
+      'node careerpilot.mjs application-stage TRACKER_NUM STAGE [--note TEXT] [--external-submission-confirmed] [--root PATH]',
       'node careerpilot.mjs application-show TRACKER_NUM [--root PATH]',
       'node careerpilot.mjs application-fields TRACKER_NUM --stdin [--root PATH]',
       'node careerpilot.mjs application-list [--root PATH]',
@@ -67,6 +77,8 @@ function usage() {
       'node careerpilot.mjs resume-list [--approved] [--root PATH]',
       'node careerpilot.mjs resume-variant-show VARIANT_ID [--root PATH]',
       'node careerpilot.mjs resume-workspace [--root PATH]',
+      'node careerpilot.mjs resume-style-show [--root PATH]',
+      'node careerpilot.mjs resume-style-set --stdin [--root PATH]',
       'node careerpilot.mjs resume-tailoring-show PREVIEW_ID [--root PATH]',
     ],
   };
@@ -106,6 +118,80 @@ async function main() {
     case 'job-context':
       process.stdout.write(`${JSON.stringify(buildJobMatchContext(root))}\n`);
       return;
+    case 'campaign-create': {
+      if (!args.includes('--stdin')) throw new Error('campaign-create requires --stdin');
+      const { createCampaign } = await import('./lib/careerpilot/campaign-core.mjs');
+      process.stdout.write(`${JSON.stringify({ campaign: createCampaign(root, JSON.parse(await readStdin())) })}\n`);
+      return;
+    }
+    case 'campaign-import': {
+      if (!args.includes('--stdin')) throw new Error('campaign-import requires --stdin');
+      const { importCampaignSources } = await import('./lib/careerpilot/campaign-core.mjs');
+      const payload = JSON.parse(await readStdin());
+      const sources = Array.isArray(payload) ? payload : payload.sources;
+      const result = await importCampaignSources(root, required(option(args, '--campaign'), '--campaign'), sources, {
+        allowedRoot: option(args, '--allowed-root'),
+      });
+      process.stdout.write(`${JSON.stringify(result)}\n`);
+      return;
+    }
+    case 'campaign-rank': {
+      const { rankCampaign } = await import('./lib/careerpilot/campaign-core.mjs');
+      process.stdout.write(`${JSON.stringify({ campaign: rankCampaign(root, required(option(args, '--campaign'), '--campaign')) })}\n`);
+      return;
+    }
+    case 'campaign-select': {
+      if (!args.includes('--stdin')) throw new Error('campaign-select requires --stdin');
+      const { selectCampaignJobs } = await import('./lib/careerpilot/campaign-core.mjs');
+      const supplied = JSON.parse(await readStdin());
+      const jobIds = required(option(args, '--job'), '--job').split(',').map((item) => item.trim()).filter(Boolean);
+      process.stdout.write(`${JSON.stringify({ campaign: selectCampaignJobs(root, required(option(args, '--campaign'), '--campaign'), jobIds, supplied) })}\n`);
+      return;
+    }
+    case 'campaign-exclude': {
+      if (!args.includes('--stdin')) throw new Error('campaign-exclude requires --stdin');
+      const { excludeCampaignJob } = await import('./lib/careerpilot/campaign-core.mjs');
+      process.stdout.write(`${JSON.stringify({ campaign: excludeCampaignJob(
+        root,
+        required(option(args, '--campaign'), '--campaign'),
+        required(option(args, '--job'), '--job'),
+        JSON.parse(await readStdin()),
+      ) })}\n`);
+      return;
+    }
+    case 'campaign-show': {
+      const { loadCampaign } = await import('./lib/careerpilot/campaign-core.mjs');
+      process.stdout.write(`${JSON.stringify({ campaign: loadCampaign(root, required(positionals[0], 'CAMPAIGN_ID')) })}\n`);
+      return;
+    }
+    case 'campaign-list': {
+      const { listCampaigns } = await import('./lib/careerpilot/campaign-core.mjs');
+      process.stdout.write(`${JSON.stringify({ campaigns: listCampaigns(root) })}\n`);
+      return;
+    }
+    case 'campaign-constraints': {
+      if (!args.includes('--stdin')) throw new Error('campaign-constraints requires --stdin');
+      const { confirmCampaignConstraints } = await import('./lib/careerpilot/campaign-core.mjs');
+      const campaign = confirmCampaignConstraints(root, required(option(args, '--campaign'), '--campaign'), JSON.parse(await readStdin()));
+      process.stdout.write(`${JSON.stringify({ campaign })}\n`);
+      return;
+    }
+    case 'capabilities': {
+      const { inspectRuntimeCapabilities } = await import('./lib/careerpilot/runtime-core.mjs');
+      const declarations = args.includes('--stdin') ? JSON.parse(await readStdin()) : {};
+      process.stdout.write(`${JSON.stringify(await inspectRuntimeCapabilities(root, declarations))}\n`);
+      return;
+    }
+    case 'cleanup': {
+      const { cleanupCareerPilotRuns } = await import('./lib/careerpilot/cleanup-core.mjs');
+      if (args.includes('--apply') === args.includes('--dry-run')) throw new Error('cleanup requires exactly one of --dry-run or --apply');
+      const result = cleanupCareerPilotRuns(root, {
+        apply: args.includes('--apply'),
+        olderThanDays: Number(required(option(args, '--older-than'), '--older-than')),
+      });
+      process.stdout.write(`${JSON.stringify(result)}\n`);
+      return;
+    }
     case 'profile-structure': {
       if (!args.includes('--stdin')) throw new Error('profile-structure requires --stdin');
       const payload = JSON.parse(await readStdin());
@@ -266,8 +352,8 @@ async function main() {
       return;
     }
     case 'job-show': {
-      const { loadJobEvaluation } = await import('./lib/careerpilot/job-core.mjs');
-      process.stdout.write(`${JSON.stringify(loadJobEvaluation(root, required(positionals[0], 'JOB_ID')))}\n`);
+      const { loadJobRecord } = await import('./lib/careerpilot/job-core.mjs');
+      process.stdout.write(`${JSON.stringify(loadJobRecord(root, required(positionals[0], 'JOB_ID')))}\n`);
       return;
     }
     case 'resume-tailor-preview': {
@@ -284,9 +370,12 @@ async function main() {
     }
     case 'resume-tailor-export': {
       if (!args.includes('--stdin')) throw new Error('resume-tailor-export requires --stdin');
-      const { exportTailoredResume } = await import('./lib/careerpilot/tailoring-core.mjs');
+      const { exportCampaignTailoredResume, exportTailoredResume } = await import('./lib/careerpilot/tailoring-core.mjs');
       const preview = JSON.parse(await readStdin());
-      const result = await exportTailoredResume(root, preview, required(option(args, '--format'), '--format'), option(args, '--output'));
+      const campaignId = option(args, '--campaign');
+      const result = campaignId
+        ? await exportCampaignTailoredResume(root, campaignId, preview, required(option(args, '--format'), '--format'), option(args, '--output'))
+        : await exportTailoredResume(root, preview, required(option(args, '--format'), '--format'), option(args, '--output'));
       process.stdout.write(`${JSON.stringify(result)}\n`);
       return;
     }
@@ -299,7 +388,9 @@ async function main() {
     }
     case 'application-stage': {
       const { updateApplicationStage } = await import('./lib/careerpilot/application-core.mjs');
-      const result = await updateApplicationStage(root, Number(required(positionals[0], 'TRACKER_NUM')), required(positionals[1], 'STAGE'), { note: option(args, '--note') });
+      const result = await updateApplicationStage(root, Number(required(positionals[0], 'TRACKER_NUM')), required(positionals[1], 'STAGE'), {
+        note: option(args, '--note'), external_submission_confirmed: args.includes('--external-submission-confirmed'),
+      });
       process.stdout.write(`${JSON.stringify(result)}\n`);
       return;
     }
@@ -334,6 +425,17 @@ async function main() {
     case 'resume-workspace': {
       const { listResumeWorkspace } = await import('./lib/careerpilot/tailoring-core.mjs');
       process.stdout.write(`${JSON.stringify(listResumeWorkspace(root))}\n`);
+      return;
+    }
+    case 'resume-style-show': {
+      const { loadResumeStyle } = await import('./lib/careerpilot/resume-style-core.mjs');
+      process.stdout.write(`${JSON.stringify({ style: loadResumeStyle(root) })}\n`);
+      return;
+    }
+    case 'resume-style-set': {
+      if (!args.includes('--stdin')) throw new Error('resume-style-set requires --stdin');
+      const { saveResumeStyle } = await import('./lib/careerpilot/resume-style-core.mjs');
+      process.stdout.write(`${JSON.stringify(saveResumeStyle(root, JSON.parse(await readStdin())))}\n`);
       return;
     }
     case 'resume-tailoring-show': {

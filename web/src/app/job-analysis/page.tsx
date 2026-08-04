@@ -2,7 +2,7 @@ import { JobAnalysisWorkbench } from "@/components/cn/job-analysis-workbench";
 
 export const dynamic = "force-dynamic";
 
-export default async function JobAnalysisPage({ searchParams }: { searchParams: Promise<{ job?: string; tailoring?: string }> }) {
+export default async function JobAnalysisPage({ searchParams }: { searchParams: Promise<{ job?: string; tailoring?: string; campaign?: string }> }) {
   const query = await searchParams;
-  return <JobAnalysisWorkbench initialJobId={query.job} initialTailoringId={query.tailoring} />;
+  return <JobAnalysisWorkbench initialJobId={query.job} initialTailoringId={query.tailoring} campaignId={query.campaign} />;
 }

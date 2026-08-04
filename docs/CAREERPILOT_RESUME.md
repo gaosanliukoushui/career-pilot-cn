@@ -4,6 +4,12 @@ Phase 2 在 CandidateProfile 之上建立 `ResumeVariant`。简历不是新的�
 每次预览和导出都会重新运行 Fact 状态、Evidence 完整性、允许用途、敏感授权和
 引用一致性审计，失败时不发布正式文件。
 
+V3.1 在内容模板之外增加用户层 `profile/resume-style.yml`。`compact-photo`、
+`compact-no-photo` 和 `technical-two-page` 只控制字体、页边距、区块顺序、密度和头像裁剪；
+经历正文仍只来自 CandidateProfile Fact。HTML/PDF 与 DOCX 使用同一个标准化内容模型。
+单页模板只能在受约束范围内收紧字号、间距和版心，不能自动删除 Fact；仍超页时返回
+`PAGE_BUDGET_EXCEEDED`。
+
 ## 三类模板
 
 | 模板 ID | 用途 | 默认页数 | 侧重点 |
@@ -38,7 +44,9 @@ node careerpilot.mjs resume-preview --template soe-one-page > preview.json
 node careerpilot.mjs resume-list --approved
 node careerpilot.mjs resume-tailor-suggest --job job.example --baseline resume.example
 node careerpilot.mjs resume-tailor-preview --stdin
-node careerpilot.mjs resume-tailor-export --stdin
+node careerpilot.mjs resume-style-show
+Get-Content resume-style.json -Raw | node careerpilot.mjs resume-style-set --stdin
+Get-Content tailoring-preview.json -Raw | node careerpilot.mjs resume-tailor-export --stdin --campaign CAMPAIGN_ID --format pdf
 ```
 
 `resume-export` 不再接收模板 ID 直接生成正式文件：必须通过 `--variant-stdin` 提交刚刚预览并显式确认、且仍通过哈希和事实门禁校验的 `ResumeVariant`。Markdown、DOCX 与 PDF 使用同一确认边界。
@@ -46,6 +54,12 @@ node careerpilot.mjs resume-tailor-export --stdin
 可选的一次性授权参数为 `--authorize-photo` 和
 `--authorize-political-status`。正式文件只允许写入 `output/careerpilot/`；每个
 导出文件旁边都有 `.manifest.json`，包含模板、Fact IDs 和内容 SHA-256。
+
+Campaign 的正式 DOCX/PDF 统一生成 `ResumeArtifactManifest v2`。manifest 绑定 Campaign、
+选中岗位、CandidateProfile、JobPosting、主简历、TailoringPreview、头像授权与 SHA-256，
+并记录页数、文本层、LibreOffice 渲染、Fact 语义一致性、截断、重叠、异常留白与头像几何 QA。旧 manifest 可读取，但不能
+作为新 Campaign 申请包的可信最终产物。`draft/pending`、超过 30%、标题漂移、未授权头像、
+缺失 Fact 映射或 QA 未验证的文件都不能标记为最终版。
 
 ## Web 工作台
 
@@ -80,6 +94,8 @@ node careerpilot.mjs resume-tailor-export --stdin
 Web 的 `/job-analysis` 页面在资格评估完成后提供岗位简历面板；原有 `/cv` 页面继续负责
 主简历和通用模板。`POST /api/cn/resumes/tailor-preview` 只计算并保存待确认预览，
 `POST /api/cn/resumes/tailor-export` 再次校验全部哈希、资格门槛和 30% 上限后才导出。
+从 `/campaigns/[id]` 发起的导出还必须通过当前选岗与 Campaign 失效检查，并把 v2 manifest
+不可变绑定到后续申请包。
 
 ## 字体与格式
 

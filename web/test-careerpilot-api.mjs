@@ -319,6 +319,28 @@ test('CareerPilot CN Web completes the campus workflow with structured artifacts
   assert.equal(evaluation.report.recommendation, 'apply');
   assert.match(evaluation.report.report_path, /^reports\/careerpilot\//);
 
+  response = await fetch(`${baseUrl}/api/cn/campaigns`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      name: '匿名 14 岗位式验收', employer: posting.employer.name, recruitment_batch: '2027 校园招聘',
+      max_applications: 1, constraint_confirmation_status: 'confirmed', constraint_source_quote: '每位候选人最多投递一个岗位',
+    }),
+  });
+  await assertStatus(response, 201);
+  const campaign = (await response.json()).campaign;
+  response = await fetch(`${baseUrl}/api/cn/campaigns/${campaign.id}/import`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ sources: [{ kind: 'posting', posting }] }),
+  });
+  await assertStatus(response);
+  response = await fetch(`${baseUrl}/api/cn/campaigns/${campaign.id}/rank`, { method: 'POST' });
+  await assertStatus(response);
+  response = await fetch(`${baseUrl}/api/cn/campaigns/${campaign.id}/select`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ job_id: posting.id, reason: '匿名确定性排名第一' }),
+  });
+  await assertStatus(response);
+
   response = await fetch(`${baseUrl}/api/resume-variants/preview`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ template: 'soe-one-page' }),
   });
@@ -333,13 +355,17 @@ test('CareerPilot CN Web completes the campus workflow with structured artifacts
   assert.equal(preview.change_ratio, 0);
   assert.equal(preview.allowed, true);
   response = await fetch(`${baseUrl}/api/cn/resumes/tailor-export`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ preview, format: 'md' }),
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ preview, format: 'pdf', campaign_id: campaign.id }),
   });
   await assertStatus(response);
-  assert.match((await response.json()).path, /output[\\/]careerpilot/);
+  const formalArtifact = await response.json();
+  assert.match(formalArtifact.path, /output[\\/]careerpilot/);
+  assert.equal(formalArtifact.manifest.schema_version, 2);
+  assert.equal(formalArtifact.manifest.qa.render_status, 'verified');
 
   response = await fetch(`${baseUrl}/api/cn/applications/prepare`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ job_id: posting.id }),
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ job_id: posting.id, campaign_id: campaign.id, resume_manifest: `${formalArtifact.path}.manifest.json` }),
   });
   await assertStatus(response);
   const application = (await response.json()).application;
@@ -362,12 +388,13 @@ test('CareerPilot CN Web completes the campus workflow with structured artifacts
   });
   await assertStatus(response);
   response = await fetch(`${baseUrl}/api/cn/applications/${application.tracker_num}/stage`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stage: 'submitted', note: '匿名端到端测试' }),
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ stage: 'submitted', note: '匿名端到端测试只走到提交前' }),
   });
+  assert.equal(response.status, 422);
+  assert.match(await response.text(), /EXTERNAL_SUBMISSION_CONFIRMATION_REQUIRED/);
+  response = await fetch(`${baseUrl}/api/cn/applications/${application.tracker_num}`);
   await assertStatus(response);
-  const stage = await response.json();
-  assert.equal(stage.application.canonical_status, 'Applied');
-  assert.equal(stage.reconciliation.consistent, true);
+  assert.equal((await response.json()).application.current_stage, 'evaluated');
 
   response = await fetch(`${baseUrl}/api/run`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'evaluate', input: jd }),

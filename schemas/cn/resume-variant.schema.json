@@ -9,6 +9,7 @@
     "schema_version": { "const": 1 },
     "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
     "template": { "enum": ["soe-one-page", "tech-two-page", "application-detail"] },
+    "target_job_title": { "type": "string", "minLength": 1, "maxLength": 200 },
     "source_profile_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "source_photo_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
     "fact_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },

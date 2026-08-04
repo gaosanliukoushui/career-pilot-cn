@@ -24,6 +24,7 @@ export function ApplicationPanel({ initial }: { initial: CareerPilotApplication 
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [externalSubmissionConfirmed, setExternalSubmissionConfirmed] = useState(false);
   const grouped = useMemo(() => Object.groupBy(application.fields, (item) => item.category), [application.fields]);
 
   async function saveFields() {
@@ -40,10 +41,10 @@ export function ApplicationPanel({ initial }: { initial: CareerPilotApplication 
   async function updateStage() {
     setBusy(true); setMessage("");
     const response = await fetch(`/api/cn/applications/${application.tracker_num}/stage`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage, note }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage, note, external_submission_confirmed: externalSubmissionConfirmed }),
     });
     const data = await response.json();
-    if (response.ok) { setApplication(data.application); setMessage(`阶段已同步为 ${data.application.canonical_status}`); setNote(""); }
+    if (response.ok) { setApplication(data.application); setMessage(`阶段已同步为 ${data.application.canonical_status}`); setNote(""); setExternalSubmissionConfirmed(false); }
     else setMessage(data.error || "阶段更新失败");
     setBusy(false);
   }
@@ -102,13 +103,15 @@ export function ApplicationPanel({ initial }: { initial: CareerPilotApplication 
         </div>
       </div>
 
+      {application.pre_submission_checklist && <div><h3 className="mb-3 text-sm font-semibold">提交前检查表</h3><div className="grid gap-2 md:grid-cols-2">{application.pre_submission_checklist.map((item) => <div key={item.id} className="rounded-lg border border-border p-3 text-sm"><p className="font-medium">{item.label}</p><p className={item.status === "ready" ? "text-emerald-700 dark:text-emerald-400" : item.status === "manual_required" ? "text-brand-text" : "text-muted"}>{item.status === "ready" ? "已就绪" : item.status === "manual_required" ? "本人手工完成" : "尚缺"}</p></div>)}</div>{application.official_url && <a href={application.official_url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm text-brand-text underline">打开官方申请入口（系统不会提交）</a>}</div>}
       <div className="grid gap-3 rounded-lg bg-surface-hover p-4 md:grid-cols-[1fr_1fr_auto]">
         <select className="rounded-md border border-border bg-surface px-3 py-2" value={stage} onChange={(event) => setStage(event.target.value)}>
           {STAGES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
         <input className="rounded-md border border-border bg-surface px-3 py-2" value={note} onChange={(event) => setNote(event.target.value)} placeholder="阶段备注（可选）" />
-        <button type="button" disabled={busy} onClick={updateStage} className="rounded-md bg-foreground px-4 py-2 text-background disabled:opacity-50">同步阶段</button>
+        <button type="button" disabled={busy || (stage === "submitted" && !externalSubmissionConfirmed)} onClick={updateStage} className="rounded-md bg-foreground px-4 py-2 text-background disabled:opacity-50">同步阶段</button>
       </div>
+      {stage === "submitted" && <label className="flex items-start gap-2 rounded-lg border border-brand/30 bg-brand-soft p-3 text-sm"><input type="checkbox" checked={externalSubmissionConfirmed} onChange={(event) => setExternalSubmissionConfirmed(event.target.checked)} className="mt-1" /><span>我确认已经在外部招聘官网完成最终提交。CareerPilot 不会点击提交；未勾选时不能进入“已网申”。</span></label>}
       <div className="flex items-center gap-3">
         <button type="button" disabled={busy} onClick={saveFields} className="rounded-md bg-brand px-4 py-2 font-medium text-brand-foreground disabled:opacity-50">保存网申草稿</button>
         {message && <p className="text-sm text-muted">{message}</p>}

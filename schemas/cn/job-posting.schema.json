@@ -21,6 +21,7 @@
         "fetched_at": { "type": "string" },
         "page_title": { "type": "string" },
         "capture_method": { "enum": ["browser", "http"] },
+        "capture_provider": { "type": "string", "maxLength": 100 },
         "official": { "type": "boolean" },
         "official_basis": { "enum": ["unconfirmed", "user_confirmed", "employer_domain", "official_platform"] },
         "official_evidence": { "type": "string" }

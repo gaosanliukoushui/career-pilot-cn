@@ -154,9 +154,13 @@ try {
   await page.getByText('就业推荐表', { exact: true }).waitFor();
   const stageSection = page.getByRole('button', { name: '同步阶段' }).locator('..');
   await stageSection.locator('select').selectOption('submitted');
-  await stageSection.getByPlaceholder(/阶段备注/).fill('匿名浏览器端到端验收');
-  await stageSection.getByRole('button', { name: '同步阶段' }).click();
-  await page.getByText(/阶段已同步为 Applied/).waitFor();
+  const stageButton = stageSection.getByRole('button', { name: '同步阶段' });
+  assert.equal(await stageButton.isDisabled(), true, 'submitted must stay blocked before external confirmation');
+  await page.getByLabel(/我确认已经在外部招聘官网完成最终提交/).waitFor();
+  await stageSection.locator('select').selectOption('pending_apply');
+  await stageSection.getByPlaceholder(/阶段备注/).fill('匿名浏览器端到端验收停在提交前');
+  await stageButton.click();
+  await page.getByText(/阶段已同步为 Evaluated/).waitFor();
 
   const snapshot = await page.locator('body').innerText();
   assert.doesNotMatch(snapshot, /\b\d{17}[\dXx]\b/);

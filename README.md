@@ -1,6 +1,6 @@
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/wordmark-dark.svg"><img src="docs/wordmark-light.svg" alt="career-ops" width="250" height="56"></picture></p>
 
-> **CareerPilot CN derivative:** This private, local-first Chinese campus-recruitment project is based on MIT-licensed [career-ops](https://github.com/santifer/career-ops), with upstream copyright preserved. See the [CandidateProfile fact center](docs/CAREERPILOT_PROFILE.md) and [Chinese resume/export studio](docs/CAREERPILOT_RESUME.md).
+> **CareerPilot CN derivative:** This private, local-first Chinese campus-recruitment project is based on MIT-licensed [career-ops](https://github.com/santifer/career-ops), with upstream copyright preserved. See the [CandidateProfile fact center](docs/CAREERPILOT_PROFILE.md), [trusted multi-job Campaign workflow](docs/CAREERPILOT_CAMPAIGNS.md), and [Chinese resume/export studio](docs/CAREERPILOT_RESUME.md).
 
 <div align="center">
 

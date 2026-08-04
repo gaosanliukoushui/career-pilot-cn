@@ -174,8 +174,10 @@ const scripts = [
   { name: 'careerpilot-profile-tests.mjs', expectExit: 0 },
   { name: 'careerpilot-resume-tests.mjs', expectExit: 0 },
   { name: 'careerpilot-job-tests.mjs', expectExit: 0 },
+  { name: 'careerpilot-campaign-tests.mjs', expectExit: 0 },
   { name: 'careerpilot-tailoring-tests.mjs', expectExit: 0 },
   { name: 'careerpilot-application-tests.mjs', expectExit: 0 },
+  { name: 'careerpilot-runtime-tests.mjs', expectExit: 0 },
   { name: 'tracker-columns-tests.mjs', expectExit: 0 },
   { name: 'agent-inbox-tests.mjs', expectExit: 0 },
   { name: 'followup-seed-tests.mjs', expectExit: 0 },
@@ -6525,9 +6527,9 @@ if (!sqliteAvailable) {
   }
 }
 
-// ── 12b. PLAYWRIGHT MCP DETECTION WARNING (#522) ────────────────
+// ── 12b. BROWSER RUNTIME CAPABILITY DIAGNOSTICS (#522) ──────────
 
-console.log('\n12d. Playwright MCP detection warning');
+console.log('\n12d. Browser runtime capability diagnostics');
 
 try {
   const doctorScript = readFile('doctor.mjs');
@@ -6543,14 +6545,16 @@ try {
     fail('doctor Playwright MCP guidance is still Claude-specific or lost config detection');
   }
 
-  // No project MCP config → doctor surfaces a (non-fatal) warning instead of
-  // letting SPA job boards fail silently.
+  // No project MCP config is a non-fatal declaration warning. It must not be
+  // described as proof that every browser import path is unavailable.
   const noMcp = mkdtempSync(join(tmpdir(), 'co-nomcp-'));
   const a = JSON.parse(run(NODE, ['doctor.mjs', '--json', '--target', noMcp]) || '{}');
-  if (Array.isArray(a.warnings) && a.warnings.some((w) => /playwright mcp/i.test(w))) {
-    pass('No Playwright MCP config → warning surfaced');
+  if (Array.isArray(a.warnings)
+    && a.warnings.some((w) => /project browser mcp config not detected/i.test(w))
+    && !a.warnings.some((w) => /browser (tool|runtime).*unavailable/i.test(w))) {
+    pass('No project browser MCP config → caller-declaration warning surfaced without false unavailability claim');
   } else {
-    fail(`Expected a Playwright MCP warning, got: ${JSON.stringify(a.warnings)}`);
+    fail(`Expected a project browser MCP declaration warning, got: ${JSON.stringify(a.warnings)}`);
   }
   rmSync(noMcp, { recursive: true, force: true });
 
@@ -6562,10 +6566,10 @@ try {
     JSON.stringify({ mcpServers: { playwright: { command: 'npx', args: ['@playwright/mcp', '--headless'] } } }),
   );
   const b = JSON.parse(run(NODE, ['doctor.mjs', '--json', '--target', withMcp]) || '{}');
-  if (Array.isArray(b.warnings) && !b.warnings.some((w) => /playwright mcp/i.test(w))) {
-    pass('Playwright MCP configured → no warning');
+  if (Array.isArray(b.warnings) && !b.warnings.some((w) => /project browser mcp config not detected/i.test(w))) {
+    pass('Playwright MCP configured → no project-config warning');
   } else {
-    fail(`Did not expect a Playwright MCP warning, got: ${JSON.stringify(b.warnings)}`);
+    fail(`Did not expect a project browser MCP config warning, got: ${JSON.stringify(b.warnings)}`);
   }
   rmSync(withMcp, { recursive: true, force: true });
 
@@ -6577,10 +6581,10 @@ try {
     JSON.stringify({ mcpServers: { browser: { command: 'npx', args: ['@playwright/mcp'] } } }),
   );
   const c = JSON.parse(run(NODE, ['doctor.mjs', '--json', '--target', withLocalMcp]) || '{}');
-  if (Array.isArray(c.warnings) && !c.warnings.some((w) => /playwright mcp/i.test(w))) {
-    pass('Playwright MCP configured via .claude/settings.local.json → no warning');
+  if (Array.isArray(c.warnings) && !c.warnings.some((w) => /project browser mcp config not detected/i.test(w))) {
+    pass('Playwright MCP configured via .claude/settings.local.json → no project-config warning');
   } else {
-    fail(`Did not expect a Playwright MCP warning for settings.local.json, got: ${JSON.stringify(c.warnings)}`);
+    fail(`Did not expect a project browser MCP config warning for settings.local.json, got: ${JSON.stringify(c.warnings)}`);
   }
   rmSync(withLocalMcp, { recursive: true, force: true });
 } catch (e) {

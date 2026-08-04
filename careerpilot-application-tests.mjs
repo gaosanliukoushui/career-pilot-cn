@@ -7,6 +7,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
 import { confirmJobPosting, evaluateJob, inferJobPosting, saveJobEvaluation } from './lib/careerpilot/job-core.mjs';
+import { confirmResumeVariant, createResumeVariant } from './lib/careerpilot/resume-core.mjs';
+import { createTailoringPreview, exportCampaignTailoredResume } from './lib/careerpilot/tailoring-core.mjs';
+import { createCampaign, importCampaignSources, rankCampaign, selectCampaignJobs } from './lib/careerpilot/campaign-core.mjs';
+import { loadTrustedResumeArtifact } from './lib/careerpilot/artifact-core.mjs';
 import {
   CN_STAGE_TO_CANONICAL,
   loadApplication,
@@ -65,6 +69,24 @@ function setup() {
   return { root, posting, report };
 }
 
+async function setupCampaignApplication() {
+  const result = setup();
+  await prepareApplication(result.root, result.posting.id);
+  const campaign = createCampaign(result.root, {
+    name: '匿名银行校招对比', employer: result.posting.employer.name, max_applications: 1,
+    constraint_confirmation_status: 'confirmed', constraint_source_quote: '最多投递一个岗位',
+  });
+  await importCampaignSources(result.root, campaign.id, [{ kind: 'text', text: result.posting.raw_text }]);
+  rankCampaign(result.root, campaign.id);
+  selectCampaignJobs(result.root, campaign.id, [result.posting.id], { reason: '匿名验收首选' });
+  const baseline = confirmResumeVariant(result.root, createResumeVariant(result.root, { template: 'soe-one-page' })).variant;
+  const preview = createTailoringPreview(result.root, result.posting.id, { baseline_variant: baseline });
+  const artifact = await exportCampaignTailoredResume(
+    result.root, campaign.id, preview, 'pdf', 'output/careerpilot/final/application-resume.pdf',
+  );
+  return { ...result, campaign: campaign.id, manifest: `${artifact.path}.manifest.json` };
+}
+
 test('网申准备通过 TSV 合并创建兼容 tracker 行和中国申请侧车', async () => {
   const { root, posting } = setup();
   const { application, path } = await prepareApplication(root, posting.id);
@@ -78,6 +100,37 @@ test('网申准备通过 TSV 合并创建兼容 tracker 行和中国申请侧车
   assert.deepEqual(reconcileApplication(root, application.tracker_num), {
     consistent: true, tracker_status: 'Evaluated', sidecar_status: 'Evaluated', stage: 'evaluated',
   });
+});
+
+test('Campaign 网申准备必须绑定当前可信最终简历 artifact', async () => {
+  const { root, posting, campaign, manifest } = await setupCampaignApplication();
+  await assert.rejects(
+    () => prepareApplication(root, posting.id, { campaign_id: campaign }),
+    (error) => error.code === 'CAMPAIGN_RESUME_REQUIRED',
+  );
+  const { application } = await prepareApplication(root, posting.id, {
+    campaign_id: campaign,
+    resume_manifest: manifest,
+  });
+  assert.equal(application.campaign_id, campaign);
+  assert.equal(application.resume_artifact.manifest, 'output/careerpilot/final/application-resume.pdf.manifest.json');
+  assert.match(application.resume_artifact.content_sha256, /^[a-f0-9]{64}$/);
+  assert.ok(application.pre_submission_checklist.some((item) => item.id === 'final_resume' && item.status === 'ready'));
+  assert.ok(application.pre_submission_checklist.some((item) => item.id === 'external_submit' && item.status === 'manual_required'));
+  assert.equal('submit' in application, false);
+});
+
+test('an old final resume stays stale after the same job is selected again', async () => {
+  const { root, posting, campaign, manifest } = await setupCampaignApplication();
+  const profilePath = join(root, 'profile', 'candidate.yml');
+  writeFileSync(profilePath, `${readFileSync(profilePath, 'utf8')}\n# source changed\n`, 'utf8');
+  saveJobEvaluation(root, posting, evaluateJob(root, posting));
+  rankCampaign(root, campaign);
+  selectCampaignJobs(root, campaign, [posting.id], { reason: 'Re-evaluated and explicitly selected again.' });
+  assert.throws(
+    () => loadTrustedResumeArtifact(root, manifest, { campaign_id: campaign, job_id: posting.id }),
+    (error) => error.code === 'RESUME_ARTIFACT_STALE' || error.code === 'RESUME_VARIANT_INVALID',
+  );
 });
 
 test('网申准备接收岗位表单字段和特有材料，并生成事实引用与待确认草稿', async () => {
@@ -170,11 +223,21 @@ test('中国详细阶段通过 set-status 锁定路径同步到九种兼容状�
     ['signed', 'Hired'],
   ];
   for (const [stage, canonical] of stages) {
-    const result = await updateApplicationStage(root, application.tracker_num, stage, { note: `测试阶段 ${stage}` });
+    const result = await updateApplicationStage(root, application.tracker_num, stage, { note: `测试阶段 ${stage}`, external_submission_confirmed: stage === 'submitted' });
     assert.equal(result.application.canonical_status, canonical);
     assert.equal(result.reconciliation.consistent, true);
   }
   assert.equal(loadApplication(root, application.tracker_num).events.length, stages.length + 1);
+});
+
+test('进入已网申阶段必须明确确认已经在外部官网完成提交', async () => {
+  const { root, posting } = setup();
+  const { application } = await prepareApplication(root, posting.id);
+  await assert.rejects(
+    () => updateApplicationStage(root, application.tracker_num, 'submitted'),
+    (error) => error.code === 'EXTERNAL_SUBMISSION_CONFIRMATION_REQUIRED',
+  );
+  assert.equal(loadApplication(root, application.tracker_num).current_stage, 'evaluated');
 });
 
 test('所有详细阶段都有固定兼容状态，不允许 Web 自行发明映射', () => {
@@ -197,7 +260,7 @@ test('详细阶段与 tracker 不一致时只报告冲突，不静默覆盖', as
     consistent: false, tracker_status: 'Rejected', sidecar_status: 'Evaluated', stage: 'evaluated',
   });
   await assert.rejects(
-    () => updateApplicationStage(root, application.tracker_num, 'submitted'),
+    () => updateApplicationStage(root, application.tracker_num, 'submitted', { external_submission_confirmed: true }),
     (error) => error.code === 'APPLICATION_STATUS_CONFLICT'
       && error.details.tracker_status === 'Rejected'
       && error.details.sidecar_status === 'Evaluated',
@@ -215,7 +278,7 @@ test('详细阶段复用规范报告身份保护，错链时拒绝同时修改 t
   assert.notEqual(mismatched, original);
   writeFileSync(trackerPath, mismatched, 'utf8');
   await assert.rejects(
-    () => updateApplicationStage(root, application.tracker_num, 'submitted'),
+    () => updateApplicationStage(root, application.tracker_num, 'submitted', { external_submission_confirmed: true }),
     (error) => error.code === 'TRACKER_REPORT_MISMATCH' && error.details.trackerNum === application.tracker_num,
   );
   assert.equal(loadApplication(root, application.tracker_num).current_stage, 'evaluated');
@@ -226,7 +289,7 @@ test('同一申请的并发阶段更新在共享锁内串行化且不丢事件',
   const { root, posting } = setup();
   const { application } = await prepareApplication(root, posting.id);
   await Promise.all([
-    updateApplicationStage(root, application.tracker_num, 'submitted', { note: '并发更新 A' }),
+    updateApplicationStage(root, application.tracker_num, 'submitted', { note: '并发更新 A', external_submission_confirmed: true }),
     updateApplicationStage(root, application.tracker_num, 'qualification', { note: '并发更新 B' }),
   ]);
   const stored = loadApplication(root, application.tracker_num);

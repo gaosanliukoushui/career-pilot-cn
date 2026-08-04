@@ -12,9 +12,11 @@ import {
   computeTailoringChange,
   createTailoringPreview,
   exportTailoredResume,
+  exportCampaignTailoredResume,
   generateTailoringRewriteCandidates,
   validateTailoringPreview,
 } from './lib/careerpilot/tailoring-core.mjs';
+import { createCampaign, importCampaignSources, rankCampaign, selectCampaignJobs } from './lib/careerpilot/campaign-core.mjs';
 
 function setup(count = 10, withBlockingRule = false) {
   const root = mkdtempSync(join(tmpdir(), 'careerpilot-tailoring-'));
@@ -51,6 +53,20 @@ function setup(count = 10, withBlockingRule = false) {
   return { root, posting, report, baseline, paths };
 }
 
+async function setupCampaign() {
+  const result = setup();
+  const campaign = createCampaign(result.root, {
+    name: '匿名企业多岗位对比', employer: '某中央企业', max_applications: 1,
+    constraint_confirmation_status: 'confirmed', constraint_source_quote: '最多投递一个岗位',
+  });
+  await importCampaignSources(result.root, campaign.id, [{ kind: 'text', text: result.posting.raw_text }]);
+  // The Campaign import produces the same content-addressed job ID. Reuse the
+  // already confirmed and evaluated record from setup().
+  rankCampaign(result.root, campaign.id);
+  selectCampaignJobs(result.root, campaign.id, [result.posting.id], { reason: '匿名排名第一' });
+  return { ...result, campaign: campaign.id };
+}
+
 test('未改动岗位简历比例为 0，且绑定岗位、基线和 Profile 哈希', () => {
   const { root, posting, baseline } = setup();
   const preview = createTailoringPreview(root, posting.id, { baseline_variant_id: baseline.id });
@@ -76,6 +92,59 @@ test('10 条基线事实删减 3 条恰好为 30%，允许继续导出', async (
   const manifest = JSON.parse(readFileSync(`${exported.path}.manifest.json`, 'utf8'));
   assert.equal(manifest.job_id, posting.id);
   assert.equal(manifest.change_ratio, 0.3);
+});
+
+test('Campaign 正式导出生成 manifest v2 并绑定选择、岗位、预览和 QA', async () => {
+  const { root, posting, baseline, campaign } = await setupCampaign();
+  const preview = createTailoringPreview(root, posting.id, { baseline_variant_id: baseline.id });
+  const exported = await exportCampaignTailoredResume(root, campaign, preview, 'md', 'output/careerpilot/final/anonymous.md');
+  const manifest = JSON.parse(readFileSync(`${exported.path}.manifest.json`, 'utf8'));
+  assert.equal(manifest.schema_version, 2);
+  assert.equal(manifest.campaign_id, campaign);
+  assert.equal(manifest.job_id, posting.id);
+  assert.equal(manifest.tailoring_preview_id, preview.id);
+  assert.equal(manifest.target_job_title, posting.title);
+  assert.match(manifest.source_campaign_sha256, /^[a-f0-9]{64}$/);
+  assert.match(manifest.source_profile_sha256, /^[a-f0-9]{64}$/);
+  assert.equal(manifest.qa.fact_traceability, true);
+  assert.equal(manifest.qa.semantic_match, true);
+  assert.equal(manifest.qa.page_count, null);
+  const pendingFinal = structuredClone(manifest);
+  pendingFinal.format = 'docx';
+  pendingFinal.qa.text_layer = 'pending_docx_render';
+  pendingFinal.qa.render_status = 'pending_docx_render';
+  const { validateResumeArtifactManifest } = await import('./lib/careerpilot/artifact-core.mjs');
+  assert.equal(validateResumeArtifactManifest(pendingFinal).valid, false);
+  const unauthorizedPhoto = structuredClone(manifest);
+  unauthorizedPhoto.resume_style = 'compact-photo';
+  unauthorizedPhoto.photo_included = false;
+  assert.ok(validateResumeArtifactManifest(unauthorizedPhoto).errors.some((item) => item.code === 'photo_required_by_style'));
+});
+
+test('Campaign DOCX 必须经 LibreOffice 渲染 QA 后才发布为可信最终产物', { skip: !existsSync('E:\\liberoffice\\program\\soffice.com') }, async () => {
+  const { root, posting, baseline, campaign } = await setupCampaign();
+  const preview = createTailoringPreview(root, posting.id, { baseline_variant_id: baseline.id });
+  const exported = await exportCampaignTailoredResume(root, campaign, preview, 'docx', 'output/careerpilot/final/anonymous.docx');
+  const manifest = JSON.parse(readFileSync(`${exported.path}.manifest.json`, 'utf8'));
+  assert.equal(manifest.qa.render_status, 'verified');
+  assert.equal(manifest.qa.text_layer, 'verified');
+  assert.equal(manifest.qa.page_count, 1);
+  assert.equal(manifest.qa.truncation, 'verified');
+  assert.equal(manifest.qa.overlap, 'verified');
+  assert.equal(manifest.qa.whitespace, 'verified');
+  assert.equal(manifest.qa.photo_presence, 'not_applicable');
+  assert.ok(existsSync(exported.path));
+});
+
+test('Campaign 正式导出拒绝未选岗位和已经失效的选择', async () => {
+  const { root, posting, baseline, campaign } = await setupCampaign();
+  const preview = createTailoringPreview(root, posting.id, { baseline_variant_id: baseline.id });
+  const profilePath = join(root, 'profile', 'candidate.yml');
+  writeFileSync(profilePath, `${readFileSync(profilePath, 'utf8')}\n# changed\n`, 'utf8');
+  await assert.rejects(
+    () => exportCampaignTailoredResume(root, campaign, preview, 'md', 'output/careerpilot/final/stale.md'),
+    (error) => ['CAMPAIGN_SELECTION_STALE', 'TAILORING_PREVIEW_INVALID'].includes(error.code),
+  );
 });
 
 test('超过 30% 同时阻断确认和导出，且没有人工越权参数', async () => {

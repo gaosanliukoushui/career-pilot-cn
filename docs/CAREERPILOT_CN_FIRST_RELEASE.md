@@ -1,5 +1,8 @@
 # CareerPilot CN 首个正式版
 
+> V3.1 在既有单岗位主链上增加“可信多岗位投递闭环”。同企业多岗的入口、架构和命令见
+> [`CAREERPILOT_CAMPAIGNS.md`](CAREERPILOT_CAMPAIGNS.md)。原有 `/job-analysis` 与单岗位 CLI 保持兼容。
+
 本版把默认工作流从海外资深岗位求职切换为中国本科应届生校招，优先适配央企、地方国企、
 银行和运营商。Phase 0–2 的事实中心与主简历工作室继续保留；Phase 3–4 的岗位资格分析、
 岗位简历、网申材料和中国招聘阶段跟踪在本版交付。面试中心和 offer/入职管理仅预留数据边界。
@@ -13,6 +16,10 @@
 5. 资格门槛通过后生成 5 分制软匹配和 Markdown 岗位报告。
 6. 选择主简历事实，逐条确认岗位改写；改动比例超过 30% 时禁止导出。
 7. 在 `/application-materials` 准备字段和材料，并更新中国校招详细阶段。
+
+同企业存在多个岗位时，默认改走 `/campaigns`：批量导入后逐岗确认规则，生成可解释稳定排名，
+由用户在限投约束内选岗，再进行 30% 内 Fact Diff 定制和 manifest v2 正式导出。系统只准备
+申请材料；只有用户在外部官网完成提交并显式确认后，状态才可进入 `submitted`。
 
 海外 ATS 扫描、批处理、LinkedIn 联系、英文求职信、多语言市场模式等仍保留在高级功能区，
 但不再是默认入口。本版不提供 BOSS 直聘、智联、前程无忧或猎聘爬虫。
@@ -70,3 +77,5 @@ node test-all.mjs
 用户确认导出、网申准备和阶段更新。任何外部申请提交、邮件发送或表单最终确认仍由用户本人完成。
 
 本次正式版的逐项测试证据见 [`career-pilot-cn-v2-v3-release-verification.md`](career-pilot-cn-v2-v3-release-verification.md)。
+V3.1 Campaign 闭环的发布证据见
+[`career-pilot-cn-v3.1-release-verification.md`](career-pilot-cn-v3.1-release-verification.md)。

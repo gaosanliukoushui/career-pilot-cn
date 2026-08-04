@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CareerPilotApplication, FitDimension, JobPosting, JobRule, MatchReport } from "@/lib/cn-types";
+import type { Campaign, CareerPilotApplication, FitDimension, JobPosting, JobRule, MatchReport } from "@/lib/cn-types";
 import { ApplicationPanel } from "@/components/cn/application-panel";
 import { ResumeTailoringPanel } from "@/components/cn/resume-tailoring-panel";
 
@@ -28,7 +28,7 @@ function expectedText(value: unknown): string {
   return typeof value === "string" ? value : JSON.stringify(value);
 }
 
-export function JobAnalysisWorkbench({ initialJobId, initialTailoringId }: { initialJobId?: string; initialTailoringId?: string }) {
+export function JobAnalysisWorkbench({ initialJobId, initialTailoringId, campaignId }: { initialJobId?: string; initialTailoringId?: string; campaignId?: string }) {
   const [sourceKind, setSourceKind] = useState<SourceKind>("text");
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
@@ -46,6 +46,9 @@ export function JobAnalysisWorkbench({ initialJobId, initialTailoringId }: { ini
   const [materialDefinitions, setMaterialDefinitions] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [finalResumeManifest, setFinalResumeManifest] = useState("");
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [targetCampaign, setTargetCampaign] = useState("");
 
   useEffect(() => {
     void fetch("/api/clis").then((response) => response.json()).then((data) => {
@@ -53,6 +56,13 @@ export function JobAnalysisWorkbench({ initialJobId, initialTailoringId }: { ini
       setClis(installed); setCliId(installed[0]?.id || "");
     });
   }, []);
+  useEffect(() => {
+    if (campaignId) return;
+    void fetch("/api/cn/campaigns").then((response) => response.json()).then((data) => {
+      setCampaigns(data.campaigns || []);
+      setTargetCampaign(data.campaigns?.[0]?.id || "");
+    });
+  }, [campaignId]);
   useEffect(() => {
     if (!initialJobId) return;
     void fetch(`/api/cn/jobs/${encodeURIComponent(initialJobId)}`).then(async (response) => {
@@ -126,6 +136,19 @@ export function JobAnalysisWorkbench({ initialJobId, initialTailoringId }: { ini
     setBusy("");
   }
 
+  async function addToCampaign() {
+    if (!posting || !targetCampaign) return;
+    setBusy("campaign"); setError("");
+    const response = await fetch(`/api/cn/campaigns/${encodeURIComponent(targetCampaign)}/import`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sources: [{ kind: "posting", posting }] }),
+    });
+    const data = await response.json();
+    if (response.ok) setError(data.duplicates?.length ? "该岗位已在 Campaign 中。" : "岗位已加入 Campaign；请回到 Campaign 完成其余岗位确认与排名。");
+    else setError(data.error || "加入 Campaign 失败");
+    setBusy("");
+  }
+
   async function evaluate() {
     if (!posting || posting.confirmation.status !== "confirmed") return;
     setBusy("evaluate"); setError("");
@@ -139,6 +162,10 @@ export function JobAnalysisWorkbench({ initialJobId, initialTailoringId }: { ini
 
   async function prepareApplication() {
     if (!report) return;
+    if (campaignId && !finalResumeManifest) {
+      setError("Campaign 申请包必须先生成并通过 QA 的最终 DOCX 或 PDF 简历。");
+      return;
+    }
     setBusy("application"); setError("");
     let formFields: unknown[] = [];
     let materials: unknown[] = [];
@@ -154,6 +181,7 @@ export function JobAnalysisWorkbench({ initialJobId, initialTailoringId }: { ini
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         job_id: report.job_id,
+        ...(campaignId ? { campaign_id: campaignId, resume_manifest: finalResumeManifest } : {}),
         ...(formFieldDefinitions.trim() ? { form_fields: formFields } : {}),
         ...(materialDefinitions.trim() ? { materials } : {}),
       }),
@@ -167,6 +195,7 @@ export function JobAnalysisWorkbench({ initialJobId, initialTailoringId }: { ini
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-5 md:p-8">
       <header>
+        {campaignId && <a href={`/campaigns/${encodeURIComponent(campaignId)}`} className="mb-3 inline-block text-sm text-muted hover:text-foreground">← 返回多岗位 Campaign</a>}
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-text">CareerPilot CN · V2/V3</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">岗位导入、规则确认与资格分析</h1>
         <p className="mt-2 max-w-3xl text-muted">先逐条核对招聘公告中的硬条件，再进行确定性资格判断。AI 只能读取已授权事实并提交受 Schema 约束的软匹配建议。</p>
@@ -221,6 +250,7 @@ export function JobAnalysisWorkbench({ initialJobId, initialTailoringId }: { ini
             </article>) : <p className="rounded-lg bg-surface-hover p-3 text-sm text-muted">未提取到资格规则；仍需人工核对公告后确认整份岗位。</p>}</div>
           </div>
           <details className="rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-medium">查看招聘原文快照</summary><pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap text-xs text-muted">{posting.raw_text}</pre></details>
+          {!campaignId && campaigns.length > 0 && <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3"><select value={targetCampaign} onChange={(event) => setTargetCampaign(event.target.value)} className="rounded-md border border-border bg-background px-3 py-2">{campaigns.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><button type="button" disabled={Boolean(busy) || !targetCampaign} onClick={addToCampaign} className="rounded-md border border-border px-4 py-2 disabled:opacity-50">加入多岗位 Campaign</button></div>}
           <div className="flex flex-wrap items-end gap-3">
             <button type="button" disabled={Boolean(busy) || posting.confirmation.status === "confirmed" || pendingRules.length > 0} onClick={confirmPosting} className="rounded-md bg-foreground px-5 py-2 text-background disabled:opacity-50">{busy === "confirm" ? "正在确认…" : "确认整份岗位"}</button>
             <label className="text-sm"><span className="mb-1 block text-muted">只读 AI 建议</span><select className="rounded-md border border-border bg-background px-3 py-2" value={cliId} onChange={(event) => setCliId(event.target.value)}><option value="">没有满足安全策略的 CLI</option>{clis.map((cli) => <option key={cli.id} value={cli.id}>{cli.name}</option>)}</select></label>
@@ -240,7 +270,7 @@ export function JobAnalysisWorkbench({ initialJobId, initialTailoringId }: { ini
           <details className="rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-medium">岗位特有表单字段与材料（可选）</summary><p className="mt-2 text-xs text-muted">把官网表单字段或公告材料整理成 JSON 数组。系统会保留定义来源和原文，不会自动提交。</p><div className="mt-3 grid gap-3 lg:grid-cols-2"><label className="text-xs font-medium">表单字段 JSON<textarea aria-label="表单字段 JSON" value={formFieldDefinitions} onChange={(event) => setFormFieldDefinitions(event.target.value)} placeholder={'[{"id":"motivation.why_company","label":"为什么选择本单位","category":"motivation","required":true,"max_length":200,"source_quote":"官网表单原文"}]'} className="mt-1 min-h-28 w-full rounded-md border border-border bg-background p-2 font-mono text-xs" /></label><label className="text-xs font-medium">岗位材料 JSON<textarea aria-label="岗位材料 JSON" value={materialDefinitions} onChange={(event) => setMaterialDefinitions(event.target.value)} placeholder={'[{"id":"recommendation_form","label":"就业推荐表","required":true,"source_quote":"公告原文"}]'} className="mt-1 min-h-28 w-full rounded-md border border-border bg-background p-2 font-mono text-xs" /></label></div></details>
           <div className="flex flex-wrap gap-2"><button type="button" disabled={Boolean(busy)} onClick={prepareApplication} className="rounded-md bg-brand px-4 py-2 font-medium text-brand-foreground disabled:opacity-50">{busy === "application" ? "正在建立…" : "建立网申材料与进度"}</button><span className="self-center text-xs text-faint">报告：{report.report_path}</span></div>
         </section>
-        <ResumeTailoringPanel jobId={report.job_id} initialPreviewId={initialTailoringId} />
+        <ResumeTailoringPanel jobId={report.job_id} initialPreviewId={initialTailoringId} campaignId={campaignId} onFinalExport={setFinalResumeManifest} />
       </>}
       {application && <ApplicationPanel initial={application} />}
     </div>

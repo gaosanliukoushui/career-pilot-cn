@@ -269,6 +269,30 @@ assert.match(documentXml, /Microsoft YaHei/);
 console.log('PASS DOCX 是可编辑的结构化 Word 文档并保留 Fact 标记');
 passed += 1;
 
+writeFileSync(join(root, 'profile', 'resume-style.yml'), yaml.dump({
+  schema_version: 1,
+  preset: 'compact-photo',
+  density: 'full',
+  font_family: 'Microsoft YaHei',
+  font_size_pt: 9.5,
+  page_margin_cm: 0.9,
+  section_order: ['教育经历', '专业技能', '项目经历', '证书与奖项', '基本信息'],
+  project_bullet_limit: 4,
+  photo: { enabled: true, crop: 'center-3x4', width_cm: 2.4, height_cm: 3.2 },
+}), 'utf8');
+const styledDocx = await renderResumeDocx(root, createResumeVariant(root, {
+  template: 'soe-one-page',
+  target_job_title: '匿名信息技术岗',
+  sensitive_authorizations: { photo: true },
+}));
+const styledArchive = await JSZip.loadAsync(styledDocx);
+const styledXml = await styledArchive.file('word/document.xml').async('string');
+assert.match(styledXml, /<w:tbl>/);
+assert.match(styledXml, /求职方向：匿名信息技术岗/);
+assert.match(styledXml, /w:sz w:val="19"/);
+console.log('PASS compact-photo DOCX 使用双列头像头部并应用受约束字号');
+passed += 1;
+
 await assert.rejects(
   () => exportResume(root, variants[0], 'md', 'output/careerpilot/unconfirmed.md'),
   (error) => error.code === 'RESUME_NOT_CONFIRMED',

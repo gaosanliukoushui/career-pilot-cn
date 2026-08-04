@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/resume-style.schema.json",
+  "title": "ResumeStyleProfile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "preset", "density", "font_family", "font_size_pt", "page_margin_cm", "section_order", "project_bullet_limit", "photo"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "preset": { "enum": ["compact-photo", "compact-no-photo", "technical-two-page"] },
+    "density": { "enum": ["balanced", "full"] },
+    "font_family": { "enum": ["Microsoft YaHei", "Noto Sans CJK SC", "SimSun"] },
+    "font_size_pt": { "type": "number", "minimum": 8, "maximum": 11 },
+    "page_margin_cm": { "type": "number", "minimum": 0.7, "maximum": 2 },
+    "section_order": { "type": "array", "uniqueItems": true, "items": { "enum": ["教育经历", "实习与工作经历", "专业技能", "项目经历", "证书与奖项", "校园经历", "基本信息"] } },
+    "project_bullet_limit": { "type": "integer", "minimum": 1, "maximum": 6 },
+    "photo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "crop", "width_cm", "height_cm"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "crop": { "enum": ["contain", "center-3x4"] },
+        "width_cm": { "type": "number", "minimum": 1.8, "maximum": 3.2 },
+        "height_cm": { "type": "number", "minimum": 2.4, "maximum": 4.2 }
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/runtime-capability-report.schema.json",
+  "title": "RuntimeCapabilityReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "generated_at", "playwright_cli", "project_browser_mcp_config", "external_runtimes", "active_import_mode", "fallback_order"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "generated_at": { "type": "string" },
+    "playwright_cli": {
+      "type": "object", "additionalProperties": false,
+      "required": ["available", "launchable"],
+      "properties": { "available": { "type": "boolean" }, "launchable": { "type": "boolean" }, "error": { "type": ["string", "null"] } }
+    },
+    "project_browser_mcp_config": {
+      "type": "object", "additionalProperties": false,
+      "required": ["configured", "files"],
+      "properties": { "configured": { "type": "boolean" }, "files": { "type": "array", "items": { "type": "string" } } }
+    },
+    "external_runtimes": {
+      "type": "object", "additionalProperties": false,
+      "required": ["codex_browser", "chrome", "edge"],
+      "properties": {
+        "codex_browser": { "$ref": "#/$defs/external" },
+        "chrome": { "$ref": "#/$defs/external" },
+        "edge": { "$ref": "#/$defs/external" }
+      }
+    },
+    "active_import_mode": { "enum": ["codex_browser_capture", "batch_url", "text_or_file"] },
+    "fallback_order": { "const": ["codex_browser_capture", "batch_url", "text_or_file"] }
+  },
+  "$defs": {
+    "external": {
+      "type": "object", "additionalProperties": true,
+      "required": ["declared"], "properties": { "declared": { "type": "boolean" } }
+    }
+  }
+}

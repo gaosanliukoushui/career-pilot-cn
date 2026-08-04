@@ -9,6 +9,7 @@ import {
   UserRound,
   BriefcaseBusiness,
   ClipboardCheck,
+  Layers3,
   MessageSquareText,
   Handshake,
 } from "lucide-react";
@@ -24,6 +25,7 @@ export type NavItem = {
 };
 
 export const PRIMARY_NAV_ITEMS: NavItem[] = [
+  { href: "/campaigns", label: "多岗位 Campaign", icon: Layers3 },
   { href: "/", label: "今日待办", icon: LayoutDashboard },
   { href: "/profile", label: "个人事实与证据", icon: UserRound },
   { href: "/cv", label: "主简历和岗位简历", icon: FileText },

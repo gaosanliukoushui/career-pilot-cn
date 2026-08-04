@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import yaml from 'js-yaml';
 import { discoverPlugins, pluginRoots, pluginStatus } from './plugins/_engine.mjs';
 import { resolveExtractorMode } from './browser-extract.mjs';
+import { inspectRuntimeCapabilities } from './lib/careerpilot/runtime-core.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -104,7 +105,7 @@ async function checkPlaywright() {
 // `.claude/settings.local.json`). When no common config is detected, SPA job boards can
 // silently return empty or stale content (#522), so doctor surfaces a non-fatal warning
 // instead of letting it fail invisibly.
-const PLAYWRIGHT_MCP_WARNING = 'Playwright MCP tools not detected';
+const PLAYWRIGHT_MCP_WARNING = 'Project browser MCP config not detected; external Codex/Chrome/Edge capabilities must be declared by the caller';
 
 function playwrightMcpConfigured(root) {
   const configFiles = ['.mcp.json', '.claude/settings.json', '.claude/settings.local.json'];
@@ -152,10 +153,9 @@ function checkPlaywrightMcp(root) {
     warn: true,
     label: PLAYWRIGHT_MCP_WARNING,
     fix: [
-      'Browser-driven JD fetching and liveness checks (scan / pipeline / apply) need the',
-      'Playwright MCP server. No project-level MCP config was detected in `.mcp.json`',
-      'or `.claude/settings*.json`, so SPA job boards may return empty or stale content.',
-      'Tracking: https://github.com/santifer/career-ops/issues/506',
+      'No project-level browser MCP config was found in `.mcp.json` or `.claude/settings*.json`.',
+      'This does not mean browser tools are unavailable: Codex, Chrome, or Edge tab access is an external runtime capability.',
+      'Campaign import falls back in this order: caller-supplied tab capture, batch URL, then pasted text or files.',
     ],
   };
 }
@@ -448,7 +448,9 @@ function onboardingState(root) {
 }
 
 if (JSON_OUT) {
-  console.log(JSON.stringify(onboardingState(projectRoot)));
+  const state = onboardingState(projectRoot);
+  state.runtime_capabilities = await inspectRuntimeCapabilities(projectRoot);
+  console.log(JSON.stringify(state));
   process.exit(0);
 } else {
   main().catch((err) => {

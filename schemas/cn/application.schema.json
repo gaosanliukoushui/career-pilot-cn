@@ -9,12 +9,36 @@
     "schema_version": { "const": 1 },
     "id": { "type": "string", "pattern": "^application\\.\\d+$" },
     "job_id": { "type": "string", "pattern": "^job\\.[a-f0-9]{16,64}$" },
+    "campaign_id": { "type": "string", "pattern": "^campaign\\.[a-f0-9]{24}$" },
+    "resume_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest", "output", "content_sha256"],
+      "properties": {
+        "manifest": { "type": "string" },
+        "output": { "type": "string" },
+        "content_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
     "tracker_num": { "type": "integer", "minimum": 1 },
     "created_at": { "type": "string" },
     "updated_at": { "type": "string" },
     "current_stage": { "$ref": "#/$defs/stage" },
     "canonical_status": { "enum": ["Evaluated", "Applied", "Responded", "Interview", "Offer", "Hired", "Rejected", "Discarded", "SKIP"] },
     "deadline": { "type": ["string", "null"] },
+    "official_url": { "type": ["string", "null"] },
+    "pre_submission_checklist": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "label", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "status": { "enum": ["ready", "missing", "manual_required"] }
+        }
+      }
+    },
     "fields": {
       "type": "array",
       "items": {
