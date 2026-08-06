@@ -92,6 +92,11 @@ plugins.lock
 # Generated
 .resolved-prompt-*
 node_modules/
+desktop/node_modules/
+desktop/dist/
+desktop/build/icon.png
+desktop/build/runtime-modules/
+desktop/build-config.json
 bun.lock
 # Report-number reservation sentinels (ephemeral, created by reserve-report-num.mjs)
 reports/*-RESERVED.md

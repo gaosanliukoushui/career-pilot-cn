@@ -1,0 +1,78 @@
+{
+  "name": "careerpilot-cn-desktop",
+  "version": "0.3.0",
+  "description": "Windows desktop shell for the local-first CareerPilot CN workbench",
+  "author": "CareerPilot CN contributors",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "prepare:desktop": "node scripts/prepare-desktop.mjs",
+    "build:web": "npm --prefix ../web run build",
+    "test": "node --test test/*.test.cjs",
+    "smoke:packaged": "node scripts/smoke-packaged.mjs",
+    "pack": "npm run build:web && npm run prepare:desktop && npm test && electron-builder --dir --win x64",
+    "dist": "npm run build:web && npm run prepare:desktop && npm test && electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12",
+    "sharp": "^0.34.3"
+  },
+  "build": {
+    "appId": "cn.careerpilot.desktop",
+    "productName": "CareerPilot CN",
+    "copyright": "Copyright © 2026 CareerPilot CN contributors",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "lib/**/*.cjs",
+      "build-config.json",
+      "build/icon.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/.next/standalone",
+        "to": "web"
+      },
+      {
+        "from": "../web/.next/static",
+        "to": "web/.next/static"
+      },
+      {
+        "from": "../web/public",
+        "to": "web/public"
+      },
+      {
+        "from": "build/runtime-modules",
+        "to": "web/runtime_modules"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "CareerPilot-CN-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CareerPilot CN",
+      "runAfterFinish": false,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}
