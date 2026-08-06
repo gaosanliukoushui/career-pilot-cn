@@ -348,6 +348,8 @@ export function renderSectionedHtml(template, payload) {
   const layout = payload.layout === 'compact' ? 'compact' : 'standard';
   const photo = payload.photoDataUrl
     ? `<img class="portrait" alt="候选人照片" src="${sanitizeImageSrc(payload.photoDataUrl)}">`
+    : payload.photoPlaceholder
+      ? '<div class="portrait portrait-placeholder" role="img" aria-label="匿名头像占位"><span>匿名</span></div>'
     : '';
   const meta = Array.isArray(payload.meta)
     ? payload.meta.filter(Boolean).map((item) => `<span>${escapeHtml(String(item))}</span>`).join('')
@@ -363,6 +365,7 @@ export function renderSectionedHtml(template, payload) {
   const replacements = {
     LANG: 'zh-CN',
     LAYOUT: layout,
+    THEME: typeof payload.themeClass === 'string' ? escapeHtml(payload.themeClass) : '',
     FONT_CSS: typeof payload.fontCss === 'string' ? payload.fontCss : '',
     NAME: escapeHtml(String(payload.name || '')),
     PHOTO: photo,

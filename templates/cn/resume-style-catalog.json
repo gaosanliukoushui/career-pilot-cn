@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "styles": [
+    {
+      "id": "soe-blue-standard",
+      "label": "央国企蓝色正式",
+      "short_label": "蓝色正式",
+      "description": "稳定、清晰、适配面最广的央国企校招版式，兼顾教育、项目与综合经历。",
+      "palette": { "accent": "#24558A", "accent_dark": "#173A63", "divider": "#9BAABD", "muted": "#435269", "ink": "#172033", "paper": "#FFFFFF" },
+      "heading_style": "rule",
+      "header_alignment": "left",
+      "defaults": {
+        "density": "balanced",
+        "page_budget": 1,
+        "emphasis": "general",
+        "font_family": "Microsoft YaHei",
+        "font_size_pt": 9.5,
+        "page_margin_cm": 1,
+        "section_order": ["教育经历", "实习与工作经历", "项目经历", "专业技能", "证书与奖项", "校园经历", "基本信息"],
+        "project_bullet_limit": 4,
+        "photo": { "enabled": false, "crop": "center-3x4", "width_cm": 2.4, "height_cm": 3.2 }
+      },
+      "recommendation": {
+        "emphases": ["general", "technical", "campus"],
+        "summary": "通用安全默认，适合多数央国企综合或技术岗位。",
+        "signals": ["经历分布较均衡", "希望一页内保持稳重层级", "需要可选证件照"]
+      },
+      "preview": { "subtitle": "稳重通用 · 一页优先", "key_points": ["蓝色分区线", "左右对齐清晰", "头像可选"] }
+    },
+    {
+      "id": "soe-navy-dense",
+      "label": "央国企深蓝紧凑",
+      "short_label": "深蓝紧凑",
+      "description": "更高信息密度和更强标题层级，适合实习、项目与技能内容较多的候选人。",
+      "palette": { "accent": "#233F64", "accent_dark": "#172E4B", "divider": "#8C9CB0", "muted": "#4A5C73", "ink": "#162234", "paper": "#FFFFFF" },
+      "heading_style": "heavy-rule",
+      "header_alignment": "left",
+      "defaults": {
+        "density": "full",
+        "page_budget": 1,
+        "emphasis": "technical",
+        "font_family": "Microsoft YaHei",
+        "font_size_pt": 9,
+        "page_margin_cm": 0.85,
+        "section_order": ["教育经历", "实习与工作经历", "项目经历", "专业技能", "证书与奖项", "校园经历", "基本信息"],
+        "project_bullet_limit": 3,
+        "photo": { "enabled": false, "crop": "center-3x4", "width_cm": 2.3, "height_cm": 3.05 }
+      },
+      "recommendation": {
+        "emphases": ["technical", "general"],
+        "summary": "优先容纳高价值经历，但仍保持正式、克制的央国企观感。",
+        "signals": ["可发布 Fact 较多", "实习与项目占比较高", "需要压缩到一页"]
+      },
+      "preview": { "subtitle": "高信息量 · 工程经历优先", "key_points": ["深蓝强层级", "紧凑行距", "项目结果靠前"] }
+    },
+    {
+      "id": "soe-red-academic",
+      "label": "央国企红色学术",
+      "short_label": "红色学术",
+      "description": "克制的深红分区与学术型排版，适合研究生、荣誉科研和校园履历较强的候选人。",
+      "palette": { "accent": "#9A3B2C", "accent_dark": "#74271C", "divider": "#C48679", "muted": "#66504B", "ink": "#241B19", "paper": "#FFFFFF" },
+      "heading_style": "serif-rule",
+      "header_alignment": "center",
+      "defaults": {
+        "density": "balanced",
+        "page_budget": 1,
+        "emphasis": "research",
+        "font_family": "SimSun",
+        "font_size_pt": 9.5,
+        "page_margin_cm": 1,
+        "section_order": ["教育经历", "实习与工作经历", "项目经历", "证书与奖项", "校园经历", "专业技能", "基本信息"],
+        "project_bullet_limit": 3,
+        "photo": { "enabled": false, "crop": "center-3x4", "width_cm": 2.4, "height_cm": 3.2 }
+      },
+      "recommendation": {
+        "emphases": ["research", "campus"],
+        "summary": "突出教育、科研荣誉和组织经历，避免技术细节抢占阅读重心。",
+        "signals": ["教育层次或荣誉信息较多", "论文专利等成果需要突出", "校园组织经历有证据"]
+      },
+      "preview": { "subtitle": "学术稳重 · 成果与组织经历", "key_points": ["深红细线", "居中抬头", "教育荣誉前置"] }
+    },
+    {
+      "id": "soe-research-formal",
+      "label": "央国企科研综合",
+      "short_label": "科研综合",
+      "description": "蓝灰色的研究生综合版式，为教育、科研、实习、项目和校园经历保留清楚的并列层级。",
+      "palette": { "accent": "#35679B", "accent_dark": "#214C78", "divider": "#93ABC2", "muted": "#526579", "ink": "#1B2733", "paper": "#FFFFFF" },
+      "heading_style": "bar-rule",
+      "header_alignment": "left",
+      "defaults": {
+        "density": "full",
+        "page_budget": 2,
+        "emphasis": "research",
+        "font_family": "Microsoft YaHei",
+        "font_size_pt": 9.5,
+        "page_margin_cm": 1,
+        "section_order": ["教育经历", "实习与工作经历", "项目经历", "校园经历", "证书与奖项", "专业技能", "基本信息"],
+        "project_bullet_limit": 4,
+        "photo": { "enabled": false, "crop": "center-3x4", "width_cm": 2.4, "height_cm": 3.2 }
+      },
+      "recommendation": {
+        "emphases": ["research", "general"],
+        "summary": "为研究与工程并重的候选人保留更完整的两页预算。",
+        "signals": ["研究与项目事实同时较多", "存在两段以上教育或实习", "不应通过删减 Fact 强压一页"]
+      },
+      "preview": { "subtitle": "研究与工程并重 · 两页可选", "key_points": ["蓝灰分区", "完整层级", "长内容更从容"] }
+    },
+    {
+      "id": "technical-minimal",
+      "label": "技术极简",
+      "short_label": "技术极简",
+      "description": "去装饰、强调工程职责和可验证结果的技术版式，适合研发、测试、运维与数据岗位。",
+      "palette": { "accent": "#354657", "accent_dark": "#24313D", "divider": "#B4BDC6", "muted": "#53616E", "ink": "#18222B", "paper": "#FFFFFF" },
+      "heading_style": "minimal",
+      "header_alignment": "left",
+      "defaults": {
+        "density": "balanced",
+        "page_budget": 2,
+        "emphasis": "technical",
+        "font_family": "Noto Sans CJK SC",
+        "font_size_pt": 9.5,
+        "page_margin_cm": 1.1,
+        "section_order": ["实习与工作经历", "项目经历", "专业技能", "教育经历", "证书与奖项", "校园经历", "基本信息"],
+        "project_bullet_limit": 4,
+        "photo": { "enabled": false, "crop": "contain", "width_cm": 2.3, "height_cm": 3.05 }
+      },
+      "recommendation": {
+        "emphases": ["technical"],
+        "summary": "让工程责任、交付和结果成为主视觉，降低校园与装饰信息的权重。",
+        "signals": ["技术与项目 Fact 明显占优", "目标岗位偏研发测试运维", "需要一到两页的稳定文本层"]
+      },
+      "preview": { "subtitle": "工程结果优先 · 低装饰", "key_points": ["中性石墨色", "职责结果前置", "一至两页"] }
+    }
+  ]
+}

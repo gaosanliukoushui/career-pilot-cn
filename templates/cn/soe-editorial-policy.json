@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "id": "soe-campus-evidence-first",
+  "label": "央国企校招证据优先写法",
+  "source_scope": "reference_layout_and_editorial_patterns_only",
+  "fact_boundary": "Every claim must resolve to a publishable CandidateProfile Fact. References never introduce candidate facts, identity, metrics, employers, schools, awards, political status, or authorship.",
+  "sections": {
+    "internship": {
+      "label": "实习经历",
+      "pattern": ["需求或任务", "个人职责", "工程落地", "可验证结果"],
+      "avoid": ["只列技术栈", "逐项展开实现细节", "使用学到了或参与了等空泛表述"]
+    },
+    "project": {
+      "label": "项目经历",
+      "pattern": ["问题或目标", "关键动作", "个人贡献", "结果或验收"],
+      "avoid": ["项目没有结果", "只列工具和模块", "用团队成果替代个人贡献"]
+    },
+    "campus": {
+      "label": "校园经历",
+      "pattern": ["组织角色", "协调范围", "交付动作", "有证据的影响"],
+      "avoid": ["因为不是技术经历而全部省略", "用性格形容词替代事实"]
+    },
+    "skills": {
+      "label": "个人技能",
+      "pattern": ["资格证书", "与目标岗位相关的专业技能", "有区分度且有证据的特长"],
+      "avoid": ["堆砌开发工具", "擅长精通等无等级依据的口号", "加入岗位关键词但缺少事实来源"]
+    }
+  },
+  "transformation_rules": [
+    "允许调整区块顺序、标题层级、信息密度与句子结构",
+    "允许删去不影响事实的冗余措辞，但不得改变事实含义",
+    "project_bullet_limit 是单项目编辑建议；在 Fact 尚未具备项目归属字段前不得据此自动删除内容",
+    "量化结果只能来自已确认 Fact，不从参考图推断或迁移",
+    "所有实质改写继续进入 Fact Diff 并由用户逐条确认"
+  ]
+}

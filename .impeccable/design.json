@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-06T00:00:00.000Z",
+  "title": "Design System: CareerPilot CN",
+  "extensions": {
+    "colorMeta": {
+      "brand-orange": {
+        "role": "primary",
+        "displayName": "Action Orange",
+        "canonical": "#dd7627",
+        "tonalRamp": ["#3a1805", "#6b2f0a", "#a54f12", "#dd7627", "#e99351", "#f1b17e", "#f8d2b4", "#fdf1e7"]
+      },
+      "canvas-light": {
+        "role": "neutral",
+        "displayName": "Warm Canvas",
+        "canonical": "#f7f6f3",
+        "tonalRamp": ["#201f1d", "#403e3a", "#625f59", "#87837c", "#aaa7a0", "#cecbc5", "#e8e6e1", "#f7f6f3"]
+      },
+      "ink-light": {
+        "role": "neutral",
+        "displayName": "Warm Ink",
+        "canonical": "#1f1c19",
+        "tonalRamp": ["#1f1c19", "#3b3732", "#5f584f", "#736c64", "#97918a", "#bbb7b1", "#dedbd7", "#f6f5f3"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Editorial Display", "purpose": "Selected page-level and report headings only." },
+      "body": { "displayName": "Task Interface", "purpose": "Controls, evidence, tables, and workflow copy." },
+      "label": { "displayName": "State Label", "purpose": "Compact metadata and explicit workflow states." }
+    },
+    "shadows": [
+      { "name": "structural-popover", "value": "0 4px 8px rgba(31, 28, 25, 0.14)", "purpose": "Floating menus or popovers only; resting surfaces stay flat." }
+    ],
+    "motion": [
+      { "name": "state-fast", "value": "180ms cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Hover, selection, and disclosure state changes." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single strongest action in the current task group.",
+      "html": "<button class=\"ds-btn-primary\">保存选择</button>",
+      "css": ".ds-btn-primary{background:#dd7627;color:#281d15;border:0;border-radius:6px;padding:8px 16px;font:600 14px/1.4 Inter,system-ui,sans-serif;transition:background 180ms cubic-bezier(.25,1,.5,1)}.ds-btn-primary:hover{background:#ffa333}.ds-btn-primary:focus-visible{outline:3px solid rgba(221,118,39,.35);outline-offset:2px}.ds-btn-primary:disabled{opacity:.5;cursor:not-allowed}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A reversible or supporting action.",
+      "html": "<button class=\"ds-btn-secondary\">并排比较</button>",
+      "css": ".ds-btn-secondary{background:#fff;color:#1f1c19;border:1px solid #dfdcd8;border-radius:6px;padding:8px 16px;font:600 14px/1.4 Inter,system-ui,sans-serif;transition:background 180ms cubic-bezier(.25,1,.5,1)}.ds-btn-secondary:hover{background:#efeeea}.ds-btn-secondary:focus-visible{outline:3px solid rgba(221,118,39,.3);outline-offset:2px}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "A readable field for structured local data.",
+      "html": "<input class=\"ds-field\" value=\"央国企蓝色正式\" aria-label=\"样式名称\">",
+      "css": ".ds-field{background:#f7f6f3;color:#1f1c19;border:1px solid #dfdcd8;border-radius:6px;padding:8px 12px;font:400 14px/1.4 Inter,system-ui,sans-serif}.ds-field:focus-visible{outline:3px solid rgba(221,118,39,.3);border-color:#dd7627}.ds-field:disabled{opacity:.55}"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "description": "A compact state label that remains meaningful without color.",
+      "html": "<span class=\"ds-chip\">推荐 · 综合技术岗</span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;background:rgba(221,118,39,.12);color:#a54f12;border:1px solid rgba(221,118,39,.28);border-radius:999px;padding:4px 8px;font:600 12px/1.3 Inter,system-ui,sans-serif}"
+    },
+    {
+      "name": "Workbench Container",
+      "kind": "card",
+      "refersTo": "container",
+      "description": "A flat task surface with explicit containment.",
+      "html": "<section class=\"ds-container\"><strong>简历风格</strong><p>真实预览与导出使用同一内容模型。</p></section>",
+      "css": ".ds-container{background:#fff;color:#1f1c19;border:1px solid #dfdcd8;border-radius:12px;padding:16px;font:400 14px/1.6 Inter,system-ui,sans-serif}.ds-container strong{font-weight:600}.ds-container p{color:#5f584f;margin:4px 0 0}"
+    }
+  ],
+  "narrative": {
+    "northStar": "可信投递台",
+    "overview": "CareerPilot CN should resemble a well-organized desk at the moment a candidate makes a consequential decision: the evidence is within reach, the current state is obvious, and the next action is deliberate. The application shell stays restrained so dense qualification, Fact, Campaign, and export information can carry the attention. The interface rejects generic overseas ATS dashboards, flashy startup landing pages, one-click mass apply theater, and resume galleries whose thumbnails are disconnected from real output.",
+    "keyCharacteristics": [
+      "Warm neutral work surface with one burnt-orange action accent.",
+      "Compact but readable Chinese-first information hierarchy.",
+      "Flat surfaces separated primarily by tone and precise borders.",
+      "Real-state feedback for pending, blocked, stale, confirmed, and verified artifacts.",
+      "Resume previews may adopt their selected document palette without recoloring the application shell."
+    ],
+    "rules": [
+      { "name": "The One Action Color Rule", "body": "Burnt orange marks action or current state; it never becomes decorative wallpaper.", "section": "colors" },
+      { "name": "The Artifact Independence Rule", "body": "A blue or red resume theme appears inside its preview and export only. It does not recolor Campaign, Fact, or application controls.", "section": "colors" },
+      { "name": "The Task-Type Rule", "body": "Inter is mandatory for buttons, inputs, tables, filters, and state labels. Display typography never enters a control.", "section": "typography" },
+      { "name": "The Flat-at-Rest Rule", "body": "A resting card or control uses either a border or a compact shadow, never both as decoration.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do show the real pending, blocked, stale, confirmed, or verified state beside the affected artifact.",
+      "Do render resume thumbnails from the same normalized content model used by DOCX/PDF.",
+      "Do keep candidate references private and use anonymous fixtures in shared tests and previews."
+    ],
+    "donts": [
+      "Don't imitate generic overseas ATS dashboards that hide decisions behind an unexplained percentage.",
+      "Don't use flashy startup landing pages, neon AI gradients, glassmorphism, or decorative automation theater.",
+      "Don't present one-click mass apply growth hacks or submission volume as success.",
+      "Don't treat social-media resume examples as candidate facts, certified recruiter truth, or verbatim templates."
+    ]
+  }
+}

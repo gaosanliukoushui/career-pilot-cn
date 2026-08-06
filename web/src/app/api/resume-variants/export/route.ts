@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const args = ["resume-export", "--variant-stdin", "--format", body.format, "--output", relativeOutput];
   const result = await runCareerPilot<{ path?: string }>(args, JSON.stringify(body.variant));
   if (!result.ok || !result.data?.path) {
-    return Response.json({ error: result.error || "导出失败", details: result.details }, { status: 400 });
+    return Response.json({ error: result.error || "导出失败", code: result.code, details: result.details }, { status: 400 });
   }
   const absolute = path.resolve(result.data.path);
   const allowedRoot = path.resolve(careerOpsRoot(), "output", "careerpilot");

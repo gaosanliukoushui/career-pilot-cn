@@ -21,6 +21,7 @@ type Preview = {
     id: string;
     template: Template;
     source_profile_sha256: string;
+    source_resume_style_sha256: string;
     source_photo_sha256: string | null;
     fact_ids: string[];
     order: string[];

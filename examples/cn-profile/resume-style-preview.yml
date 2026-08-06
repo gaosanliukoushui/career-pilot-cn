@@ -1,0 +1,89 @@
+schema_version: 1
+candidate:
+  display_name: 示例候选人
+  email: preview@example.invalid
+  location: 中国
+facts:
+  - &preview_fact
+    id: education.preview.bachelor
+    type: education
+    statement: 获得匿名大学计算机相关专业学士学位
+    status: confirmed
+    sensitivity: public
+    allowed_uses: [resume, application_form]
+    evidence_ids: [evidence.preview.document]
+    source: examples/cn-profile/resume-style-preview.yml
+  - <<: *preview_fact
+    id: skill.preview.backend
+    type: skill
+    statement: 掌握 Java 后端开发与关系型数据库基础
+  - <<: *preview_fact
+    id: project.preview.platform
+    type: project
+    statement: 完成匿名校园服务平台的接口设计与功能实现
+  - <<: *preview_fact
+    id: campus.preview.coordination
+    type: campus
+    statement: 负责匿名校园活动的协调、信息汇总与材料整理
+  - <<: *preview_fact
+    id: internship.preview.requirement
+    type: internship
+    statement: 参与匿名业务需求梳理与接口开发，完成数据流程联调和交付文档
+  - <<: *preview_fact
+    id: result.preview.latency
+    type: quantified_result
+    statement: 通过查询优化将匿名测试环境的接口平均响应时间降低 32%
+  - <<: *preview_fact
+    id: project.preview.permission
+    type: project
+    statement: 负责匿名校园服务平台的权限与消息模块，完成开发、测试和部署闭环
+  - <<: *preview_fact
+    id: result.preview.testcases
+    type: quantified_result
+    statement: 整理 28 项匿名测试用例并解决 7 个高频异常
+  - <<: *preview_fact
+    id: skill.preview.docs
+    type: skill
+    statement: 能够编写需求说明、接口文档、测试记录和部署手册
+  - <<: *preview_fact
+    id: certificate.preview.language
+    type: certificate
+    statement: 通过匿名语言能力考试并取得合格证书
+  - <<: *preview_fact
+    id: award.preview.scholarship
+    type: award
+    statement: 获得匿名校级奖学金与优秀学生干部荣誉
+  - <<: *preview_fact
+    id: campus.preview.team
+    type: campus
+    statement: 协调 12 人匿名团队完成活动策划、任务分工与材料归档
+  - <<: *preview_fact
+    id: internship.preview.monitoring
+    type: internship
+    statement: 维护匿名数据同步任务与异常告警，跟进问题定位、修复验证和复盘记录
+  - <<: *preview_fact
+    id: result.preview.delivery
+    type: result
+    statement: 形成匿名接口清单、测试记录与部署说明并完成团队验收
+  - <<: *preview_fact
+    id: project.preview.analysis
+    type: project
+    statement: 设计匿名数据分析模块，完成指标口径梳理、结果校验与可视化展示
+  - <<: *preview_fact
+    id: skill.preview.operations
+    type: skill
+    statement: 具备 Linux 环境部署、日志排查、数据库查询与版本管理基础
+  - <<: *preview_fact
+    id: campus.preview.service
+    type: campus
+    statement: 参与匿名志愿服务的人员协调、现场执行和材料归档
+  - <<: *preview_fact
+    id: award.preview.competition
+    type: award
+    statement: 获得匿名校级创新实践比赛奖项
+evidence:
+  - id: evidence.preview.document
+    kind: document
+    ref: https://example.invalid/careerpilot/resume-style-preview
+    strength: strong
+    verified_at: '2026-07-27T12:00:00.000Z'

@@ -115,10 +115,14 @@ test('Campaign 正式导出生成 manifest v2 并绑定选择、岗位、预览�
   pendingFinal.qa.render_status = 'pending_docx_render';
   const { validateResumeArtifactManifest } = await import('./lib/careerpilot/artifact-core.mjs');
   assert.equal(validateResumeArtifactManifest(pendingFinal).valid, false);
+  const legacy = structuredClone(manifest);
+  legacy.resume_style = 'compact-photo';
+  assert.ok(validateResumeArtifactManifest(legacy).errors.some((item) => item.code === 'legacy_resume_style_not_valid_for_campaign'));
   const unauthorizedPhoto = structuredClone(manifest);
-  unauthorizedPhoto.resume_style = 'compact-photo';
-  unauthorizedPhoto.photo_included = false;
-  assert.ok(validateResumeArtifactManifest(unauthorizedPhoto).errors.some((item) => item.code === 'photo_required_by_style'));
+  unauthorizedPhoto.photo_included = true;
+  unauthorizedPhoto.source_photo_sha256 = null;
+  unauthorizedPhoto.sensitive_authorizations.photo = false;
+  assert.ok(validateResumeArtifactManifest(unauthorizedPhoto).errors.some((item) => item.code === 'photo_authorization_invalid'));
 });
 
 test('Campaign DOCX 必须经 LibreOffice 渲染 QA 后才发布为可信最终产物', { skip: !existsSync('E:\\liberoffice\\program\\soffice.com') }, async () => {

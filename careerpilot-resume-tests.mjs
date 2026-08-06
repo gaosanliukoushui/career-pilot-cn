@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { platform } from 'node:process';
@@ -12,9 +12,11 @@ import {
   exportResume,
   renderResumeDocx,
   renderResumeHtml,
+  renderAnonymousResumeStylePreview,
   renderResumeMarkdown,
   validateResumeVariant,
 } from './lib/careerpilot/resume-core.mjs';
+import { getResumeStyleCatalog } from './lib/careerpilot/resume-style-core.mjs';
 
 let passed = 0;
 function test(name, fn) {
@@ -92,6 +94,32 @@ writeFileSync(join(root, 'profile', 'evidence', 'photo.png'), Buffer.from('iVBOR
 const templates = ['soe-one-page', 'tech-two-page', 'application-detail'];
 const variants = templates.map((template) => createResumeVariant(root, { template }));
 
+test('五套风格预览共享匿名内容模型并保留 Fact 标记', () => {
+  const catalog = getResumeStyleCatalog(root);
+  for (const definition of catalog.styles) {
+    const html = renderAnonymousResumeStylePreview(root, {
+      ...structuredClone(definition.defaults),
+      schema_version: 2,
+      theme: definition.id,
+    });
+    assert.match(html, /示例候选人/);
+    assert.match(html, /data-fact-id="preview\./);
+    assert.match(html, new RegExp(`resume-theme-${definition.id}`));
+    assert.match(html, new RegExp(definition.palette.accent.slice(1), 'i'));
+    assert.doesNotMatch(html, new RegExp(fixture.candidate.display_name));
+  }
+});
+
+test('内容强调轴会确定性改变区块顺序而不增删 Fact', () => {
+  const definition = getResumeStyleCatalog(root).styles.find((item) => item.id === 'soe-blue-standard');
+  const base = { ...structuredClone(definition.defaults), schema_version: 2, theme: definition.id };
+  const technical = renderAnonymousResumeStylePreview(root, { ...base, emphasis: 'technical' });
+  const campus = renderAnonymousResumeStylePreview(root, { ...base, emphasis: 'campus' });
+  assert.ok(technical.indexOf('实习与工作经历') < technical.indexOf('教育经历'));
+  assert.ok(campus.indexOf('校园经历') < campus.indexOf('项目经历'));
+  assert.equal((technical.match(/data-fact-id=/g) || []).length, (campus.match(/data-fact-id=/g) || []).length);
+});
+
 test('主简历只能由实际预览草稿显式确认进入 ready，确认后变更会失效', () => {
   const draft = createResumeVariant(root, { template: 'soe-one-page' });
   assert.equal(draft.status, 'draft');
@@ -99,9 +127,17 @@ test('主简历只能由实际预览草稿显式确认进入 ready，确认后�
   assert.equal(variant.status, 'ready');
   assert.equal(variant.confirmation.status, 'confirmed');
   assert.match(variant.confirmation.preview_sha256, /^[a-f0-9]{64}$/);
+  assert.match(variant.source_resume_style_sha256, /^[a-f0-9]{64}$/);
   const changed = structuredClone(variant);
   changed.order = [...changed.order].reverse();
   assert.ok(validateResumeVariant(root, changed).errors.some((item) => item.code === 'confirmed_preview_hash_mismatch'));
+
+  const red = getResumeStyleCatalog(root).styles.find((item) => item.id === 'soe-red-academic');
+  const stylePath = join(root, 'profile', 'resume-style.yml');
+  writeFileSync(stylePath, yaml.dump({ ...structuredClone(red.defaults), schema_version: 2, theme: red.id }), 'utf8');
+  assert.ok(validateResumeVariant(root, variant).errors.some((item) => item.code === 'resume_style_changed_since_preview'));
+  rmSync(stylePath, { force: true });
+  assert.equal(validateResumeVariant(root, variant).valid, true);
 });
 
 test('三类模板均只采用通过发布门槛的事实', () => {
@@ -270,9 +306,11 @@ console.log('PASS DOCX 是可编辑的结构化 Word 文档并保留 Fact 标记
 passed += 1;
 
 writeFileSync(join(root, 'profile', 'resume-style.yml'), yaml.dump({
-  schema_version: 1,
-  preset: 'compact-photo',
+  schema_version: 2,
+  theme: 'soe-blue-standard',
   density: 'full',
+  page_budget: 1,
+  emphasis: 'general',
   font_family: 'Microsoft YaHei',
   font_size_pt: 9.5,
   page_margin_cm: 0.9,
@@ -290,7 +328,8 @@ const styledXml = await styledArchive.file('word/document.xml').async('string');
 assert.match(styledXml, /<w:tbl>/);
 assert.match(styledXml, /求职方向：匿名信息技术岗/);
 assert.match(styledXml, /w:sz w:val="19"/);
-console.log('PASS compact-photo DOCX 使用双列头像头部并应用受约束字号');
+rmSync(join(root, 'profile', 'resume-style.yml'), { force: true });
+console.log('PASS 头像轴 DOCX 使用双列头部并应用央国企蓝色正式主题');
 passed += 1;
 
 await assert.rejects(

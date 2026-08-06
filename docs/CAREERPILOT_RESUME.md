@@ -4,11 +4,25 @@ Phase 2 在 CandidateProfile 之上建立 `ResumeVariant`。简历不是新的�
 每次预览和导出都会重新运行 Fact 状态、Evidence 完整性、允许用途、敏感授权和
 引用一致性审计，失败时不发布正式文件。
 
-V3.1 在内容模板之外增加用户层 `profile/resume-style.yml`。`compact-photo`、
-`compact-no-photo` 和 `technical-two-page` 只控制字体、页边距、区块顺序、密度和头像裁剪；
-经历正文仍只来自 CandidateProfile Fact。HTML/PDF 与 DOCX 使用同一个标准化内容模型。
+V3.2 在内容模板之外提供五套可选择、可比较的视觉主题：`soe-blue-standard`、
+`soe-navy-dense`、`soe-red-academic`、`soe-research-formal` 和 `technical-minimal`。
+主题与头像、密度、页数预算、内容强调四个轴相互独立；偏好只保存在用户层
+`profile/resume-style.yml`。经历正文仍只来自 CandidateProfile Fact。HTML/PDF 与 DOCX
+使用同一个标准化内容模型，Web 缩略图也由该模型生成，不使用与正式导出脱节的假图。
 单页模板只能在受约束范围内收紧字号、间距和版心，不能自动删除 Fact；仍超页时返回
 `PAGE_BUDGET_EXCEEDED`。
+`project_bullet_limit` 是单项目的编辑建议；在 Fact 尚未记录项目归属前，它不会被当成
+自动删减依据。主题、密度、篇幅、区块顺序和头像位置的完整样式 SHA-256 会写入
+ResumeVariant 并进入确认哈希，确认后修改任一呈现项都会使旧预览失效。
+
+旧版 `compact-photo`、`compact-no-photo` 和 `technical-two-page` 配置在读取时确定性迁移到
+v2 主题，但不会自动改写用户文件。正式保存后才写入 v2。
+
+参考简历图片只允许放在 Git 忽略的 `profile/style-references/`。系统可从中提炼配色、
+区块顺序、信息密度和编辑结构，但不得把参考图中的学校、单位、指标、荣誉、身份、头像
+或作者关系当作 CandidateProfile Fact。央国企编辑策略位于
+`templates/cn/soe-editorial-policy.json`，实习、项目、校园和技能均有确定性的表达结构与禁用模式；
+所有实质改写仍进入 Fact Diff 并由用户逐条确认。
 
 ## 三类模板
 
@@ -45,17 +59,20 @@ node careerpilot.mjs resume-list --approved
 node careerpilot.mjs resume-tailor-suggest --job job.example --baseline resume.example
 node careerpilot.mjs resume-tailor-preview --stdin
 node careerpilot.mjs resume-style-show
+Get-Content resume-style.json -Raw | node careerpilot.mjs resume-style-preview --stdin
 Get-Content resume-style.json -Raw | node careerpilot.mjs resume-style-set --stdin
 Get-Content tailoring-preview.json -Raw | node careerpilot.mjs resume-tailor-export --stdin --campaign CAMPAIGN_ID --format pdf
 ```
 
-`resume-export` 不再接收模板 ID 直接生成正式文件：必须通过 `--variant-stdin` 提交刚刚预览并显式确认、且仍通过哈希和事实门禁校验的 `ResumeVariant`。Markdown、DOCX 与 PDF 使用同一确认边界。
+`resume-export` 不再接收模板 ID 直接生成正式文件：必须通过 `--variant-stdin` 提交刚刚预览并显式确认、且仍通过 Profile、样式哈希和事实门禁校验的 `ResumeVariant`。Markdown、DOCX 与 PDF 使用同一确认边界。
 
 可选的一次性授权参数为 `--authorize-photo` 和
 `--authorize-political-status`。正式文件只允许写入 `output/careerpilot/`；每个
 导出文件旁边都有 `.manifest.json`，包含模板、Fact IDs 和内容 SHA-256。
 
-Campaign 的正式 DOCX/PDF 统一生成 `ResumeArtifactManifest v2`。manifest 绑定 Campaign、
+普通 DOCX/PDF 在原子发布前也必须通过页数、文本层、Fact 语义、截断、重叠和异常留白 QA；
+DOCX 通过独立 LibreOffice profile 转 PDF 后检查。内容过少、文本层损坏或超过页数预算时只返回
+稳定错误码，不留下正式文件。Campaign 的正式 DOCX/PDF 统一生成 `ResumeArtifactManifest v2`。manifest 绑定 Campaign、
 选中岗位、CandidateProfile、JobPosting、主简历、TailoringPreview、头像授权与 SHA-256，
 并记录页数、文本层、LibreOffice 渲染、Fact 语义一致性、截断、重叠、异常留白与头像几何 QA。旧 manifest 可读取，但不能
 作为新 Campaign 申请包的可信最终产物。`draft/pending`、超过 30%、标题漂移、未授权头像、
@@ -68,13 +85,15 @@ Campaign 的正式 DOCX/PDF 统一生成 `ResumeArtifactManifest v2`。manifest 
 1. 导入旧简历为待确认 Facts；
 2. 审阅状态、敏感等级、允许用途与 Evidence；
 3. 为普通事实添加用户确认证言，或为高风险事实关联强证据；
-4. 选择三类模板并查看实时预览和差异审计；
-5. 对照片或政治面貌进行本次授权；
-6. 下载 Markdown、DOCX 或 PDF。
+4. 在五套视觉主题间查看真实缩略图、可解释推荐和两两比较；
+5. 独立调整头像、密度、页数预算和内容强调，并查看央国企写法规则；
+6. 选择三类内容模板并查看实时预览和差异审计；
+7. 对照片或政治面貌进行本次授权；
+8. 下载 Markdown、DOCX 或 PDF。
 
 `POST /api/resume-variants/preview` 只预览，不写事实库；
 `POST /api/resume-variants/export` 必须提交刚审阅的 ResumeVariant。Variant 保存
-源资料 SHA-256；预览后资料发生变化时导出会失败，避免“看到 A、导出 B”。接口
+Profile 与 ResumeStyle SHA-256；预览后事实或呈现设置发生变化时导出都会失败，避免“看到 A、导出 B”。接口
 还会锁定已授权照片的 SHA-256，并拒绝证据目录外路径、符号链接、伪造图片与
 超限文件。导出使用新文件名且禁止覆盖：manifest 先发布，正式简历作为最后一个
 排他原子提交点，避免留下无法追踪的正式文件。
@@ -110,6 +129,7 @@ Web 的 `/job-analysis` 页面在资格评估完成后提供岗位简历面板�
 ```powershell
 npm run careerpilot:resume-test
 npm run careerpilot:export-qa
+npm run careerpilot:style-qa
 npm run careerpilot:web-e2e
 cd web
 npm test
@@ -117,6 +137,7 @@ npm run typecheck
 npm run build
 ```
 
-`careerpilot:export-qa` 只使用匿名样例，在 Git 忽略的
-`output/careerpilot/qa-anonymous-workspace/` 生成 3 模板 × 3 格式的验收文件，
-并通过 LibreOffice 转换 DOCX，自动检查页数预算、空白页、中文提取和可复制文本。
+`careerpilot:export-qa`（别名 `careerpilot:style-qa`）只使用匿名样例，在独立短路径工作区
+生成 5 主题 × 3 格式的验收文件，并通过 LibreOffice 转换 DOCX，自动检查页数预算、
+空白页、异常留白、中文提取、可复制文本、截断和 Fact 追踪。默认运行结束后清理工作区；
+只有显式设置 `CAREERPILOT_QA_OUTPUT` 时才保留 QA 产物。

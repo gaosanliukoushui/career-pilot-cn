@@ -13,6 +13,7 @@
     "careerpilot:runtime-test": "node --test careerpilot-runtime-tests.mjs",
     "careerpilot:test": "node careerpilot-profile-tests.mjs && node careerpilot-resume-tests.mjs && node --test careerpilot-job-tests.mjs careerpilot-campaign-tests.mjs careerpilot-tailoring-tests.mjs careerpilot-application-tests.mjs careerpilot-runtime-tests.mjs && node careerpilot-boundary-tests.mjs",
     "careerpilot:export-qa": "node careerpilot-export-qa.mjs",
+    "careerpilot:style-qa": "node careerpilot-export-qa.mjs",
     "careerpilot:web-e2e": "node careerpilot-web-e2e.mjs",
     "doctor": "node doctor.mjs",
     "or": "node openrouter-runner.mjs",

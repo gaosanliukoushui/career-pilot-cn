@@ -40,7 +40,7 @@ These files contain your personal data, customizations, and work product. Update
 | `reports/*` | Your evaluation reports |
 | `output/*` | Your generated PDFs |
 | `jds/*` | Your saved job descriptions |
-| `profile/*` | CareerPilot CN candidate Facts, Evidence indexes/files, `resume-style.yml`, generated manifests, migration backups, and local resume/tailoring variants |
+| `profile/*` | CareerPilot CN candidate Facts, Evidence indexes/files, `resume-style.yml`, private `style-references/`, generated manifests, migration backups, and local resume/tailoring variants |
 | `data/careerpilot/jobs/*` | Imported JobPosting snapshots and source hashes |
 | `data/careerpilot/matches/*` | Deterministic eligibility and evidence-backed MatchReport sidecars |
 | `data/careerpilot/campaigns/*` | Private multi-job Campaign constraints, ranking, selection and audit history |
@@ -99,6 +99,8 @@ These files contain system logic, scripts, templates, and instructions that impr
 | `batch/batch-runner.sh` | Batch orchestrator |
 | `dashboard/*` | Go TUI dashboard |
 | `templates/*` | Base templates |
+| `.impeccable/*` | System-owned product and live-design configuration for the Web interface |
+| `PRODUCT.md` / `DESIGN.md` | System-owned product and visual design specifications |
 | `fonts/*` | Self-hosted fonts |
 | `.claude/skills/*` | Skill definitions (Claude Code) |
 | `.opencode/skills/*` | Skill definitions (OpenCode) |
@@ -109,7 +111,7 @@ These files contain system logic, scripts, templates, and instructions that impr
 | `VERSION` | Current version number |
 | `DATA_CONTRACT.md` | This file |
 | `writing-samples/README.md` | System-owned onboarding documentation for the writing-samples directory |
-| `schemas/cn/*` | CareerPilot CN Schemas for CandidateProfile, JobPosting, MatchReport, Campaign, ResumeStyleProfile, ResumeTailoringPreview, ResumeVariant, ResumeArtifactManifest v2, RuntimeCapabilityReport, and Application |
+| `schemas/cn/*` | CareerPilot CN Schemas for CandidateProfile, JobPosting, MatchReport, Campaign, ResumeStyleProfile v2, ResumeStyleDefinition, ResumeTailoringPreview, ResumeVariant, ResumeArtifactManifest v2, RuntimeCapabilityReport, and Application |
 | `lib/careerpilot/*` | Shared deterministic profile, Campaign, eligibility, matching, tailoring, application, artifact QA, runtime capability, cleanup, publication-policy, projection, and export services |
 | `modes/cn-campus/*` | Read-only China campus AI proposal prompts and workflow constraints |
 | `config/cn-campus.defaults.yml` | System-owned China campus product defaults and feature grouping |

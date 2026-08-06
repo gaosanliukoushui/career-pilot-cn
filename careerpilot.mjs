@@ -79,6 +79,7 @@ function usage() {
       'node careerpilot.mjs resume-workspace [--root PATH]',
       'node careerpilot.mjs resume-style-show [--root PATH]',
       'node careerpilot.mjs resume-style-set --stdin [--root PATH]',
+      'node careerpilot.mjs resume-style-preview --stdin [--root PATH]',
       'node careerpilot.mjs resume-tailoring-show PREVIEW_ID [--root PATH]',
     ],
   };
@@ -428,14 +429,38 @@ async function main() {
       return;
     }
     case 'resume-style-show': {
-      const { loadResumeStyle } = await import('./lib/careerpilot/resume-style-core.mjs');
-      process.stdout.write(`${JSON.stringify({ style: loadResumeStyle(root) })}\n`);
+      const { getResumeStyleCatalog, loadResumeStyle } = await import('./lib/careerpilot/resume-style-core.mjs');
+      const { renderAnonymousResumeStylePreview } = await import('./lib/careerpilot/resume-core.mjs');
+      const catalog = getResumeStyleCatalog(root);
+      catalog.styles = catalog.styles.map((definition) => ({
+        ...definition,
+        preview_html: renderAnonymousResumeStylePreview(root, {
+          schema_version: 2,
+          theme: definition.id,
+          ...structuredClone(definition.defaults),
+        }),
+      }));
+      process.stdout.write(`${JSON.stringify({ style: loadResumeStyle(root), catalog })}\n`);
       return;
     }
     case 'resume-style-set': {
       if (!args.includes('--stdin')) throw new Error('resume-style-set requires --stdin');
       const { saveResumeStyle } = await import('./lib/careerpilot/resume-style-core.mjs');
       process.stdout.write(`${JSON.stringify(saveResumeStyle(root, JSON.parse(await readStdin())))}\n`);
+      return;
+    }
+    case 'resume-style-preview': {
+      if (!args.includes('--stdin')) throw new Error('resume-style-preview requires --stdin');
+      const { renderAnonymousResumeStylePreview } = await import('./lib/careerpilot/resume-core.mjs');
+      const { validateResumeStyle } = await import('./lib/careerpilot/resume-style-core.mjs');
+      const validation = validateResumeStyle(JSON.parse(await readStdin()));
+      if (!validation.valid) {
+        const error = new Error('Resume style preview is invalid');
+        error.code = 'RESUME_STYLE_INVALID';
+        error.details = validation.errors;
+        throw error;
+      }
+      process.stdout.write(`${JSON.stringify({ style: validation.style, html: renderAnonymousResumeStylePreview(root, validation.style) })}\n`);
       return;
     }
     case 'resume-tailoring-show': {

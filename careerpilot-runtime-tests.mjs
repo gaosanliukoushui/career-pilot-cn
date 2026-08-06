@@ -2,12 +2,18 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { inspectRuntimeCapabilities } from './lib/careerpilot/runtime-core.mjs';
 import { cleanupCareerPilotRuns } from './lib/careerpilot/cleanup-core.mjs';
-import { DEFAULT_RESUME_STYLE, loadResumeStyle, saveResumeStyle } from './lib/careerpilot/resume-style-core.mjs';
+import {
+  DEFAULT_RESUME_STYLE,
+  getResumeStyleCatalog,
+  loadResumeStyle,
+  saveResumeStyle,
+  validateResumeStyle,
+} from './lib/careerpilot/resume-style-core.mjs';
 
 test('能力报告区分 Playwright CLI、项目 MCP 和调用方声明的浏览器标签页', async () => {
   const root = mkdtempSync(join(tmpdir(), 'careerpilot-runtime-'));
@@ -53,16 +59,63 @@ test('安全清理只预览或删除已登记且超过期限的运行目录', ()
   assert.equal(existsSync(finalOutput), true);
 });
 
-test('简历样式偏好只写入用户层并约束头像模板组合', () => {
+test('简历样式目录把主题、头像、密度、篇幅与强调方向拆成独立轴', () => {
   const root = mkdtempSync(join(tmpdir(), 'careerpilot-style-'));
   assert.deepEqual(loadResumeStyle(root), DEFAULT_RESUME_STYLE);
+  const catalog = getResumeStyleCatalog(root);
+  assert.equal(catalog.styles.length, 5);
+  assert.equal(catalog.editorial_policy.source_scope, 'reference_layout_and_editorial_patterns_only');
+  assert.match(catalog.editorial_policy.fact_boundary, /publishable CandidateProfile Fact/);
+  assert.deepEqual(catalog.editorial_policy.sections.project.pattern, ['问题或目标', '关键动作', '个人贡献', '结果或验收']);
+  assert.deepEqual(catalog.styles.map((item) => item.id), [
+    'soe-blue-standard',
+    'soe-navy-dense',
+    'soe-red-academic',
+    'soe-research-formal',
+    'technical-minimal',
+  ]);
+  assert.equal(catalog.recommendation.style_id, 'soe-blue-standard');
+  assert.ok(catalog.recommendation.reasons.length > 0);
   const photoStyle = structuredClone(DEFAULT_RESUME_STYLE);
-  photoStyle.preset = 'compact-photo';
+  photoStyle.theme = 'soe-red-academic';
   photoStyle.photo.enabled = true;
+  photoStyle.page_budget = 1;
+  photoStyle.emphasis = 'research';
   const saved = saveResumeStyle(root, photoStyle);
-  assert.equal(saved.style.preset, 'compact-photo');
+  assert.equal(saved.style.theme, 'soe-red-academic');
+  assert.equal(saved.style.photo.enabled, true);
   assert.equal(existsSync(join(root, 'profile', 'resume-style.yml')), true);
   const invalid = structuredClone(photoStyle);
-  invalid.photo.enabled = false;
+  invalid.theme = 'unknown-theme';
   assert.throws(() => saveResumeStyle(root, invalid), (error) => error.code === 'RESUME_STYLE_INVALID');
+});
+
+test('旧版样式配置读取时确定性迁移且不改写用户文件', () => {
+  const root = mkdtempSync(join(tmpdir(), 'careerpilot-style-v1-'));
+  mkdirSync(join(root, 'profile'), { recursive: true });
+  const legacy = [
+    'schema_version: 1',
+    'preset: compact-photo',
+    'density: full',
+    'font_family: Microsoft YaHei',
+    'font_size_pt: 9.5',
+    'page_margin_cm: 0.9',
+    'section_order: [教育经历, 项目经历, 专业技能]',
+    'project_bullet_limit: 4',
+    'photo:',
+    '  enabled: true',
+    '  crop: center-3x4',
+    '  width_cm: 2.4',
+    '  height_cm: 3.2',
+    '',
+  ].join('\n');
+  const path = join(root, 'profile', 'resume-style.yml');
+  writeFileSync(path, legacy, 'utf8');
+  const migrated = loadResumeStyle(root);
+  assert.equal(migrated.schema_version, 2);
+  assert.equal(migrated.theme, 'soe-blue-standard');
+  assert.equal(migrated.page_budget, 1);
+  assert.equal(migrated.photo.enabled, true);
+  assert.equal(validateResumeStyle(migrated).valid, true);
+  assert.equal(readFileSync(path, 'utf8'), legacy);
 });

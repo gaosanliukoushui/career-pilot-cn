@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/resume-style-definition.schema.json",
+  "title": "ResumeStyleDefinition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "label", "short_label", "description", "palette", "heading_style", "header_alignment", "defaults", "recommendation", "preview"],
+  "properties": {
+    "id": { "enum": ["soe-blue-standard", "soe-navy-dense", "soe-red-academic", "soe-research-formal", "technical-minimal"] },
+    "label": { "type": "string", "minLength": 1 },
+    "short_label": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accent", "accent_dark", "divider", "muted", "ink", "paper"],
+      "properties": {
+        "accent": { "type": "string", "pattern": "^#[A-Fa-f0-9]{6}$" },
+        "accent_dark": { "type": "string", "pattern": "^#[A-Fa-f0-9]{6}$" },
+        "divider": { "type": "string", "pattern": "^#[A-Fa-f0-9]{6}$" },
+        "muted": { "type": "string", "pattern": "^#[A-Fa-f0-9]{6}$" },
+        "ink": { "type": "string", "pattern": "^#[A-Fa-f0-9]{6}$" },
+        "paper": { "type": "string", "pattern": "^#[A-Fa-f0-9]{6}$" }
+      }
+    },
+    "heading_style": { "enum": ["rule", "heavy-rule", "serif-rule", "bar-rule", "minimal"] },
+    "header_alignment": { "enum": ["left", "center"] },
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["density", "page_budget", "emphasis", "font_family", "font_size_pt", "page_margin_cm", "section_order", "project_bullet_limit", "photo"],
+      "properties": {
+        "density": { "enum": ["balanced", "full"] },
+        "page_budget": { "enum": [1, 2] },
+        "emphasis": { "enum": ["general", "technical", "research", "campus"] },
+        "font_family": { "enum": ["Microsoft YaHei", "Noto Sans CJK SC", "SimSun"] },
+        "font_size_pt": { "type": "number", "minimum": 8, "maximum": 11 },
+        "page_margin_cm": { "type": "number", "minimum": 0.7, "maximum": 2 },
+        "section_order": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+        "project_bullet_limit": { "type": "integer", "minimum": 1, "maximum": 6, "description": "Per-project editorial recommendation. It never authorizes automatic Fact deletion." },
+        "photo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "crop", "width_cm", "height_cm"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "crop": { "enum": ["contain", "center-3x4"] },
+            "width_cm": { "type": "number" },
+            "height_cm": { "type": "number" }
+          }
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["emphases", "summary", "signals"],
+      "properties": {
+        "emphases": { "type": "array", "uniqueItems": true, "items": { "enum": ["general", "technical", "research", "campus"] } },
+        "summary": { "type": "string", "minLength": 1 },
+        "signals": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subtitle", "key_points"],
+      "properties": {
+        "subtitle": { "type": "string", "minLength": 1 },
+        "key_points": { "type": "array", "minItems": 2, "items": { "type": "string" } }
+      }
+    }
+  }
+}

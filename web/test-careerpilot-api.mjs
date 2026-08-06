@@ -133,7 +133,7 @@ test('failed Web validation does not mutate the canonical profile', async () => 
   assert.deepEqual(afterProfile, beforeProfile);
 }, { timeout: 30_000 });
 
-test('Web ResumeVariant preview and structured exports use the canonical Facts', async () => {
+test('Web ResumeVariant preview uses canonical Facts and sparse DOCX is rejected by render QA', async () => {
   let response = await fetch(`${baseUrl}/api/resume-variants/preview`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -168,11 +168,9 @@ test('Web ResumeVariant preview and structured exports use the canonical Facts',
       format: 'docx',
     }),
   });
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get('content-type') || '', /wordprocessingml/);
-  const docx = Buffer.from(await response.arrayBuffer());
-  assert.equal(docx.subarray(0, 2).toString(), 'PK');
-  assert.ok(docx.length > 5_000);
+  assert.equal(response.status, 400);
+  const sparseDocx = await response.json();
+  assert.ok(['RESUME_TEXT_LAYER_INVALID', 'RESUME_ABNORMAL_WHITESPACE'].includes(sparseDocx.code));
 
   const factId = preview.variant.fact_ids[0];
   response = await fetch(`${baseUrl}/api/candidate-profile/fact-status`, {
@@ -186,6 +184,44 @@ test('Web ResumeVariant preview and structured exports use the canonical Facts',
   });
   assert.equal(response.status, 400);
   assert.match((await response.json()).error, /validation failed/i);
+}, { timeout: 30_000 });
+
+test('Web resume style API exposes five real previews and persists independent presentation axes', async () => {
+  let response = await fetch(`${baseUrl}/api/cn/resumes/style`);
+  await assertStatus(response);
+  const initial = await response.json();
+  assert.equal(initial.catalog.styles.length, 5);
+  assert.equal(initial.catalog.editorial_policy.source_scope, 'reference_layout_and_editorial_patterns_only');
+  assert.ok(initial.catalog.styles.every((item) => item.preview_html.includes('data-fact-id="preview.')));
+
+  const red = initial.catalog.styles.find((item) => item.id === 'soe-red-academic');
+  const style = {
+    ...red.defaults,
+    schema_version: 2,
+    theme: red.id,
+    density: 'full',
+    page_budget: 2,
+    emphasis: 'campus',
+    photo: { ...red.defaults.photo, enabled: false },
+  };
+  response = await fetch(`${baseUrl}/api/cn/resumes/style-preview`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(style),
+  });
+  await assertStatus(response);
+  const preview = await response.json();
+  assert.match(preview.html, /resume-theme-soe-red-academic/);
+  assert.ok(preview.html.indexOf('校园经历') < preview.html.indexOf('项目经历'));
+
+  response = await fetch(`${baseUrl}/api/cn/resumes/style`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(style),
+  });
+  await assertStatus(response);
+  const saved = await response.json();
+  assert.equal(saved.style.theme, 'soe-red-academic');
+  assert.equal(saved.style.density, 'full');
+  assert.equal(saved.style.page_budget, 2);
+  assert.equal(saved.style.emphasis, 'campus');
+  assert.equal(saved.style.photo.enabled, false);
 }, { timeout: 30_000 });
 
 test('Web profile evidence upload stores a verified local document with a content hash', async () => {
