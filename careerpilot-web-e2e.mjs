@@ -28,7 +28,7 @@ evidence: []
 const port = 20_500 + Math.floor(Math.random() * 500);
 const baseUrl = `http://127.0.0.1:${port}`;
 let output = '';
-const server = spawn(process.execPath, [join(webRoot, 'node_modules', 'next', 'dist', 'bin', 'next'), 'dev', '--webpack', '-H', '127.0.0.1', '-p', String(port)], {
+const server = spawn(process.execPath, [join(webRoot, 'node_modules', 'next', 'dist', 'bin', 'next'), 'dev', '-H', '127.0.0.1', '-p', String(port)], {
   cwd: webRoot,
   env: { ...process.env, CAREER_OPS_ROOT: dataRoot, NEXT_TELEMETRY_DISABLED: '1', BUILD_DIST: `.next-e2e-${port}` },
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -98,9 +98,13 @@ try {
   const internetStrategy = page.locator('#resume-style-studio article').filter({ hasText: '互联网工程导向' });
   await internetStrategy.getByRole('button', { name: '选择此风格' }).click();
   await page.getByText('技术或业务挑战 → 个人所有权 → 方案与关键取舍 → 性能、质量或业务影响', { exact: true }).waitFor();
+  await internetStrategy.getByRole('button', { name: '加入比较' }).click();
+  const strategyComparison = page.getByRole('heading', { name: '策略并排比较' }).locator('xpath=ancestor::section[1]');
+  await strategyComparison.getByText('只保留解释解决问题所必需的部分', { exact: false }).waitFor();
+  await strategyComparison.getByText('技术栈必须和具体行动、约束或取舍绑定', { exact: false }).waitFor();
   const soeStrategy = page.locator('#resume-style-studio article').filter({ hasText: '央国企成果导向' });
   await soeStrategy.getByRole('button', { name: '选择此风格' }).click();
-  await page.getByText('问题或任务 → 个人责任 → 关键行动与协同 → 交付或可验证结果', { exact: true }).waitFor();
+  await page.getByLabel('央国企成果导向写法').getByText('问题或任务 → 个人责任 → 关键行动与协同 → 交付或可验证结果', { exact: true }).waitFor();
   await page.frameLocator('iframe[title="简历实时预览"]').getByText('完成匿名校园项目；整理交付材料', { exact: true }).waitFor();
   await page.getByRole('button', { name: '确认当前预览为主简历' }).click();
   await page.getByText(/已确认当前预览为 ready 主简历/).waitFor();

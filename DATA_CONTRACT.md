@@ -111,7 +111,7 @@ These files contain system logic, scripts, templates, and instructions that impr
 | `VERSION` | Current version number |
 | `DATA_CONTRACT.md` | This file |
 | `writing-samples/README.md` | System-owned onboarding documentation for the writing-samples directory |
-| `schemas/cn/*` | CareerPilot CN Schemas for CandidateProfile, JobPosting, MatchReport, Campaign, ResumeStyleProfile v2, ResumeStyleDefinition, ResumeTailoringPreview, ResumeVariant, ResumeArtifactManifest v2, RuntimeCapabilityReport, and Application |
+| `schemas/cn/*` | CareerPilot CN Schemas for CandidateProfile, JobPosting, MatchReport, Campaign, ResumeStyleProfile v2, ResumeStyleDefinition, ResumeContentStrategy catalog, ResumeTailoringPreview, ResumeVariant, ResumeArtifactManifest v2, RuntimeCapabilityReport, and Application |
 | `templates/cn/resume-content-strategies.json` | System-layer, fact-constrained content rules for SOE outcome, internet engineering, and research academic resumes; it never stores candidate claims |
 | `lib/careerpilot/*` | Shared deterministic profile, Campaign, eligibility, matching, tailoring, application, artifact QA, runtime capability, cleanup, publication-policy, projection, and export services |
 | `modes/cn-campus/*` | Read-only China campus AI proposal prompts and workflow constraints |

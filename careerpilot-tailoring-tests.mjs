@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import yaml from 'js-yaml';
 import { confirmJobPosting, inferJobPosting, evaluateJob, saveJobEvaluation } from './lib/careerpilot/job-core.mjs';
 import { confirmResumeVariant, createResumeVariant, saveResumeVariant } from './lib/careerpilot/resume-core.mjs';
+import { applyResumeStyleTheme, DEFAULT_RESUME_STYLE, saveResumeStyle } from './lib/careerpilot/resume-style-core.mjs';
 import {
   computeTailoringChange,
   createTailoringPreview,
@@ -18,13 +19,15 @@ import {
 } from './lib/careerpilot/tailoring-core.mjs';
 import { createCampaign, importCampaignSources, rankCampaign, selectCampaignJobs } from './lib/careerpilot/campaign-core.mjs';
 
-function setup(count = 10, withBlockingRule = false) {
+function setup(count = 10, withBlockingRule = false, strategyTheme = 'soe-outcome', includeStackFact = false) {
   const root = mkdtempSync(join(tmpdir(), 'careerpilot-tailoring-'));
   mkdirSync(join(root, 'profile'), { recursive: true });
   const facts = Array.from({ length: count }, (_, index) => ({
     id: `project.fact.${index + 1}`,
-    type: 'project',
-    statement: index === 0 ? '完成匿名项目模块 1；整理交付材料' : `完成匿名项目模块 ${index + 1}`,
+    type: includeStackFact && index === count - 1 ? 'skill' : 'project',
+    statement: includeStackFact && index === count - 1
+      ? 'Java、SpringBoot、MySQL、Redis、Kafka'
+      : index === 0 ? '完成匿名项目模块 1；整理交付材料' : `完成匿名项目模块 ${index + 1}`,
     status: 'confirmed',
     sensitivity: 'public',
     allowed_uses: ['resume', 'application_form', 'job_match'],
@@ -41,6 +44,7 @@ function setup(count = 10, withBlockingRule = false) {
     })),
   };
   writeFileSync(join(root, 'profile', 'candidate.yml'), yaml.dump(profile), 'utf8');
+  saveResumeStyle(root, applyResumeStyleTheme(DEFAULT_RESUME_STYLE, strategyTheme));
   const text = withBlockingRule
     ? '招聘单位：某中央企业\n岗位名称：信息岗\n学历要求：本科及以上'
     : '招聘单位：某中央企业\n岗位名称：信息岗\n校园招聘\n岗位职责：整理交付材料';
@@ -204,13 +208,30 @@ test('岗位候选改写必须逐条接受或拒绝，并展示前后事实与�
 test('岗位候选改写由岗位原文相关性生成且只能重排原 Fact 分句', () => {
   const { root, posting, baseline } = setup();
   const result = generateTailoringRewriteCandidates(root, posting.id, baseline.id);
+  assert.equal(result.strategy.id, 'soe-outcome');
+  assert.deepEqual(result.strategy.experience_formula, ['问题或任务', '个人责任', '关键行动与协同', '交付或可验证结果']);
   assert.deepEqual(result.candidates[0], {
     fact_id: baseline.fact_ids[0],
     original_statement: '完成匿名项目模块 1；整理交付材料',
     proposed_statement: '整理交付材料；完成匿名项目模块 1',
     status: 'pending',
-    rationale: '仅重排原事实分句，将与岗位原文重叠更高的内容前置',
+    rationale: '央国企成果导向：仅重排原事实分句，并在同一表达阶段内将与岗位原文重叠更高的内容前置',
   });
+});
+
+test('所选内容策略进入岗位改写阶段并对纯技术栈给出不同的证据约束诊断', () => {
+  const soe = setup(10, false, 'soe-outcome', true);
+  const soeResult = generateTailoringRewriteCandidates(soe.root, soe.posting.id, soe.baseline.id);
+  const soeStack = soeResult.strategy.fact_audits.find((item) => item.fact_id === soe.baseline.fact_ids.at(-1));
+  assert.deepEqual(soeStack.issues, ['technology_stack_without_outcome']);
+  assert.match(soeStack.guidance, /问题|结果/);
+
+  const internet = setup(10, false, 'internet-engineering', true);
+  const internetResult = generateTailoringRewriteCandidates(internet.root, internet.posting.id, internet.baseline.id);
+  const internetStack = internetResult.strategy.fact_audits.find((item) => item.fact_id === internet.baseline.fact_ids.at(-1));
+  assert.equal(internetResult.strategy.id, 'internet-engineering');
+  assert.deepEqual(internetStack.issues, ['technology_stack_without_engineering_context']);
+  assert.match(internetStack.guidance, /挑战|取舍|影响/);
 });
 
 test('岗位资格 unknown 时简历定制被阻断，带原因的资格覆盖才解除资格门槛', () => {

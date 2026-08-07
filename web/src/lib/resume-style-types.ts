@@ -43,6 +43,16 @@ export type ResumeStyleDefinition = {
 export type ResumeStyleCatalog = {
   schema_version: 2;
   styles: ResumeStyleDefinition[];
+  /** @deprecated Kept for V3.2 API clients; new UI consumes content_strategies. */
+  editorial_policy: {
+    schema_version: 1;
+    id: string;
+    label: string;
+    source_scope: "reference_layout_and_editorial_patterns_only";
+    fact_boundary: string;
+    sections: Record<string, { label: string; pattern: string[]; avoid: string[] }>;
+    transformation_rules: string[];
+  };
   content_strategies: {
     schema_version: 1;
     id: string;

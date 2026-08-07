@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/resume-content-strategies.schema.json",
+  "title": "ResumeContentStrategyCatalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "source_scope", "fact_boundary", "common_rules", "strategies"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "const": "resume-content-strategies-v1" },
+    "source_scope": { "const": "reference_layout_and_editorial_patterns_only" },
+    "fact_boundary": { "type": "string", "minLength": 1 },
+    "common_rules": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "strategies": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "audience", "principle", "experience_formula", "technology_rule", "outcome_definition", "section_priority", "section_guidance", "avoid"],
+        "properties": {
+          "id": { "enum": ["soe-outcome", "internet-engineering", "research-academic"] },
+          "label": { "type": "string", "minLength": 1 },
+          "audience": { "type": "string", "minLength": 1 },
+          "principle": { "type": "string", "minLength": 1 },
+          "experience_formula": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "string", "minLength": 1 } },
+          "technology_rule": { "type": "string", "minLength": 1 },
+          "outcome_definition": { "type": "string", "minLength": 1 },
+          "section_priority": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "section_guidance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["internship", "project", "campus", "skills"],
+            "properties": {
+              "internship": { "$ref": "#/$defs/sectionGuidance" },
+              "project": { "$ref": "#/$defs/sectionGuidance" },
+              "campus": { "$ref": "#/$defs/sectionGuidance" },
+              "skills": { "$ref": "#/$defs/sectionGuidance" }
+            }
+          },
+          "avoid": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sectionGuidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["labels", "guidance"],
+      "properties": {
+        "labels": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "guidance": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

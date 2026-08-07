@@ -13,6 +13,15 @@ type TailoringPreview = {
   proposed_variant: { fact_ids: string[]; order: string[]; rewrites: Array<{ fact_id: string; proposed_statement: string; accepted: boolean }> };
 };
 type RewriteDraft = { proposed_statement: string; status: "pending" | "accepted" | "rejected" };
+type StrategyAudit = {
+  id: "soe-outcome" | "internet-engineering" | "research-academic";
+  label: string;
+  audience: string;
+  experience_formula: string[];
+  technology_rule: string;
+  outcome_definition: string;
+  fact_audits: Array<{ fact_id: string; status: "ready" | "needs_evidence"; issues: string[]; guidance: string }>;
+};
 
 const BLOCK_LABELS: Record<string, string> = {
   tailoring_limit_exceeded: "事实改动超过 30%", eligibility_blocked: "资格结论尚不允许定制",
@@ -27,6 +36,7 @@ export function ResumeTailoringPanel({ jobId, initialPreviewId, campaignId, onFi
   const [selected, setSelected] = useState<string[]>([]);
   const [rewrites, setRewrites] = useState<Record<string, RewriteDraft>>({});
   const [preview, setPreview] = useState<TailoringPreview | null>(null);
+  const [strategyAudit, setStrategyAudit] = useState<StrategyAudit | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const selectedSet = useMemo(() => new Set(selected), [selected]);
@@ -48,7 +58,7 @@ export function ResumeTailoringPanel({ jobId, initialPreviewId, campaignId, onFi
   useEffect(() => {
     if (!baselineId) { setFacts([]); setSelected([]); setOrder([]); return; }
     let cancelled = false;
-    if (!initialPreviewId) { setPreview(null); setRewrites({}); }
+    if (!initialPreviewId) { setPreview(null); setRewrites({}); setStrategyAudit(null); }
     void fetch(`/api/cn/resumes/baselines/${encodeURIComponent(baselineId)}`).then((response) => response.json()).then((data) => {
       if (cancelled) return;
       const nextFacts = (data.facts || []) as ResumeFact[];
@@ -124,6 +134,7 @@ export function ResumeTailoringPanel({ jobId, initialPreviewId, campaignId, onFi
     const data = await response.json();
     if (response.ok) {
       const candidates = data.candidates as Array<{ fact_id: string; proposed_statement: string }>;
+      setStrategyAudit(data.strategy as StrategyAudit);
       setRewrites((current) => ({ ...current, ...Object.fromEntries(candidates.map((item) => [item.fact_id, { proposed_statement: item.proposed_statement, status: "pending" }])) }));
       setPreview(null);
       setMessage(candidates.length ? `已生成 ${candidates.length} 条仅重排原事实的候选改写，请逐条接受或拒绝。` : "没有发现可安全重排且与岗位更相关的多分句事实。");
@@ -144,6 +155,7 @@ export function ResumeTailoringPanel({ jobId, initialPreviewId, campaignId, onFi
   return <section className="space-y-4 rounded-xl border border-border bg-surface p-5">
     <div><p className="text-xs font-semibold uppercase tracking-wider text-brand-text">岗位简历</p><h2 className="mt-1 text-xl font-semibold">事实级取舍、排序与受控改写</h2><p className="mt-1 text-sm text-muted">每条改写必须绑定 Fact ID 并逐条接受或拒绝；唯一事实改动超过 30% 时无法导出。</p></div>
     <div className="flex flex-wrap gap-2"><select className="min-w-64 rounded-md border border-border bg-background px-3 py-2" value={baselineId} onChange={(event) => setBaselineId(event.target.value)}><option value="">选择已确认主简历</option>{baselines.map((item) => <option key={item.id} value={item.id}>{item.template} · {item.fact_count} 条事实</option>)}</select><button type="button" disabled={busy || !baselineId} onClick={suggestRewrites} className="rounded-md border border-border px-3 py-2 disabled:opacity-50">生成证据约束候选改写</button><Link href="/cv" className="rounded-md border border-border px-3 py-2 hover:bg-surface-hover">打开统一简历工作室</Link></div>
+    {strategyAudit && <section className="rounded-lg border border-brand/30 bg-brand-soft p-4 text-sm"><p className="font-semibold">当前改写策略：{strategyAudit.label}</p><p className="mt-1 text-xs leading-5 text-muted">{strategyAudit.experience_formula.join(" → ")}</p><p className="mt-2 text-xs leading-5 text-muted">{strategyAudit.technology_rule}</p>{strategyAudit.fact_audits.some((item) => item.status === "needs_evidence") ? <div className="mt-3 space-y-2">{strategyAudit.fact_audits.filter((item) => item.status === "needs_evidence").map((item) => <div key={item.fact_id} className="rounded-md border border-brand/30 bg-background/70 p-3"><p className="text-xs font-semibold text-brand-text">待补证据 · {item.fact_id}</p><p className="mt-1 text-xs leading-5 text-muted">{item.guidance}</p></div>)}</div> : <p className="mt-2 text-xs text-muted">当前可发布 Fact 未发现纯技术栈或明显缺结果的结构问题。</p>}<p className="mt-3 text-[11px] leading-5 text-faint">诊断不会生成新事实；补充的结果必须先进入 CandidateProfile 并确认 Evidence。</p></section>}
     {displayFacts.length > 0 && <div className="space-y-3">{displayFacts.map((fact) => {
       const included = selectedSet.has(fact.id); const rewrite = rewrites[fact.id]; const position = order.indexOf(fact.id);
       return <article key={fact.id} className="rounded-lg border border-border p-3 text-sm"><div className="flex gap-3"><input type="checkbox" checked={included} onChange={(event) => toggleFact(fact.id, event.target.checked)} /><div className="min-w-0 flex-1"><p className="font-medium">{fact.statement}</p><p className="mt-1 text-xs text-faint">{fact.id} · {fact.type}</p></div>{included && <div className="flex gap-1"><button type="button" disabled={position <= 0} onClick={() => move(fact.id, -1)} className="rounded border border-border px-2 disabled:opacity-30">↑</button><button type="button" disabled={position < 0 || position >= order.length - 1} onClick={() => move(fact.id, 1)} className="rounded border border-border px-2 disabled:opacity-30">↓</button></div>}</div>

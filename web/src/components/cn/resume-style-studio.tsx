@@ -411,7 +411,9 @@ export function ResumeStyleStudio() {
           </div>
           <p className="mt-1 text-xs text-muted">两边使用完全相同的匿名 Fact；同时比较内容优先级、表达公式和视觉默认值。</p>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            {comparedDefinitions.map((definition) => (
+            {comparedDefinitions.map((definition) => {
+              const strategy = catalog.content_strategies.strategies.find((item) => item.id === definition.content_strategy_id);
+              return (
               <div key={definition.id} className="border border-border bg-background p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -420,11 +422,21 @@ export function ResumeStyleStudio() {
                   </div>
                   <span className="h-5 w-5 border border-black/10" style={{ background: definition.palette.accent }} />
                 </div>
+                {strategy && (
+                  <div className="mt-3 space-y-2 border-y border-border py-3 text-xs leading-5">
+                    <p><span className="font-semibold text-foreground">阅读者：</span><span className="text-muted">{strategy.audience}</span></p>
+                    <p><span className="font-semibold text-foreground">表达公式：</span><span className="text-brand-text">{strategy.experience_formula.join(" → ")}</span></p>
+                    <p><span className="font-semibold text-foreground">技术规则：</span><span className="text-muted">{strategy.technology_rule}</span></p>
+                    <p><span className="font-semibold text-foreground">区块优先：</span><span className="text-muted">{strategy.section_priority.slice(0, 4).join(" → ")}</span></p>
+                    <p><span className="font-semibold text-foreground">典型禁用：</span><span className="text-faint">{strategy.avoid.slice(0, 3).join("；")}</span></p>
+                  </div>
+                )}
                 <div className="mt-3 flex justify-center overflow-hidden bg-surface-hover p-3">
                   <ResumePreviewFrame html={definition.preview_html} title={`${definition.label}并排预览`} scale={0.4} />
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
