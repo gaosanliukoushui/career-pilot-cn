@@ -118,6 +118,9 @@ test('Campaign 正式导出生成 manifest v2 并绑定选择、岗位、预览�
   const legacy = structuredClone(manifest);
   legacy.resume_style = 'compact-photo';
   assert.ok(validateResumeArtifactManifest(legacy).errors.some((item) => item.code === 'legacy_resume_style_not_valid_for_campaign'));
+  const v32Legacy = structuredClone(manifest);
+  v32Legacy.resume_style = 'soe-blue-standard';
+  assert.ok(validateResumeArtifactManifest(v32Legacy).errors.some((item) => item.code === 'legacy_resume_style_not_valid_for_campaign'));
   const unauthorizedPhoto = structuredClone(manifest);
   unauthorizedPhoto.photo_included = true;
   unauthorizedPhoto.source_photo_sha256 = null;

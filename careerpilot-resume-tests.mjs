@@ -94,7 +94,7 @@ writeFileSync(join(root, 'profile', 'evidence', 'photo.png'), Buffer.from('iVBOR
 const templates = ['soe-one-page', 'tech-two-page', 'application-detail'];
 const variants = templates.map((template) => createResumeVariant(root, { template }));
 
-test('五套风格预览共享匿名内容模型并保留 Fact 标记', () => {
+test('三种内容策略预览共享匿名内容模型并保留 Fact 标记', () => {
   const catalog = getResumeStyleCatalog(root);
   for (const definition of catalog.styles) {
     const html = renderAnonymousResumeStylePreview(root, {
@@ -111,7 +111,7 @@ test('五套风格预览共享匿名内容模型并保留 Fact 标记', () => {
 });
 
 test('内容强调轴会确定性改变区块顺序而不增删 Fact', () => {
-  const definition = getResumeStyleCatalog(root).styles.find((item) => item.id === 'soe-blue-standard');
+  const definition = getResumeStyleCatalog(root).styles.find((item) => item.id === 'soe-outcome');
   const base = { ...structuredClone(definition.defaults), schema_version: 2, theme: definition.id };
   const technical = renderAnonymousResumeStylePreview(root, { ...base, emphasis: 'technical' });
   const campus = renderAnonymousResumeStylePreview(root, { ...base, emphasis: 'campus' });
@@ -132,7 +132,7 @@ test('主简历只能由实际预览草稿显式确认进入 ready，确认后�
   changed.order = [...changed.order].reverse();
   assert.ok(validateResumeVariant(root, changed).errors.some((item) => item.code === 'confirmed_preview_hash_mismatch'));
 
-  const red = getResumeStyleCatalog(root).styles.find((item) => item.id === 'soe-red-academic');
+  const red = getResumeStyleCatalog(root).styles.find((item) => item.id === 'research-academic');
   const stylePath = join(root, 'profile', 'resume-style.yml');
   writeFileSync(stylePath, yaml.dump({ ...structuredClone(red.defaults), schema_version: 2, theme: red.id }), 'utf8');
   assert.ok(validateResumeVariant(root, variant).errors.some((item) => item.code === 'resume_style_changed_since_preview'));
@@ -307,7 +307,7 @@ passed += 1;
 
 writeFileSync(join(root, 'profile', 'resume-style.yml'), yaml.dump({
   schema_version: 2,
-  theme: 'soe-blue-standard',
+  theme: 'soe-outcome',
   density: 'full',
   page_budget: 1,
   emphasis: 'general',
@@ -329,7 +329,7 @@ assert.match(styledXml, /<w:tbl>/);
 assert.match(styledXml, /求职方向：匿名信息技术岗/);
 assert.match(styledXml, /w:sz w:val="19"/);
 rmSync(join(root, 'profile', 'resume-style.yml'), { force: true });
-console.log('PASS 头像轴 DOCX 使用双列头部并应用央国企蓝色正式主题');
+console.log('PASS 头像轴 DOCX 使用双列头部并应用央国企成果导向主题');
 passed += 1;
 
 await assert.rejects(

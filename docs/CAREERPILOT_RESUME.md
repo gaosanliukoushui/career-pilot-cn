@@ -4,9 +4,10 @@ Phase 2 在 CandidateProfile 之上建立 `ResumeVariant`。简历不是新的�
 每次预览和导出都会重新运行 Fact 状态、Evidence 完整性、允许用途、敏感授权和
 引用一致性审计，失败时不发布正式文件。
 
-V3.2 在内容模板之外提供五套可选择、可比较的视觉主题：`soe-blue-standard`、
-`soe-navy-dense`、`soe-red-academic`、`soe-research-formal` 和 `technical-minimal`。
-主题与头像、密度、页数预算、内容强调四个轴相互独立；偏好只保存在用户层
+V3.3 将原有五套视觉主题收敛为三种真正不同的内容策略：`soe-outcome`（央国企成果导向）、
+`internet-engineering`（互联网工程导向）和 `research-academic`（科研学术导向）。内容策略决定
+阅读者、表达公式、技术细节保留规则和区块优先级；头像、密度、页数预算、内容强调等视觉轴
+仍可独立调整。偏好只保存在用户层
 `profile/resume-style.yml`。经历正文仍只来自 CandidateProfile Fact。HTML/PDF 与 DOCX
 使用同一个标准化内容模型，Web 缩略图也由该模型生成，不使用与正式导出脱节的假图。
 单页模板只能在受约束范围内收紧字号、间距和版心，不能自动删除 Fact；仍超页时返回
@@ -15,13 +16,14 @@ V3.2 在内容模板之外提供五套可选择、可比较的视觉主题：`so
 自动删减依据。主题、密度、篇幅、区块顺序和头像位置的完整样式 SHA-256 会写入
 ResumeVariant 并进入确认哈希，确认后修改任一呈现项都会使旧预览失效。
 
-旧版 `compact-photo`、`compact-no-photo` 和 `technical-two-page` 配置在读取时确定性迁移到
-v2 主题，但不会自动改写用户文件。正式保存后才写入 v2。
+旧版 `compact-photo`、`compact-no-photo`、`technical-two-page` 以及 V3.2 五主题配置在读取时
+确定性迁移到三种新策略，但不会自动改写用户文件。正式保存后才写入当前 ID。旧 ID 可读取，
+但不能作为新 Campaign 的正式最终产物。
 
 参考简历图片只允许放在 Git 忽略的 `profile/style-references/`。系统可从中提炼配色、
 区块顺序、信息密度和编辑结构，但不得把参考图中的学校、单位、指标、荣誉、身份、头像
-或作者关系当作 CandidateProfile Fact。央国企编辑策略位于
-`templates/cn/soe-editorial-policy.json`，实习、项目、校园和技能均有确定性的表达结构与禁用模式；
+或作者关系当作 CandidateProfile Fact。三种内容策略位于
+`templates/cn/resume-content-strategies.json`，实习、项目、校园和技能均有确定性的表达结构与禁用模式；
 所有实质改写仍进入 Fact Diff 并由用户逐条确认。
 
 ## 三类模板
@@ -85,8 +87,8 @@ DOCX 通过独立 LibreOffice profile 转 PDF 后检查。内容过少、文本�
 1. 导入旧简历为待确认 Facts；
 2. 审阅状态、敏感等级、允许用途与 Evidence；
 3. 为普通事实添加用户确认证言，或为高风险事实关联强证据；
-4. 在五套视觉主题间查看真实缩略图、可解释推荐和两两比较；
-5. 独立调整头像、密度、页数预算和内容强调，并查看央国企写法规则；
+4. 在央国企成果、互联网工程、科研学术三种内容策略间查看真实缩略图、表达公式和两两比较；
+5. 独立调整头像、密度、页数预算和内容强调，并查看当前策略的技术保留规则与禁用模式；
 6. 选择三类内容模板并查看实时预览和差异审计；
 7. 对照片或政治面貌进行本次授权；
 8. 下载 Markdown、DOCX 或 PDF。
@@ -138,6 +140,6 @@ npm run build
 ```
 
 `careerpilot:export-qa`（别名 `careerpilot:style-qa`）只使用匿名样例，在独立短路径工作区
-生成 5 主题 × 3 格式的验收文件，并通过 LibreOffice 转换 DOCX，自动检查页数预算、
+生成 3 策略 × 3 格式的验收文件，并通过 LibreOffice 转换 DOCX，自动检查页数预算、
 空白页、异常留白、中文提取、可复制文本、截断和 Fact 追踪。默认运行结束后清理工作区；
 只有显式设置 `CAREERPILOT_QA_OUTPUT` 时才保留 QA 产物。

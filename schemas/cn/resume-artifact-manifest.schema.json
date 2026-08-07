@@ -9,7 +9,7 @@
     "schema_version": { "const": 2 },
     "variant_id": { "type": "string" },
     "template": { "type": "string" },
-    "resume_style": { "enum": ["compact-photo", "compact-no-photo", "technical-two-page", "soe-blue-standard", "soe-navy-dense", "soe-red-academic", "soe-research-formal", "technical-minimal"] },
+    "resume_style": { "enum": ["compact-photo", "compact-no-photo", "technical-two-page", "soe-blue-standard", "soe-navy-dense", "soe-red-academic", "soe-research-formal", "technical-minimal", "soe-outcome", "internet-engineering", "research-academic"] },
     "source_resume_style_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "fact_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
     "output": { "type": "string" },

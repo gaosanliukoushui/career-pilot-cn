@@ -82,53 +82,7 @@ export type Campaign = {
   updated_at: string;
 };
 
-export type ResumeStyleProfile = {
-  schema_version: 2;
-  theme: "soe-blue-standard" | "soe-navy-dense" | "soe-red-academic" | "soe-research-formal" | "technical-minimal";
-  density: "balanced" | "full";
-  page_budget: 1 | 2;
-  emphasis: "general" | "technical" | "research" | "campus";
-  font_family: "Microsoft YaHei" | "Noto Sans CJK SC" | "SimSun";
-  font_size_pt: number;
-  page_margin_cm: number;
-  section_order: string[];
-  project_bullet_limit: number;
-  photo: { enabled: boolean; crop: "contain" | "center-3x4"; width_cm: number; height_cm: number };
-};
-
-export type ResumeStyleDefinition = {
-  id: ResumeStyleProfile["theme"];
-  label: string;
-  short_label: string;
-  description: string;
-  palette: { accent: string; accent_dark: string; divider: string; muted: string; ink: string; paper: string };
-  heading_style: "rule" | "heavy-rule" | "serif-rule" | "bar-rule" | "minimal";
-  header_alignment: "left" | "center";
-  defaults: Omit<ResumeStyleProfile, "schema_version" | "theme">;
-  recommendation: { emphases: ResumeStyleProfile["emphasis"][]; summary: string; signals: string[] };
-  preview: { subtitle: string; key_points: string[] };
-  preview_html: string;
-};
-
-export type ResumeStyleCatalog = {
-  schema_version: 1;
-  styles: ResumeStyleDefinition[];
-  editorial_policy: {
-    schema_version: 1;
-    id: string;
-    label: string;
-    source_scope: "reference_layout_and_editorial_patterns_only";
-    fact_boundary: string;
-    sections: Record<string, { label: string; pattern: string[]; avoid: string[] }>;
-    transformation_rules: string[];
-  };
-  recommendation: {
-    style_id: ResumeStyleProfile["theme"];
-    reasons: string[];
-    basis: "publishable_fact_distribution";
-    fact_summary: { total: number; counts: Record<string, number> };
-  };
-};
+export type { ResumeStyleCatalog, ResumeStyleDefinition, ResumeStyleProfile } from "./resume-style-types";
 
 export type ResumeArtifactManifestV2 = {
   schema_version: 2;

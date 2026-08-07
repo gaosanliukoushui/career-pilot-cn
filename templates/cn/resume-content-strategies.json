@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "id": "resume-content-strategies-v1",
+  "source_scope": "reference_layout_and_editorial_patterns_only",
+  "fact_boundary": "Every claim must resolve to a publishable CandidateProfile Fact. A strategy may reorder, compress or reframe confirmed facts, but never invent a problem, action, result, metric, employer, school, award, identity or authorship.",
+  "common_rules": [
+    "先确定目标用人单位的阅读逻辑，再选择内容策略；视觉颜色和字体不是内容策略本身",
+    "技术名词只能用于解释已确认行动，不能替代问题、责任、交付或结果",
+    "量化结果、论文、专利、验收和影响范围只能来自已确认 Fact 与 Evidence",
+    "所有实质改写继续进入 Fact Diff，并由用户逐条确认"
+  ],
+  "strategies": [
+    {
+      "id": "soe-outcome",
+      "label": "央国企成果导向",
+      "audience": "中央企业、国有企业、事业单位及偏综合评价的校招岗位",
+      "principle": "让非技术 HR 和业务面试官先看懂候选人解决了什么问题、承担了什么责任、怎样推动落地，以及形成了什么可验证结果。",
+      "experience_formula": ["问题或任务", "个人责任", "关键行动与协同", "交付或可验证结果"],
+      "technology_rule": "技术只保留解释解决问题所必需的部分，不单列大段技术栈，也不逐项展开低层实现细节。",
+      "outcome_definition": "结果不仅是数字；也包括交付、验收、稳定运行、风险消除、流程闭环、文档沉淀和协同成果。",
+      "section_priority": ["教育经历", "实习与工作经历", "项目经历", "校园经历", "证书与奖项", "专业技能", "基本信息"],
+      "section_guidance": {
+        "internship": { "labels": ["业务需求对接", "工程化落地", "效果测试"], "guidance": "一条经历围绕一项任务闭环，写清职责边界、协同对象、交付物和结果。" },
+        "project": { "labels": ["问题与目标", "个人贡献", "交付与结果"], "guidance": "单项目优先三条内讲完；结果证据比工具清单更重要。" },
+        "campus": { "labels": ["组织角色", "协调范围", "交付动作", "有证据的影响"], "guidance": "学生干部、志愿服务和校园实践是综合素质证据，可在缺少对口实习时前置。" },
+        "skills": { "labels": ["资格证书", "岗位相关技能", "有证据的特长"], "guidance": "用 HR 能快速识别的关键词呈现，避免工具堆砌和无依据的精通、擅长。" }
+      },
+      "avoid": ["只列技术栈", "逐项展开实现细节", "使用学到了或参与了等空泛表述", "把团队成果写成个人成果", "用性格形容词替代事实"]
+    },
+    {
+      "id": "internet-engineering",
+      "label": "互联网工程导向",
+      "audience": "互联网、软件、平台、研发、测试、运维与数据工程岗位",
+      "principle": "让技术面试官快速识别问题难度、个人所有权、方案取舍、工程质量和可验证影响。",
+      "experience_formula": ["技术或业务挑战", "个人所有权", "方案与关键取舍", "性能、质量或业务影响"],
+      "technology_rule": "技术栈必须和具体行动、约束或取舍绑定；可以保留关键框架与架构，但不展示与结果无关的工具清单。",
+      "outcome_definition": "优先呈现性能、可靠性、质量、效率、成本、规模、上线和用户影响；没有数字时可使用已确认的交付、测试或稳定性结果。",
+      "section_priority": ["实习与工作经历", "项目经历", "专业技能", "教育经历", "证书与奖项", "校园经历", "基本信息"],
+      "section_guidance": {
+        "internship": { "labels": ["挑战", "所有权", "工程方案", "影响"], "guidance": "突出本人负责的边界、关键设计选择以及上线或质量结果。" },
+        "project": { "labels": ["约束", "设计", "实现", "验证"], "guidance": "保留与架构、性能和可靠性直接相关的技术细节。" },
+        "campus": { "labels": ["技术领导", "协作", "交付"], "guidance": "只有能证明工程协作、领导或交付能力时才前置。" },
+        "skills": { "labels": ["核心语言", "工程能力", "平台与工具"], "guidance": "按能力域归组，并由经历中的事实支撑熟练度。" }
+      },
+      "avoid": ["没有上下文的技术栈", "只写实现了某功能", "省略个人所有权", "无证据的高并发或高可用口号", "用过即写熟练"]
+    },
+    {
+      "id": "research-academic",
+      "label": "科研学术导向",
+      "audience": "研究院、研发中心、科研型央国企、算法研究和要求论文专利的岗位",
+      "principle": "让评审者看清研究问题、方法与实验、个人贡献，以及经过证据确认的论文、专利、指标或工程转化。",
+      "experience_formula": ["研究问题或工程目标", "方法与实验设计", "个人贡献", "论文、专利、指标或转化结果"],
+      "technology_rule": "方法、模型、数据与实验条件用于说明研究有效性；不把论文标题、模型名称或课程名称当作成果本身。",
+      "outcome_definition": "结果包括论文录用、专利、竞赛、实验指标、数据集、研究报告、系统部署和经过确认的工程转化。",
+      "section_priority": ["教育经历", "项目经历", "实习与工作经历", "证书与奖项", "专业技能", "校园经历", "基本信息"],
+      "section_guidance": {
+        "internship": { "labels": ["研究或工程目标", "方法", "个人贡献", "验证"], "guidance": "兼顾研究严谨性与真实工程交付，不用方法名替代贡献。" },
+        "project": { "labels": ["问题", "方法", "实验", "成果"], "guidance": "论文、专利和指标必须有 Evidence，明确个人完成的部分。" },
+        "campus": { "labels": ["学术组织角色", "协调范围", "产出"], "guidance": "与研究、竞赛或学术组织相关时保留，否则降低优先级。" },
+        "skills": { "labels": ["研究方法", "实验能力", "工程工具"], "guidance": "展示与目标研究方向直接相关且有事实支撑的方法和工具。" }
+      },
+      "avoid": ["只列论文或比赛标题", "只列模型和工具", "把导师或团队成果写成个人成果", "没有实验条件的孤立指标", "未经确认的论文状态或专利状态"]
+    }
+  ]
+}

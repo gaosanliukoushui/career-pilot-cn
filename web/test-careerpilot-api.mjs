@@ -46,7 +46,7 @@ before(async () => {
   const canonicalCli = pathToFileURL(join(repoRoot, 'careerpilot.mjs')).href;
   writeFileSync(join(dataRoot, 'careerpilot.mjs'), `import ${JSON.stringify(canonicalCli)};\n`, 'utf8');
   writeFileSync(join(dataRoot, 'cv.md'), '# 旧版匿名简历\n\n- 尚未迁移的内容\n', 'utf8');
-  server = spawn(process.execPath, [join(webRoot, 'node_modules', 'next', 'dist', 'bin', 'next'), 'dev', '-H', '127.0.0.1', '-p', String(port)], {
+  server = spawn(process.execPath, [join(webRoot, 'node_modules', 'next', 'dist', 'bin', 'next'), 'dev', '--webpack', '-H', '127.0.0.1', '-p', String(port)], {
     cwd: webRoot,
     env: { ...process.env, CAREER_OPS_ROOT: dataRoot, NEXT_TELEMETRY_DISABLED: '1', BUILD_DIST: `.next-test-${port}` },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -186,15 +186,16 @@ test('Web ResumeVariant preview uses canonical Facts and sparse DOCX is rejected
   assert.match((await response.json()).error, /validation failed/i);
 }, { timeout: 30_000 });
 
-test('Web resume style API exposes five real previews and persists independent presentation axes', async () => {
+test('Web resume strategy API exposes three content strategies and persists independent presentation axes', async () => {
   let response = await fetch(`${baseUrl}/api/cn/resumes/style`);
   await assertStatus(response);
   const initial = await response.json();
-  assert.equal(initial.catalog.styles.length, 5);
+  assert.equal(initial.catalog.styles.length, 3);
   assert.equal(initial.catalog.editorial_policy.source_scope, 'reference_layout_and_editorial_patterns_only');
+  assert.deepEqual(initial.catalog.content_strategies.strategies.map((item) => item.id), ['soe-outcome', 'internet-engineering', 'research-academic']);
   assert.ok(initial.catalog.styles.every((item) => item.preview_html.includes('data-fact-id="preview.')));
 
-  const red = initial.catalog.styles.find((item) => item.id === 'soe-red-academic');
+  const red = initial.catalog.styles.find((item) => item.id === 'research-academic');
   const style = {
     ...red.defaults,
     schema_version: 2,
@@ -209,7 +210,7 @@ test('Web resume style API exposes five real previews and persists independent p
   });
   await assertStatus(response);
   const preview = await response.json();
-  assert.match(preview.html, /resume-theme-soe-red-academic/);
+  assert.match(preview.html, /resume-theme-research-academic/);
   assert.ok(preview.html.indexOf('校园经历') < preview.html.indexOf('项目经历'));
 
   response = await fetch(`${baseUrl}/api/cn/resumes/style`, {
@@ -217,7 +218,7 @@ test('Web resume style API exposes five real previews and persists independent p
   });
   await assertStatus(response);
   const saved = await response.json();
-  assert.equal(saved.style.theme, 'soe-red-academic');
+  assert.equal(saved.style.theme, 'research-academic');
   assert.equal(saved.style.density, 'full');
   assert.equal(saved.style.page_budget, 2);
   assert.equal(saved.style.emphasis, 'campus');

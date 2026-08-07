@@ -7,7 +7,7 @@
   "required": ["schema_version", "theme", "density", "page_budget", "emphasis", "font_family", "font_size_pt", "page_margin_cm", "section_order", "project_bullet_limit", "photo"],
   "properties": {
     "schema_version": { "const": 2 },
-    "theme": { "enum": ["soe-blue-standard", "soe-navy-dense", "soe-red-academic", "soe-research-formal", "technical-minimal"] },
+    "theme": { "enum": ["soe-outcome", "internet-engineering", "research-academic"] },
     "density": { "enum": ["balanced", "full"] },
     "page_budget": { "enum": [1, 2] },
     "emphasis": { "enum": ["general", "technical", "research", "campus"] },

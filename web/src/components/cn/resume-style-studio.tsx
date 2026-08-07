@@ -2,7 +2,7 @@
 
 import { Check, Columns2, FileText, ImageIcon, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { ResumeStyleCatalog, ResumeStyleDefinition, ResumeStyleProfile } from "@/lib/cn-types";
+import type { ResumeStyleCatalog, ResumeStyleDefinition, ResumeStyleProfile } from "@/lib/resume-style-types";
 
 type StyleResponse = { style: ResumeStyleProfile; catalog: ResumeStyleCatalog };
 
@@ -190,6 +190,10 @@ export function ResumeStyleStudio() {
     () => catalog?.styles.find((item) => item.id === style?.theme) || null,
     [catalog, style?.theme],
   );
+  const selectedStrategy = useMemo(
+    () => catalog?.content_strategies.strategies.find((item) => item.id === selectedDefinition?.content_strategy_id) || null,
+    [catalog, selectedDefinition?.content_strategy_id],
+  );
   const comparedDefinitions = useMemo(
     () => compareIds.map((id) => catalog?.styles.find((item) => item.id === id)).filter((item): item is ResumeStyleDefinition => Boolean(item)),
     [catalog, compareIds],
@@ -240,25 +244,25 @@ export function ResumeStyleStudio() {
         <div className="max-w-3xl">
           <div className="flex items-center gap-2">
             <FileText className="size-5 text-brand-text" />
-            <h3 className="text-lg font-semibold">简历风格中心</h3>
+            <h3 className="text-lg font-semibold">简历内容策略中心</h3>
           </div>
           <p className="mt-2 text-sm leading-6 text-muted">
-            每张缩略图都由正式简历使用的同一标准化内容模型生成。主题只改变版式与视觉层级，正文仍只能来自已确认 Fact。
+            先选择用人单位的阅读逻辑，再调整字体、颜色、密度和篇幅。三种策略会改变内容优先级与表达公式，但正文仍只能来自已确认 Fact。
           </p>
         </div>
         <div className="max-w-md border border-border bg-background p-3">
           <p className="flex items-center gap-1.5 text-sm font-semibold">
             <ShieldCheck className="size-4 text-brand-text" />
-            当前推荐：{recommendation?.label || "央国企蓝色正式"}
+            当前推荐：{recommendation?.label || "央国企成果导向"}
           </p>
           <ul className="mt-1 space-y-1 text-xs leading-5 text-muted">
             {catalog.recommendation.reasons.map((reason) => <li key={reason}>· {reason}</li>)}
           </ul>
-          <p className="mt-2 text-[11px] text-faint">推荐只依据当前可发布 Fact 分布，不代表录用判断，也不会限制手动选择。</p>
+          <p className="mt-2 text-[11px] text-faint">默认不会因为技术 Fact 多就猜测你在投互联网；目标单位与岗位语境仍由你确认。</p>
         </div>
       </header>
 
-      <div className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-px bg-border md:grid-cols-3">
         {catalog.styles.map((definition) => (
           <StyleCard
             key={definition.id}
@@ -274,8 +278,8 @@ export function ResumeStyleStudio() {
 
       <div className="grid gap-0 border-t border-border xl:grid-cols-[minmax(0,1fr)_430px]">
         <div className="p-5">
-          <h4 className="font-semibold">呈现轴</h4>
-          <p className="mt-1 text-xs leading-5 text-muted">头像、密度、篇幅和强调方向相互独立；切换主题不会暗中开启敏感字段。</p>
+          <h4 className="font-semibold">视觉呈现轴</h4>
+          <p className="mt-1 text-xs leading-5 text-muted">头像、密度、篇幅和强调方向与内容策略相互独立；切换策略不会暗中开启敏感字段。</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="text-xs font-medium text-muted">
               信息密度
@@ -354,25 +358,32 @@ export function ResumeStyleStudio() {
             </div>
           </details>
 
-          <details className="mt-4 border-t border-border pt-4">
-            <summary className="cursor-pointer text-sm font-semibold">央国企内容写法规则</summary>
-            <p className="mt-2 text-xs leading-5 text-muted">
-              参考图只用于学习区块顺序、密度和表达结构，不能给候选人引入学校、单位、指标、荣誉或身份事实。
-            </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {Object.values(catalog.editorial_policy.sections).map((section) => (
-                <div key={section.label} className="border border-border bg-background p-3">
-                  <p className="text-sm font-semibold">{section.label}</p>
-                  <p className="mt-1 text-xs leading-5 text-muted">{section.pattern.join(" → ")}</p>
-                  <p className="mt-2 text-[11px] leading-5 text-faint">避免：{section.avoid.join("；")}</p>
-                </div>
-              ))}
-            </div>
-          </details>
+          {selectedStrategy && (
+            <section className="mt-4 border-t border-border pt-4" aria-labelledby="content-strategy-heading">
+              <h4 id="content-strategy-heading" className="text-sm font-semibold">{selectedStrategy.label}写法</h4>
+              <p className="mt-2 text-xs leading-5 text-muted">{selectedStrategy.principle}</p>
+              <div className="mt-3 border border-border bg-background p-3">
+                <p className="text-xs font-semibold text-foreground">经历表达公式</p>
+                <p className="mt-1 text-sm text-brand-text">{selectedStrategy.experience_formula.join(" → ")}</p>
+                <p className="mt-3 text-xs leading-5 text-muted">{selectedStrategy.technology_rule}</p>
+                <p className="mt-1 text-xs leading-5 text-muted">{selectedStrategy.outcome_definition}</p>
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {Object.entries(selectedStrategy.section_guidance).map(([id, section]) => (
+                  <div key={id} className="border border-border bg-background p-3">
+                    <p className="text-sm font-semibold">{section.labels.join(" · ")}</p>
+                    <p className="mt-1 text-xs leading-5 text-muted">{section.guidance}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-5 text-faint">避免：{selectedStrategy.avoid.join("；")}</p>
+              <p className="mt-2 text-[11px] leading-5 text-faint">参考图只用于学习表达结构和版式，不会引入学校、单位、指标、荣誉或身份事实。</p>
+            </section>
+          )}
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button type="button" onClick={saveStyle} disabled={saving} className="bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:bg-brand-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50">
-              {saving ? "正在保存…" : "保存当前风格"}
+              {saving ? "正在保存…" : "保存当前策略与样式"}
             </button>
             <span role="status" className="text-xs text-muted">{status}</span>
           </div>
@@ -381,7 +392,7 @@ export function ResumeStyleStudio() {
         <aside className="border-t border-border bg-background p-5 xl:border-l xl:border-t-0">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold">当前真实预览</p>
+              <p className="text-sm font-semibold">当前策略真实预览</p>
               <p className="mt-0.5 text-xs text-muted">{selectedDefinition?.label} · {EMPHASIS_LABEL[style.emphasis]} · {style.page_budget} 页预算</p>
             </div>
             <span className="h-5 w-5 border border-black/10" style={{ background: selectedDefinition?.palette.accent }} aria-label="主题色" />
@@ -396,9 +407,9 @@ export function ResumeStyleStudio() {
         <section className="border-t border-border p-5">
           <div className="flex items-center gap-2">
             <Columns2 className="size-4 text-brand-text" />
-            <h4 className="font-semibold">并排比较</h4>
+            <h4 className="font-semibold">策略并排比较</h4>
           </div>
-          <p className="mt-1 text-xs text-muted">两边使用完全相同的匿名内容；只比较版式、密度和默认篇幅。</p>
+          <p className="mt-1 text-xs text-muted">两边使用完全相同的匿名 Fact；同时比较内容优先级、表达公式和视觉默认值。</p>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {comparedDefinitions.map((definition) => (
               <div key={definition.id} className="border border-border bg-background p-4">

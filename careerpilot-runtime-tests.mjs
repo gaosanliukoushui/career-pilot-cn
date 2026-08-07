@@ -59,30 +59,37 @@ test('安全清理只预览或删除已登记且超过期限的运行目录', ()
   assert.equal(existsSync(finalOutput), true);
 });
 
-test('简历样式目录把主题、头像、密度、篇幅与强调方向拆成独立轴', () => {
+test('简历策略目录收敛为央国企、互联网和科研三种内容策略', () => {
   const root = mkdtempSync(join(tmpdir(), 'careerpilot-style-'));
   assert.deepEqual(loadResumeStyle(root), DEFAULT_RESUME_STYLE);
   const catalog = getResumeStyleCatalog(root);
-  assert.equal(catalog.styles.length, 5);
+  assert.equal(catalog.styles.length, 3);
   assert.equal(catalog.editorial_policy.source_scope, 'reference_layout_and_editorial_patterns_only');
   assert.match(catalog.editorial_policy.fact_boundary, /publishable CandidateProfile Fact/);
-  assert.deepEqual(catalog.editorial_policy.sections.project.pattern, ['问题或目标', '关键动作', '个人贡献', '结果或验收']);
-  assert.deepEqual(catalog.styles.map((item) => item.id), [
-    'soe-blue-standard',
-    'soe-navy-dense',
-    'soe-red-academic',
-    'soe-research-formal',
-    'technical-minimal',
+  assert.deepEqual(catalog.content_strategies.strategies.map((item) => item.id), [
+    'soe-outcome',
+    'internet-engineering',
+    'research-academic',
   ]);
-  assert.equal(catalog.recommendation.style_id, 'soe-blue-standard');
+  const soe = catalog.content_strategies.strategies.find((item) => item.id === 'soe-outcome');
+  assert.deepEqual(soe.experience_formula, ['问题或任务', '个人责任', '关键行动与协同', '交付或可验证结果']);
+  assert.match(soe.technology_rule, /解决问题所必需/);
+  assert.match(soe.outcome_definition, /交付|验收|稳定运行/);
+  assert.deepEqual(catalog.styles.map((item) => item.id), [
+    'soe-outcome',
+    'internet-engineering',
+    'research-academic',
+  ]);
+  assert.deepEqual(catalog.styles.map((item) => item.content_strategy_id), catalog.styles.map((item) => item.id));
+  assert.equal(catalog.recommendation.style_id, 'soe-outcome');
   assert.ok(catalog.recommendation.reasons.length > 0);
   const photoStyle = structuredClone(DEFAULT_RESUME_STYLE);
-  photoStyle.theme = 'soe-red-academic';
+  photoStyle.theme = 'research-academic';
   photoStyle.photo.enabled = true;
   photoStyle.page_budget = 1;
   photoStyle.emphasis = 'research';
   const saved = saveResumeStyle(root, photoStyle);
-  assert.equal(saved.style.theme, 'soe-red-academic');
+  assert.equal(saved.style.theme, 'research-academic');
   assert.equal(saved.style.photo.enabled, true);
   assert.equal(existsSync(join(root, 'profile', 'resume-style.yml')), true);
   const invalid = structuredClone(photoStyle);
@@ -113,9 +120,48 @@ test('旧版样式配置读取时确定性迁移且不改写用户文件', () =>
   writeFileSync(path, legacy, 'utf8');
   const migrated = loadResumeStyle(root);
   assert.equal(migrated.schema_version, 2);
-  assert.equal(migrated.theme, 'soe-blue-standard');
+  assert.equal(migrated.theme, 'soe-outcome');
   assert.equal(migrated.page_budget, 1);
   assert.equal(migrated.photo.enabled, true);
   assert.equal(validateResumeStyle(migrated).valid, true);
   assert.equal(readFileSync(path, 'utf8'), legacy);
+});
+
+test('V3.2 五主题配置只读迁移到三种内容策略且不改写用户文件', () => {
+  const root = mkdtempSync(join(tmpdir(), 'careerpilot-style-v32-'));
+  mkdirSync(join(root, 'profile'), { recursive: true });
+  const legacy = [
+    'schema_version: 2',
+    'theme: technical-minimal',
+    'density: balanced',
+    'page_budget: 2',
+    'emphasis: technical',
+    'font_family: Noto Sans CJK SC',
+    'font_size_pt: 9.5',
+    'page_margin_cm: 1',
+    'section_order: [实习与工作经历, 项目经历, 专业技能, 教育经历]',
+    'project_bullet_limit: 4',
+    'photo:',
+    '  enabled: false',
+    '  crop: center-3x4',
+    '  width_cm: 2.4',
+    '  height_cm: 3.2',
+    '',
+  ].join('\n');
+  const path = join(root, 'profile', 'resume-style.yml');
+  writeFileSync(path, legacy, 'utf8');
+  assert.equal(loadResumeStyle(root).theme, 'internet-engineering');
+  assert.equal(readFileSync(path, 'utf8'), legacy);
+});
+
+test('内容诊断只统计已有 Fact 的经历与结果覆盖，不替候选人补写结果', () => {
+  const root = mkdtempSync(join(tmpdir(), 'careerpilot-content-audit-'));
+  mkdirSync(join(root, 'profile'), { recursive: true });
+  writeFileSync(join(root, 'profile', 'candidate.yml'), readFileSync(join(import.meta.dirname, 'examples', 'cn-profile', 'resume-style-preview.yml')));
+  const audit = getResumeStyleCatalog(root).content_audit;
+  assert.equal(audit.experience_fact_count, 8);
+  assert.equal(audit.result_fact_count, 3);
+  assert.equal(audit.result_coverage_proxy, 0.375);
+  assert.equal(audit.inference_boundary, 'portfolio_level_proxy_not_fact_rewrite');
+  assert.ok(audit.guidance.some((item) => item.includes('不会编造')));
 });

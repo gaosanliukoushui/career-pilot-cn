@@ -4,9 +4,10 @@
   "title": "ResumeStyleDefinition",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "label", "short_label", "description", "palette", "heading_style", "header_alignment", "defaults", "recommendation", "preview"],
+  "required": ["id", "content_strategy_id", "label", "short_label", "description", "palette", "heading_style", "header_alignment", "defaults", "recommendation", "preview"],
   "properties": {
-    "id": { "enum": ["soe-blue-standard", "soe-navy-dense", "soe-red-academic", "soe-research-formal", "technical-minimal"] },
+    "id": { "enum": ["soe-outcome", "internet-engineering", "research-academic"] },
+    "content_strategy_id": { "enum": ["soe-outcome", "internet-engineering", "research-academic"] },
     "label": { "type": "string", "minLength": 1 },
     "short_label": { "type": "string", "minLength": 1 },
     "description": { "type": "string", "minLength": 1 },
@@ -23,7 +24,7 @@
         "paper": { "type": "string", "pattern": "^#[A-Fa-f0-9]{6}$" }
       }
     },
-    "heading_style": { "enum": ["rule", "heavy-rule", "serif-rule", "bar-rule", "minimal"] },
+    "heading_style": { "enum": ["rule", "serif-rule", "minimal"] },
     "header_alignment": { "enum": ["left", "center"] },
     "defaults": {
       "type": "object",
