@@ -66,17 +66,6 @@ export function canonStatus(s: string): string {
   return STATUS_ALIAS[k] ?? s.toUpperCase();
 }
 
-/** Status dot colour, mirroring the Go TUI: green interview/offer, sky applied/
- *  responded, red skip/rejected, gray discarded, neutral evaluated. */
-export function statusDot(status: string): string {
-  const c = canonStatus(status);
-  if (c.includes("INTERVIEW") || c.includes("OFFER")) return "bg-emerald-400";
-  if (c.includes("APPLIED") || c.includes("RESPONDED")) return "bg-sky-400";
-  if (c.includes("REJECTED") || c.includes("SKIP")) return "bg-red-400";
-  if (c.includes("DISCARDED")) return "bg-zinc-600";
-  return "bg-zinc-500"; // Evaluated / unknown
-}
-
 /** First number in a score string ("4.1/5", "B+", "3.0") → numeric, or NaN. */
 export function scoreNum(s: string): number {
   const m = s.match(/(\d+(?:\.\d+)?)/);

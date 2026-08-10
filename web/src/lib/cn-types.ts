@@ -130,26 +130,6 @@ export type ResumeStyleCatalog = {
   };
 };
 
-export type ResumeArtifactManifestV2 = {
-  schema_version: 2;
-  campaign_id: string;
-  job_id: string;
-  target_job_title: string;
-  output: string;
-  content_sha256: string;
-  format: "md" | "html" | "docx" | "pdf";
-  qa: { fact_traceability: true; semantic_match: true; page_count: number | null; page_budget: number; text_layer: string; render_status: string };
-};
-
-export type RuntimeCapabilityReport = {
-  schema_version: 1;
-  playwright_cli: { available: boolean; launchable: boolean; error: string | null };
-  project_browser_mcp_config: { configured: boolean; files: string[] };
-  external_runtimes: Record<"codex_browser" | "chrome" | "edge", { declared: boolean; [key: string]: unknown }>;
-  active_import_mode: "codex_browser_capture" | "batch_url" | "text_or_file";
-  fallback_order: Array<"codex_browser_capture" | "batch_url" | "text_or_file">;
-};
-
 export type FitDimension = {
   id: "role_major" | "evidence" | "career_direction" | "mobility" | "development" | "source_reliability";
   score: number;

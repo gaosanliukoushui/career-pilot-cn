@@ -108,5 +108,3 @@ export function seedExploreFilters(): { filters: ExploreFilters; seededFrom: str
 
   return { filters, seededFrom };
 }
-
-export { listFrom as normalizeKeywords };

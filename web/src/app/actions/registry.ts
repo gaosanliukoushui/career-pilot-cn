@@ -344,10 +344,6 @@ const ACTIONS: Record<string, ActionDef> = {
   },
 };
 
-export function actionExists(id: string): boolean {
-  return Object.prototype.hasOwnProperty.call(ACTIONS, id);
-}
-
 export function dispatch(id: string, rawArgs: Record<string, unknown>, ctx: ActionCtx): DispatchResult {
   const def = ACTIONS[id];
   if (!def) return { status: "ignored", note: `未知操作：${id}` };

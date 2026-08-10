@@ -286,20 +286,6 @@ export function getSession(id: string): Session | undefined {
   return SESSIONS.get(id);
 }
 
-/** Open a bare headed page on a URL (for the agentic drive loop / validation),
- *  without the full extract pipeline. Caller must close the context. */
-export async function newDrivePage(url: string): Promise<{ page: Page; context: BrowserContext }> {
-  if (globalThis.__coIdleTimer) clearTimeout(globalThis.__coIdleTimer);
-  const browser = await headedBrowser();
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  context.setDefaultTimeout(8000);
-  const page = await context.newPage();
-  await gotoResilient(page, url);
-  await dismissConsent(page).catch(() => {});
-  await page.waitForTimeout(1000);
-  return { page, context };
-}
-
 /** Extract+enrich the current page (used after the drive loop reaches a form). */
 export async function extractCurrent(page: Page, url: string): Promise<{ frame: Frame; form: ExtractedForm }> {
   const r = await pickFormFrame(page);
