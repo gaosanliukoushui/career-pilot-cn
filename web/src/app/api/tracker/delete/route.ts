@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
 import { careerOpsRoot, rootScript, trackerCanDelete } from "@/lib/career-ops";
-import { isTrackerWriting } from "@/lib/core/run-registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,14 +39,6 @@ export async function POST(req: Request) {
     return Response.json(
       { error: "Removing a tracker row needs a newer career-ops — update to delete rows from here." },
       { status: 400 },
-    );
-  }
-  // Serialize: the delete must not run while an evaluation is writing the tracker
-  // (tracker.mjs delete doesn't share a lock with merge-tracker yet).
-  if (isTrackerWriting()) {
-    return Response.json(
-      { error: "An evaluation is updating your tracker right now — try again in a moment." },
-      { status: 409 },
     );
   }
   if (!dryRun && deleting) {

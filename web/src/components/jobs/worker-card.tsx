@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, X, Loader2, AlertTriangle } from "lucide-react";
+import { Check, Loader2, AlertTriangle } from "lucide-react";
 import type { Job } from "@/components/jobs/job-store";
 import { cn } from "@/lib/cn";
 
@@ -139,6 +139,3 @@ export function WorkerCard({
     </div>
   );
 }
-
-// Re-exported icon used by callers that compose their own trailing affordances.
-export { X as DismissIcon };

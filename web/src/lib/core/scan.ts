@@ -4,8 +4,7 @@ import { careerOpsRoot, rootScript } from "@/lib/career-ops";
 import { writeTempPortals, cleanupTempPortals } from "./portals";
 import { ATS_SOURCES, type DiscoveredOffer, type ExploreFilters, type ScanEvent } from "@/lib/explore";
 
-export type { DiscoveredOffer, ScanEvent, AtsSource } from "@/lib/explore";
-export { ATS_SOURCES } from "@/lib/explore";
+export type { DiscoveredOffer } from "@/lib/explore";
 
 /**
  * ACL for the discovery engine — orchestrates the REAL core scanner
