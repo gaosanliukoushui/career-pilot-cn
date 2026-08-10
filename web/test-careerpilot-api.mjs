@@ -133,6 +133,26 @@ test('failed Web validation does not mutate the canonical profile', async () => 
   assert.deepEqual(afterProfile, beforeProfile);
 }, { timeout: 30_000 });
 
+test('项目面试 API 公开可信简历目录并在启动 AI 前校验请求', async () => {
+  let response = await fetch(`${baseUrl}/api/cn/interviews/projects`);
+  await assertStatus(response);
+  const catalog = await response.json();
+  assert.equal(catalog.schema_version, 1);
+  assert.ok(Array.isArray(catalog.sources));
+
+  response = await fetch(`${baseUrl}/api/cn/interviews/projects/pack`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
+  });
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /简历|项目|AI/);
+
+  response = await fetch(`${baseUrl}/api/cn/interviews/projects/review`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
+  });
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /简历|项目|问题|回答|AI/);
+}, { timeout: 30_000 });
+
 test('Web ResumeVariant preview uses canonical Facts and sparse DOCX is rejected by render QA', async () => {
   let response = await fetch(`${baseUrl}/api/resume-variants/preview`, {
     method: 'POST',

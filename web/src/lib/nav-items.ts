@@ -31,6 +31,7 @@ export const PRIMARY_NAV_ITEMS: NavItem[] = [
   { href: "/cv", label: "主简历和岗位简历", icon: FileText },
   { href: "/job-analysis", label: "岗位导入与资格分析", icon: BriefcaseBusiness },
   { href: "/application-materials", label: "网申材料", icon: ClipboardCheck },
+  { href: "/interview-center", label: "项目面试特训", icon: MessageSquareText },
   { href: "/pipeline", label: "申请进度", icon: ListChecks },
 ];
 
@@ -42,7 +43,6 @@ export const ADVANCED_NAV_ITEMS: NavItem[] = [
 ];
 
 export const PLANNED_NAV_ITEMS: NavItem[] = [
-  { href: "/interview-center", label: "面试中心", icon: MessageSquareText, chip: "V4 预留" },
   { href: "/offer-onboarding", label: "Offer 与入职", icon: Handshake, chip: "V5 预留" },
 ];
 

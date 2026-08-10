@@ -30,17 +30,34 @@ export function proposalCapable(id: string): boolean {
   return KNOWN.some((item) => item.id === id && item.proposalPolicy !== "unsupported");
 }
 
-export function proposalArgs(id: string, prompt: string): string[] {
+type ProposalOutputOptions = {
+  schemaJson?: string;
+  schemaPath?: string;
+};
+
+const CLAUDE_PROPOSAL_SYSTEM_PROMPT = [
+  "You are a JSON transformation worker.",
+  "Follow the complete task and trusted data supplied on stdin.",
+  "Do not inspect the repository, read files, call tools, propose implementation work, or ask questions.",
+  "Return only the JSON object requested by the stdin task.",
+].join(" ");
+
+export function proposalArgs(id: string, output: ProposalOutputOptions = {}): string[] {
   if (id === "claude") {
     return [
-      "-p", prompt, "--output-format", "json", "--permission-mode", "dontAsk",
+      "-p", "--output-format", "json", "--permission-mode", "dontAsk",
       "--disallowedTools", "Bash,Write,Edit,Read,WebFetch,WebSearch,Glob,Grep,Task,NotebookEdit",
+      "--system-prompt", CLAUDE_PROPOSAL_SYSTEM_PROMPT,
+      "--effort", "low",
+      "--no-session-persistence",
+      ...(output.schemaJson ? ["--json-schema", output.schemaJson] : []),
     ];
   }
   if (id === "codex") {
     return [
-      "exec", prompt, "--sandbox", "read-only", "--ephemeral", "--ignore-user-config",
+      "exec", "-", "--sandbox", "read-only", "--ephemeral", "--ignore-user-config",
       "--ignore-rules", "--skip-git-repo-check", "--color", "never",
+      ...(output.schemaPath ? ["--output-schema", output.schemaPath] : []),
     ];
   }
   throw new Error(`CLI ${id} does not expose an enforceable Web proposal policy`);
@@ -88,9 +105,9 @@ function searchDirs(): string[] {
   return [...new Set([...fromPath, ...extra])];
 }
 
-// On Windows, executables carry an extension (claude.exe, claude.cmd, ...).
-// Mirror the shell's PATHEXT resolution so a native-installer claude.exe is
-// found, not just an extensionless npm shim. On POSIX, "" keeps the bare name.
+// On Windows, extensionless npm shims are POSIX shell scripts and cannot be
+// launched by child_process.spawn. Only return PATHEXT entries that we know how
+// to execute; POSIX keeps the bare executable name.
 function binCandidates(bin: string): string[] {
   if (process.platform !== "win32") return [bin];
   const pathext = process.env.PATHEXT || ".COM;.EXE;.BAT;.CMD";
@@ -101,8 +118,7 @@ function binCandidates(bin: string): string[] {
     // Only include extensions that `child_process.spawn()` can execute directly.
     .filter((e) => [".com", ".exe", ".bat", ".cmd"].includes(e.toLowerCase()));
 
-  // Try the bare name too (some environments provide an extensionless shim).
-  return [bin, ...exts.map((ext) => bin + ext)];
+  return exts.map((ext) => bin + ext);
 }
 
 export function findBin(bin: string, dirs = searchDirs()): string | null {

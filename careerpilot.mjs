@@ -31,6 +31,13 @@ function required(value, label) {
   return value;
 }
 
+function domainValidationError(code, message, details) {
+  const error = new Error(message);
+  error.code = code;
+  error.details = details;
+  return error;
+}
+
 function usage() {
   return {
     usage: [
@@ -81,6 +88,11 @@ function usage() {
       'node careerpilot.mjs resume-style-set --stdin [--root PATH]',
       'node careerpilot.mjs resume-style-preview --stdin [--root PATH]',
       'node careerpilot.mjs resume-tailoring-show PREVIEW_ID [--root PATH]',
+      'node careerpilot.mjs interview-projects [--root PATH]',
+      'node careerpilot.mjs interview-pack-prompt --stdin [--root PATH]',
+      'node careerpilot.mjs interview-pack-validate --stdin [--root PATH]',
+      'node careerpilot.mjs interview-review-prompt --stdin [--root PATH]',
+      'node careerpilot.mjs interview-review-validate --stdin [--root PATH]',
     ],
   };
 }
@@ -475,6 +487,41 @@ async function main() {
         required(option(args, '--job'), '--job'),
         required(option(args, '--baseline'), '--baseline'),
       ))}\n`);
+      return;
+    }
+    case 'interview-projects': {
+      const { listProjectInterviewSources } = await import('./lib/careerpilot/project-interview-core.mjs');
+      process.stdout.write(`${JSON.stringify(listProjectInterviewSources(root))}\n`);
+      return;
+    }
+    case 'interview-pack-prompt': {
+      if (!args.includes('--stdin')) throw new Error('interview-pack-prompt requires --stdin');
+      const { buildProjectInterviewPackRequest } = await import('./lib/careerpilot/project-interview-core.mjs');
+      process.stdout.write(`${JSON.stringify(buildProjectInterviewPackRequest(root, JSON.parse(await readStdin())))}\n`);
+      return;
+    }
+    case 'interview-pack-validate': {
+      if (!args.includes('--stdin')) throw new Error('interview-pack-validate requires --stdin');
+      const { validateProjectInterviewPack } = await import('./lib/careerpilot/project-interview-core.mjs');
+      const input = JSON.parse(await readStdin());
+      const result = validateProjectInterviewPack(root, input, input.proposal);
+      if (!result.valid) throw domainValidationError('INTERVIEW_PACK_INVALID', 'AI 项目训练包未通过事实与结构校验', result.errors);
+      process.stdout.write(`${JSON.stringify({ pack: result.pack })}\n`);
+      return;
+    }
+    case 'interview-review-prompt': {
+      if (!args.includes('--stdin')) throw new Error('interview-review-prompt requires --stdin');
+      const { buildProjectInterviewReviewRequest } = await import('./lib/careerpilot/project-interview-core.mjs');
+      process.stdout.write(`${JSON.stringify(buildProjectInterviewReviewRequest(root, JSON.parse(await readStdin())))}\n`);
+      return;
+    }
+    case 'interview-review-validate': {
+      if (!args.includes('--stdin')) throw new Error('interview-review-validate requires --stdin');
+      const { validateProjectInterviewReview } = await import('./lib/careerpilot/project-interview-core.mjs');
+      const input = JSON.parse(await readStdin());
+      const result = validateProjectInterviewReview(root, input, input.review);
+      if (!result.valid) throw domainValidationError('INTERVIEW_REVIEW_INVALID', 'AI 项目面试反馈未通过事实与结构校验', result.errors);
+      process.stdout.write(`${JSON.stringify({ review: result.review })}\n`);
       return;
     }
     case '--help':

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/project-interview-review.schema.json",
+  "title": "ProjectInterviewReview",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "phase", "project_id", "question", "status", "score", "dimension_scores", "landed", "sharpen", "unsupported_claims", "stronger_version", "follow_up_question"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "phase": { "const": "feedback" },
+    "project_id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+    "question": { "type": "string", "minLength": 1, "maxLength": 1200 },
+    "status": { "enum": ["strong", "solid", "gap"] },
+    "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "dimension_scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["structure", "ownership", "technical_depth", "evidence", "boundary"],
+      "properties": {
+        "structure": { "$ref": "#/$defs/dimensionScore" },
+        "ownership": { "$ref": "#/$defs/dimensionScore" },
+        "technical_depth": { "$ref": "#/$defs/dimensionScore" },
+        "evidence": { "$ref": "#/$defs/dimensionScore" },
+        "boundary": { "$ref": "#/$defs/dimensionScore" }
+      }
+    },
+    "landed": { "$ref": "#/$defs/textList" },
+    "sharpen": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["issue", "repair"],
+        "properties": {
+          "issue": { "type": "string", "minLength": 1, "maxLength": 600 },
+          "repair": { "type": "string", "minLength": 1, "maxLength": 600 }
+        }
+      }
+    },
+    "unsupported_claims": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim", "reason"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "reason": { "type": "string", "minLength": 1, "maxLength": 500 }
+        }
+      }
+    },
+    "stronger_version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["headline", "answer", "source_fact_ids", "unknowns"],
+      "properties": {
+        "headline": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "answer": { "type": "string", "minLength": 1, "maxLength": 2200 },
+        "source_fact_ids": { "$ref": "#/$defs/factIds" },
+        "unknowns": { "$ref": "#/$defs/unknowns" }
+      }
+    },
+    "follow_up_question": { "type": "string", "minLength": 1, "maxLength": 1000 }
+  },
+  "$defs": {
+    "dimensionScore": { "type": "integer", "minimum": 0, "maximum": 20 },
+    "textList": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "items": { "type": "string", "minLength": 1, "maxLength": 600 }
+    },
+    "factIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^project\\.[a-z0-9_-]+\\.[a-z0-9_-]+$" }
+    },
+    "unknowns": {
+      "type": "array",
+      "maxItems": 6,
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    }
+  }
+}
+

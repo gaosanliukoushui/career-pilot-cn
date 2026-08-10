@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/project-interview-pack.schema.json",
+  "title": "ProjectInterviewPack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "phase", "project_id", "target_role", "analysis", "opening_answer", "questions"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "phase": { "const": "pack" },
+    "project_id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+    "target_role": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positioning", "interviewer_focus", "claim_boundaries", "preparation_priorities", "source_fact_ids"],
+      "properties": {
+        "positioning": { "type": "string", "minLength": 1, "maxLength": 360 },
+        "interviewer_focus": { "$ref": "#/$defs/textList" },
+        "claim_boundaries": { "$ref": "#/$defs/textList" },
+        "preparation_priorities": { "$ref": "#/$defs/textList" },
+        "source_fact_ids": { "$ref": "#/$defs/factIds" }
+      }
+    },
+    "opening_answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["headline", "answer", "source_fact_ids", "unknowns"],
+      "properties": {
+        "headline": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "answer": { "type": "string", "minLength": 1, "maxLength": 900 },
+        "source_fact_ids": { "$ref": "#/$defs/factIds" },
+        "unknowns": { "$ref": "#/$defs/unknowns" }
+      }
+    },
+    "questions": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": { "$ref": "#/$defs/question" }
+    }
+  },
+  "$defs": {
+    "textList": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": { "type": "string", "minLength": 1, "maxLength": 240 }
+    },
+    "factIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^project\\.[a-z0-9_-]+\\.[a-z0-9_-]+$" }
+    },
+    "unknowns": {
+      "type": "array",
+      "maxItems": 4,
+      "items": { "type": "string", "minLength": 1, "maxLength": 240 }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "depth", "question", "intent", "scoring_points", "reference_answer", "follow_ups"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^q[1-6]$" },
+        "category": { "enum": ["overview", "ownership", "architecture", "mechanism", "tradeoff", "reliability"] },
+        "depth": { "enum": ["foundation", "deep", "pressure"] },
+        "question": { "type": "string", "minLength": 1, "maxLength": 360 },
+        "intent": { "type": "string", "minLength": 1, "maxLength": 360 },
+        "scoring_points": { "$ref": "#/$defs/textList" },
+        "reference_answer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["headline", "points", "source_fact_ids", "unknowns"],
+          "properties": {
+            "headline": { "type": "string", "minLength": 1, "maxLength": 160 },
+            "points": { "$ref": "#/$defs/textList" },
+            "source_fact_ids": { "$ref": "#/$defs/factIds" },
+            "unknowns": { "$ref": "#/$defs/unknowns" }
+          }
+        },
+        "follow_ups": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": { "type": "string", "minLength": 1, "maxLength": 360 }
+        }
+      }
+    }
+  }
+}
