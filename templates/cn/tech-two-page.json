@@ -4,5 +4,5 @@
   "max_pages": 2,
   "layout": "standard",
   "minimum_disclosure": true,
-  "type_order": ["skill", "project", "internship", "employment", "quantified_result", "result", "education", "certificate", "award", "campus", "basic", "grade", "ranking", "affiliation"]
+  "type_order": ["summary", "skill", "project", "internship", "employment", "quantified_result", "result", "education", "certificate", "award", "campus", "basic", "grade", "ranking", "affiliation"]
 }

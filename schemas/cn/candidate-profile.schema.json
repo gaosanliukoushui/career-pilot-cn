@@ -152,7 +152,7 @@
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
         "type": {
-          "enum": ["basic", "education", "grade", "ranking", "skill", "certificate", "award", "campus", "internship", "employment", "affiliation", "project", "result", "quantified_result", "preference"]
+          "enum": ["basic", "summary", "education", "grade", "ranking", "skill", "certificate", "award", "campus", "internship", "employment", "affiliation", "project", "result", "quantified_result", "preference"]
         },
         "subtype": { "enum": ["email", "phone", "city_region"] },
         "statement": { "type": "string", "minLength": 1 },

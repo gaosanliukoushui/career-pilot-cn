@@ -36,6 +36,15 @@ const fixture = yaml.load(readFileSync(join(import.meta.dirname, 'examples', 'cn
 fixture.candidate.photo = 'profile/evidence/photo.png';
 fixture.candidate.political_status = '共青团员';
 fixture.facts.push({
+  id: 'summary.profile',
+  type: 'summary',
+  statement: '具备匿名软件工程项目经验，关注可验证交付与人工确认',
+  status: 'confirmed',
+  sensitivity: 'personal',
+  allowed_uses: ['resume', 'application_form'],
+  evidence_ids: ['evidence.campus.confirmation'],
+  source: 'anonymous-fixture',
+}, {
   id: 'campus.student.union',
   type: 'campus',
   statement: '负责学生组织活动协调；整理活动材料',
@@ -146,6 +155,13 @@ test('三类模板均只采用通过发布门槛的事实', () => {
     assert.ok(!variant.fact_ids.includes('award.unconfirmed'));
     assert.deepEqual(new Set(variant.fact_ids), new Set(variants[0].fact_ids));
   }
+});
+
+test('个人概述是可追踪的独立事实区块而不是提示词拼接', () => {
+  const html = renderResumeHtml(root, variants[0]);
+  assert.match(html, /<h2>个人概述<\/h2>/);
+  assert.match(html, /data-fact-id="summary\.profile"/);
+  assert.match(html, /具备匿名软件工程项目经验/);
 });
 
 test('三类模板用排序体现不同侧重点', () => {

@@ -357,9 +357,19 @@ export function renderSectionedHtml(template, payload) {
   const sections = Array.isArray(payload.sections)
     ? payload.sections.map((section) => {
       const items = Array.isArray(section.items)
-        ? section.items.map((item) => `<li data-fact-id="${escapeHtml(String(item.fact_id || ''))}">${escapeHtml(String(item.statement || ''))}</li>`).join('')
+        ? section.items.map((item) => {
+          const factId = String(item.fact_id || '');
+          const entryHeader = /\.summary$/u.test(factId) && ['实习与工作经历', '项目经历'].includes(String(section.title || ''));
+          return `<li class="fact-entry${entryHeader ? ' fact-entry--entry-header' : ''}" data-fact-id="${escapeHtml(factId)}">${escapeHtml(String(item.statement || ''))}</li>`;
+        }).join('')
         : '';
-      return `<section><h2>${escapeHtml(String(section.title || ''))}</h2><ul>${items}</ul></section>`;
+      const sectionClass = new Map([
+        ['教育经历', 'section--education'],
+        ['个人概述', 'section--summary'],
+        ['专业技能', 'section--skills'],
+        ['证书与奖项', 'section--credentials'],
+      ]).get(String(section.title || '')) || '';
+      return `<section class="${sectionClass}"><h2>${escapeHtml(String(section.title || ''))}</h2><ul>${items}</ul></section>`;
     }).join('')
     : '';
   const replacements = {

@@ -17,7 +17,7 @@
         "font_family": "Microsoft YaHei",
         "font_size_pt": 9.5,
         "page_margin_cm": 1,
-        "section_order": ["教育经历", "实习与工作经历", "项目经历", "校园经历", "证书与奖项", "专业技能", "基本信息"],
+        "section_order": ["教育经历", "个人概述", "实习与工作经历", "项目经历", "校园经历", "证书与奖项", "专业技能", "基本信息"],
         "project_bullet_limit": 3,
         "photo": { "enabled": false, "crop": "center-3x4", "width_cm": 2.4, "height_cm": 3.2 }
       },
@@ -44,7 +44,7 @@
         "font_family": "Noto Sans CJK SC",
         "font_size_pt": 9.5,
         "page_margin_cm": 1.1,
-        "section_order": ["实习与工作经历", "项目经历", "专业技能", "教育经历", "证书与奖项", "校园经历", "基本信息"],
+        "section_order": ["个人概述", "实习与工作经历", "项目经历", "专业技能", "教育经历", "证书与奖项", "校园经历", "基本信息"],
         "project_bullet_limit": 4,
         "photo": { "enabled": false, "crop": "contain", "width_cm": 2.3, "height_cm": 3.05 }
       },
@@ -71,7 +71,7 @@
         "font_family": "SimSun",
         "font_size_pt": 9.5,
         "page_margin_cm": 1,
-        "section_order": ["教育经历", "项目经历", "实习与工作经历", "证书与奖项", "专业技能", "校园经历", "基本信息"],
+        "section_order": ["教育经历", "个人概述", "项目经历", "实习与工作经历", "证书与奖项", "专业技能", "校园经历", "基本信息"],
         "project_bullet_limit": 3,
         "photo": { "enabled": false, "crop": "center-3x4", "width_cm": 2.4, "height_cm": 3.2 }
       },
