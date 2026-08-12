@@ -16,6 +16,10 @@ export function proposalTerminationPlan(platform, pid) {
   return { command: "taskkill.exe", args: ["/pid", String(pid), "/t", "/f"] };
 }
 
+export function proposalAbortError(label) {
+  return new AiProposalError("AI_ABORTED", `${String(label || "AI 结构化建议").slice(0, 80)}已取消`, 499);
+}
+
 function assertObject(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new AiProposalError("AI_JSON_OBJECT_REQUIRED", "AI 未返回 JSON 对象");

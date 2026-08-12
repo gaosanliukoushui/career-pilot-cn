@@ -91,8 +91,10 @@ function usage() {
       'node careerpilot.mjs interview-projects [--root PATH]',
       'node careerpilot.mjs interview-pack-prompt --stdin [--root PATH]',
       'node careerpilot.mjs interview-pack-validate --stdin [--root PATH]',
+      'node careerpilot.mjs interview-pack-fallback --stdin [--root PATH]',
       'node careerpilot.mjs interview-review-prompt --stdin [--root PATH]',
       'node careerpilot.mjs interview-review-validate --stdin [--root PATH]',
+      'node careerpilot.mjs interview-review-fallback --stdin [--root PATH]',
     ],
   };
 }
@@ -491,37 +493,55 @@ async function main() {
     }
     case 'interview-projects': {
       const { listProjectInterviewSources } = await import('./lib/careerpilot/project-interview-core.mjs');
-      process.stdout.write(`${JSON.stringify(listProjectInterviewSources(root))}\n`);
+      process.stdout.write(`${JSON.stringify(await listProjectInterviewSources(root))}\n`);
       return;
     }
     case 'interview-pack-prompt': {
       if (!args.includes('--stdin')) throw new Error('interview-pack-prompt requires --stdin');
       const { buildProjectInterviewPackRequest } = await import('./lib/careerpilot/project-interview-core.mjs');
-      process.stdout.write(`${JSON.stringify(buildProjectInterviewPackRequest(root, JSON.parse(await readStdin())))}\n`);
+      process.stdout.write(`${JSON.stringify(await buildProjectInterviewPackRequest(root, JSON.parse(await readStdin())))}\n`);
       return;
     }
     case 'interview-pack-validate': {
       if (!args.includes('--stdin')) throw new Error('interview-pack-validate requires --stdin');
       const { validateProjectInterviewPack } = await import('./lib/careerpilot/project-interview-core.mjs');
       const input = JSON.parse(await readStdin());
-      const result = validateProjectInterviewPack(root, input, input.proposal);
+      const result = await validateProjectInterviewPack(root, input, input.proposal);
       if (!result.valid) throw domainValidationError('INTERVIEW_PACK_INVALID', 'AI 项目训练包未通过事实与结构校验', result.errors);
       process.stdout.write(`${JSON.stringify({ pack: result.pack })}\n`);
+      return;
+    }
+    case 'interview-pack-fallback': {
+      if (!args.includes('--stdin')) throw new Error('interview-pack-fallback requires --stdin');
+      const { buildDeterministicProjectInterviewPack } = await import('./lib/careerpilot/project-interview-core.mjs');
+      process.stdout.write(`${JSON.stringify({
+        pack: await buildDeterministicProjectInterviewPack(root, JSON.parse(await readStdin())),
+        generation_mode: 'deterministic_fallback',
+      })}\n`);
       return;
     }
     case 'interview-review-prompt': {
       if (!args.includes('--stdin')) throw new Error('interview-review-prompt requires --stdin');
       const { buildProjectInterviewReviewRequest } = await import('./lib/careerpilot/project-interview-core.mjs');
-      process.stdout.write(`${JSON.stringify(buildProjectInterviewReviewRequest(root, JSON.parse(await readStdin())))}\n`);
+      process.stdout.write(`${JSON.stringify(await buildProjectInterviewReviewRequest(root, JSON.parse(await readStdin())))}\n`);
       return;
     }
     case 'interview-review-validate': {
       if (!args.includes('--stdin')) throw new Error('interview-review-validate requires --stdin');
       const { validateProjectInterviewReview } = await import('./lib/careerpilot/project-interview-core.mjs');
       const input = JSON.parse(await readStdin());
-      const result = validateProjectInterviewReview(root, input, input.review);
+      const result = await validateProjectInterviewReview(root, input, input.review);
       if (!result.valid) throw domainValidationError('INTERVIEW_REVIEW_INVALID', 'AI 项目面试反馈未通过事实与结构校验', result.errors);
       process.stdout.write(`${JSON.stringify({ review: result.review })}\n`);
+      return;
+    }
+    case 'interview-review-fallback': {
+      if (!args.includes('--stdin')) throw new Error('interview-review-fallback requires --stdin');
+      const { buildDeterministicProjectInterviewReview } = await import('./lib/careerpilot/project-interview-core.mjs');
+      process.stdout.write(`${JSON.stringify({
+        review: await buildDeterministicProjectInterviewReview(root, JSON.parse(await readStdin())),
+        generation_mode: 'deterministic_fallback',
+      })}\n`);
       return;
     }
     case '--help':

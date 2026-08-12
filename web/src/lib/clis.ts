@@ -18,7 +18,7 @@ export type CliSpec = {
 
 export const KNOWN: CliSpec[] = [
   { id: "claude", name: "Claude Code", bin: "claude", run: "claude -p", url: "https://claude.ai/code", args: (p) => ["-p", p], proposalPolicy: "no-tools" },
-  { id: "codex", name: "Codex", bin: "codex", run: "codex exec", url: "https://github.com/openai/codex", args: (p) => ["exec", p], proposalPolicy: "read-only" },
+  { id: "codex", name: "Codex", bin: "codex", run: "codex exec", url: "https://github.com/openai/codex", args: (p) => ["exec", p], proposalPolicy: "unsupported" },
   { id: "gemini", name: "Gemini CLI", bin: "gemini", run: "gemini -p", url: "https://github.com/google-gemini/gemini-cli", args: (p) => ["-p", p], proposalPolicy: "unsupported" },
   { id: "opencode", name: "OpenCode", bin: "opencode", run: "opencode run", url: "https://opencode.ai", args: (p) => ["run", p], proposalPolicy: "unsupported" },
   { id: "copilot", name: "GitHub Copilot CLI", bin: "copilot", run: "copilot -p", url: "https://docs.github.com/en/copilot/github-copilot-in-the-cli", args: (p) => ["-p", p], proposalPolicy: "unsupported" },
@@ -33,6 +33,7 @@ export function proposalCapable(id: string): boolean {
 type ProposalOutputOptions = {
   schemaJson?: string;
   schemaPath?: string;
+  mcpConfigPath?: string;
 };
 
 const CLAUDE_PROPOSAL_SYSTEM_PROMPT = [
@@ -44,10 +45,24 @@ const CLAUDE_PROPOSAL_SYSTEM_PROMPT = [
 
 export function proposalArgs(id: string, output: ProposalOutputOptions = {}): string[] {
   if (id === "claude") {
+    if (!output.mcpConfigPath) {
+      throw new Error("Claude proposal execution requires an isolated MCP config file");
+    }
     return [
       "-p", "--output-format", "json", "--permission-mode", "dontAsk",
+      "--tools", "",
       "--disallowedTools", "Bash,Write,Edit,Read,WebFetch,WebSearch,Glob,Grep,Task,NotebookEdit",
+      "--disable-slash-commands", "--no-chrome",
+      // Claude 2.1.x treats an empty value as missing and consumes the next
+      // option as the setting source. The proposal runner uses a fresh cwd, so
+      // `local` loads no user/project rules while keeping normal OAuth auth.
+      "--setting-sources", "local",
+      "--mcp-config", output.mcpConfigPath, "--strict-mcp-config",
       "--system-prompt", CLAUDE_PROPOSAL_SYSTEM_PROMPT,
+      // The task is bounded JSON planning over a handful of verified Facts.
+      // Pin the fast alias so a user-level long-context default cannot turn a
+      // single interview turn into a multi-minute request.
+      "--model", "haiku",
       "--effort", "low",
       "--no-session-persistence",
       ...(output.schemaJson ? ["--json-schema", output.schemaJson] : []),
@@ -77,6 +92,34 @@ export function minimalCliEnv(id: string, source: Record<string, string | undefi
       .filter((key) => typeof source[key] === "string")
       .map((key) => [key, source[key] as string])),
   } as NodeJS.ProcessEnv;
+}
+
+const CLAUDE_SETTING_ENV_KEYS = new Set([
+  "ANTHROPIC_API_KEY",
+  "ANTHROPIC_AUTH_TOKEN",
+  "ANTHROPIC_BASE_URL",
+  "ANTHROPIC_MODEL",
+  "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+  "ANTHROPIC_DEFAULT_OPUS_MODEL",
+  "ANTHROPIC_DEFAULT_SONNET_MODEL",
+]);
+
+export function proposalCliEnv(
+  id: string,
+  source: Record<string, string | undefined> = process.env,
+  claudeSettingsPath = path.join(os.homedir(), ".claude", "settings.json"),
+): NodeJS.ProcessEnv {
+  const env = minimalCliEnv(id, source);
+  if (id !== "claude") return env;
+  try {
+    const settings = JSON.parse(fs.readFileSync(claudeSettingsPath, "utf8")) as { env?: Record<string, unknown> };
+    for (const [key, value] of Object.entries(settings.env || {})) {
+      if (CLAUDE_SETTING_ENV_KEYS.has(key) && typeof value === "string" && value) env[key] = value;
+    }
+  } catch {
+    // OAuth/keychain or explicit process environment may already be sufficient.
+  }
+  return env;
 }
 
 function searchDirs(): string[] {

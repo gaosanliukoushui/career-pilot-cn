@@ -41,13 +41,13 @@
     },
     "unsupported_claims": {
       "type": "array",
-      "maxItems": 8,
+      "maxItems": 72,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["claim", "reason"],
         "properties": {
-          "claim": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "claim": { "type": "string", "minLength": 1, "maxLength": 6000 },
           "reason": { "type": "string", "minLength": 1, "maxLength": 500 }
         }
       }
@@ -58,7 +58,7 @@
       "required": ["headline", "answer", "source_fact_ids", "unknowns"],
       "properties": {
         "headline": { "type": "string", "minLength": 1, "maxLength": 240 },
-        "answer": { "type": "string", "minLength": 1, "maxLength": 2200 },
+        "answer": { "type": "string", "minLength": 1, "maxLength": 26000 },
         "source_fact_ids": { "$ref": "#/$defs/factIds" },
         "unknowns": { "$ref": "#/$defs/unknowns" }
       }
@@ -87,4 +87,3 @@
     }
   }
 }
-

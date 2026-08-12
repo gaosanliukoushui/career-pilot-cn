@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/project-interview-review-proposal.schema.json",
+  "title": "ProjectInterviewReviewProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "phase", "project_id", "question_sha256", "answer_sha256", "dimension_scores", "landed_spans", "sharpen", "unsupported_spans", "stronger_fact_refs", "follow_up_template"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "phase": { "const": "feedback_plan" },
+    "project_id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+    "question_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "answer_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "dimension_scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["structure", "ownership", "technical_depth", "evidence", "boundary"],
+      "properties": {
+        "structure": { "$ref": "#/$defs/dimensionScore" },
+        "ownership": { "$ref": "#/$defs/dimensionScore" },
+        "technical_depth": { "$ref": "#/$defs/dimensionScore" },
+        "evidence": { "$ref": "#/$defs/dimensionScore" },
+        "boundary": { "$ref": "#/$defs/dimensionScore" }
+      }
+    },
+    "landed_spans": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/scoredSpan" }
+    },
+    "sharpen": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/repairSpan" }
+    },
+    "unsupported_spans": {
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/unsupportedSpan" }
+    },
+    "stronger_fact_refs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/factRef" }
+    },
+    "follow_up_template": { "enum": ["responsibility_boundary", "technical_mechanism", "tradeoff", "validation_evidence", "failure_recovery"] }
+  },
+  "$defs": {
+    "dimensionScore": { "type": "integer", "minimum": 0, "maximum": 20 },
+    "dimension": { "enum": ["structure", "ownership", "technical_depth", "evidence", "boundary"] },
+    "quote": { "type": "string", "minLength": 1, "maxLength": 400 },
+    "occurrence": { "type": "integer", "minimum": 0, "maximum": 20 },
+    "factRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fact_id", "fact_sha256"],
+      "properties": {
+        "fact_id": { "type": "string", "pattern": "^project\\.[a-z0-9_-]+\\.[a-z0-9_-]+$" },
+        "fact_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "scoredSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimension", "quote", "occurrence"],
+      "properties": {
+        "dimension": { "$ref": "#/$defs/dimension" },
+        "quote": { "$ref": "#/$defs/quote" },
+        "occurrence": { "$ref": "#/$defs/occurrence" }
+      }
+    },
+    "repairSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimension", "quote", "occurrence", "repair_template"],
+      "properties": {
+        "dimension": { "$ref": "#/$defs/dimension" },
+        "quote": { "$ref": "#/$defs/quote" },
+        "occurrence": { "$ref": "#/$defs/occurrence" },
+        "repair_template": { "enum": ["lead_with_conclusion", "clarify_ownership", "explain_mechanism", "add_verified_evidence", "state_boundary"] }
+      }
+    },
+    "unsupportedSpan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quote", "occurrence", "reason"],
+      "properties": {
+        "quote": { "$ref": "#/$defs/quote" },
+        "occurrence": { "$ref": "#/$defs/occurrence" },
+        "reason": { "enum": ["not_in_resume_facts", "metric_not_in_facts", "ownership_not_in_facts", "needs_evidence"] }
+      }
+    }
+  }
+}

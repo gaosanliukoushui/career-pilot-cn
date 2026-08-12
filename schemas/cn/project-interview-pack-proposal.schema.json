@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://career-pilot-cn.local/schemas/project-interview-pack-proposal.schema.json",
+  "title": "ProjectInterviewPackProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "phase", "project_id", "target_role", "analysis_facts", "opening_sections", "questions"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "phase": { "const": "pack_plan" },
+    "project_id": { "type": "string", "pattern": "^[a-z0-9_-]+$" },
+    "target_role": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "analysis_facts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/factRef" }
+    },
+    "opening_sections": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/stagePlan" }
+    },
+    "questions": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": { "$ref": "#/$defs/questionPlan" }
+    }
+  },
+  "$defs": {
+    "factRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fact_id", "fact_sha256"],
+      "properties": {
+        "fact_id": { "type": "string", "pattern": "^project\\.[a-z0-9_-]+\\.[a-z0-9_-]+$" },
+        "fact_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "stagePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "fact", "verification_topic"],
+      "properties": {
+        "stage": { "enum": ["scenario", "responsibility", "solution", "validation"] },
+        "fact": {
+          "anyOf": [
+            { "$ref": "#/$defs/factRef" },
+            { "type": "null" }
+          ]
+        },
+        "verification_topic": {
+          "anyOf": [
+            { "enum": ["responsibility", "implementation", "tradeoff", "validation", "collaboration", "production_status"] },
+            { "type": "null" }
+          ]
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "fact": { "$ref": "#/$defs/factRef" },
+            "verification_topic": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "fact": { "type": "null" },
+            "verification_topic": { "enum": ["responsibility", "implementation", "tradeoff", "validation", "collaboration", "production_status"] }
+          }
+        }
+      ]
+    },
+    "questionPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "depth", "answer_facts", "unknown_topics"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^q[1-6]$" },
+        "category": { "enum": ["overview", "ownership", "architecture", "mechanism", "tradeoff", "reliability"] },
+        "depth": { "enum": ["foundation", "deep", "pressure"] },
+        "answer_facts": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/factRef" }
+        },
+        "unknown_topics": {
+          "type": "array",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "enum": ["responsibility", "implementation", "tradeoff", "validation", "collaboration", "production_status"] }
+        }
+      }
+    }
+  }
+}

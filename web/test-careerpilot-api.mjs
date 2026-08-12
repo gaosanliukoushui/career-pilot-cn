@@ -151,6 +151,27 @@ test('项目面试 API 公开可信简历目录并在启动 AI 前校验请求',
   });
   assert.equal(response.status, 400);
   assert.match((await response.json()).error, /简历|项目|问题|回答|AI/);
+
+  response = await fetch(`${baseUrl}/api/cn/interviews/projects/pack`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ source_id: {}, project_id: 'project_alpha', target_role: {}, cliId: 'claude' }),
+  });
+  assert.equal(response.status, 400, '非字符串字段必须在启动 AI 前拒绝');
+
+  response = await fetch(`${baseUrl}/api/cn/interviews/projects/review`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      source_id: 'source', project_id: 'project_alpha', question: {}, answer: [], cliId: 'claude',
+    }),
+  });
+  assert.equal(response.status, 400, '问题和回答不得依赖可选链调用规避类型检查');
+
+  response = await fetch(`${baseUrl}/api/cn/interviews/projects/pack`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ padding: 'x'.repeat(70_000) }),
+  });
+  assert.equal(response.status, 413, '项目面试 API 必须在 JSON 解析前限制请求体');
 }, { timeout: 30_000 });
 
 test('Web ResumeVariant preview uses canonical Facts and sparse DOCX is rejected by render QA', async () => {

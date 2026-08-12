@@ -3,8 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { minimalCliEnv, proposalArgs, resolveProposalCli } from "./clis";
-import { AiProposalError, aiProcessFailureMessage, parseJsonProposalOutput, proposalTerminationPlan } from "./ai-proposal-core.mjs";
+import { proposalArgs, proposalCliEnv, resolveProposalCli } from "./clis.ts";
+import { AiProposalError, aiProcessFailureMessage, parseJsonProposalOutput, proposalAbortError, proposalTerminationPlan } from "./ai-proposal-core.mjs";
 
 export { AiProposalError, aiProcessFailureMessage, parseJsonProposalOutput } from "./ai-proposal-core.mjs";
 
@@ -16,7 +16,21 @@ type RunJsonProposalOptions = {
   maxOutputBytes?: number;
   label?: string;
   schema?: Record<string, unknown>;
+  signal?: AbortSignal;
 };
+
+export function loadJsonProposalSchema(filePath: string) {
+  if (!existsSync(filePath)) {
+    throw new AiProposalError("AI_SCHEMA_UNAVAILABLE", "AI 结构化输出 Schema 缺失", 500);
+  }
+  try {
+    const schema = JSON.parse(readFileSync(filePath, "utf8"));
+    if (!schema || typeof schema !== "object" || Array.isArray(schema)) throw new Error("schema must be an object");
+    return schema as Record<string, unknown>;
+  } catch {
+    throw new AiProposalError("AI_SCHEMA_UNAVAILABLE", "AI 结构化输出 Schema 无法读取", 500);
+  }
+}
 
 function nativeExecutableFromNpmShim(binPath: string) {
   if (process.platform !== "win32" || !/\.cmd$/i.test(binPath)) return null;
@@ -54,34 +68,40 @@ function terminateProposalProcess(child: ChildProcessWithoutNullStreams) {
       stdio: "ignore",
       timeout: 5_000,
     });
-    if (!result.error) return;
+    if (!result.error && result.status === 0) return;
   }
   child.kill("SIGTERM");
 }
 
 export async function runJsonProposal(cliId: string, prompt: string, options: RunJsonProposalOptions = {}) {
+  const label = options.label || "AI 结构化建议";
+  if (options.signal?.aborted) throw proposalAbortError(label);
   const resolved = resolveProposalCli(cliId);
   if (!resolved) {
     throw new AiProposalError("AI_CLI_UNAVAILABLE", "所选 AI 命令行工具未安装，或无法强制只读/无工具策略", 404);
   }
   const timeoutMs = Math.min(Math.max(options.timeoutMs || DEFAULT_TIMEOUT_MS, 10_000), 180_000);
   const maxOutputBytes = Math.min(Math.max(options.maxOutputBytes || DEFAULT_MAX_OUTPUT_BYTES, 64 * 1024), 4 * 1024 * 1024);
-  const label = options.label || "AI 结构化建议";
   const { spec, binPath } = resolved;
   const isolatedCwd = await fs.mkdtemp(path.join(os.tmpdir(), "careerpilot-cn-proposal-"));
   try {
     let schemaPath: string | undefined;
     let schemaJson: string | undefined;
+    let mcpConfigPath: string | undefined;
     if (options.schema) {
       schemaJson = JSON.stringify(options.schema);
       schemaPath = path.join(isolatedCwd, "output.schema.json");
       await fs.writeFile(schemaPath, schemaJson, "utf8");
     }
-    const invocation = commandForSpawn(binPath, proposalArgs(spec.id, { schemaJson, schemaPath }));
+    if (spec.id === "claude") {
+      mcpConfigPath = path.join(isolatedCwd, "empty-mcp.json");
+      await fs.writeFile(mcpConfigPath, '{"mcpServers":{}}', "utf8");
+    }
+    const invocation = commandForSpawn(binPath, proposalArgs(spec.id, { schemaJson, schemaPath, mcpConfigPath }));
     const output = await new Promise<string>((resolveOutput, reject) => {
       const spawnOptions: SpawnOptionsWithoutStdio = {
         cwd: isolatedCwd,
-        env: minimalCliEnv(spec.id),
+        env: proposalCliEnv(spec.id),
         stdio: "pipe",
       };
       const child: ChildProcessWithoutNullStreams = invocation.shell
@@ -90,20 +110,46 @@ export async function runJsonProposal(cliId: string, prompt: string, options: Ru
       let stdout = "";
       let outputBytes = 0;
       let settled = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let forceKillTimer: ReturnType<typeof setTimeout> | undefined;
+      let terminationDeadline: ReturnType<typeof setTimeout> | undefined;
+      let pendingFailure: Error | undefined;
+      const onAbort = () => terminateThenFail(proposalAbortError(label));
+      const clearTimers = () => {
+        if (timer) clearTimeout(timer);
+        if (forceKillTimer) clearTimeout(forceKillTimer);
+        if (terminationDeadline) clearTimeout(terminationDeadline);
+        options.signal?.removeEventListener("abort", onAbort);
+      };
       const fail = (error: Error) => {
         if (settled) return;
         settled = true;
+        clearTimers();
         reject(error);
       };
-      const timer = setTimeout(() => {
+      const terminateThenFail = (error: Error) => {
+        if (settled || pendingFailure) return;
+        pendingFailure = error;
+        if (timer) clearTimeout(timer);
         terminateProposalProcess(child);
-        fail(new AiProposalError("AI_TIMEOUT", `${label}超时`));
+        // Wait for close before resolving the outer promise so the isolated
+        // directory cannot be removed while the CLI still owns descendants.
+        forceKillTimer = setTimeout(() => child.kill("SIGKILL"), 2_000);
+        terminationDeadline = setTimeout(() => fail(error), 7_000);
+      };
+      timer = setTimeout(() => {
+        terminateThenFail(new AiProposalError("AI_TIMEOUT", `${label}超时`));
       }, timeoutMs);
+      if (options.signal?.aborted) {
+        terminateThenFail(proposalAbortError(label));
+      } else {
+        options.signal?.addEventListener("abort", onAbort, { once: true });
+      }
       child.stdout.on("data", (chunk: Buffer) => {
+        if (pendingFailure) return;
         outputBytes += chunk.byteLength;
         if (outputBytes > maxOutputBytes) {
-          terminateProposalProcess(child);
-          fail(new AiProposalError("AI_OUTPUT_TOO_LARGE", `${label}输出超过安全上限`));
+          terminateThenFail(new AiProposalError("AI_OUTPUT_TOO_LARGE", `${label}输出超过安全上限`));
           return;
         }
         stdout += chunk.toString();
@@ -114,13 +160,15 @@ export async function runJsonProposal(cliId: string, prompt: string, options: Ru
       child.stdin.on("error", () => { /* process may reject before consuming stdin */ });
       child.on("error", (error) => fail(error));
       child.on("close", (code) => {
-        clearTimeout(timer);
+        clearTimers();
         if (settled) return;
         settled = true;
-        if (code === 0 && stdout.trim()) resolveOutput(stdout);
+        if (pendingFailure) reject(pendingFailure);
+        else if (code === 0 && stdout.trim()) resolveOutput(stdout);
         else reject(new AiProposalError("AI_PROCESS_FAILED", aiProcessFailureMessage(label)));
       });
-      child.stdin.end(prompt);
+      if (!pendingFailure && !options.signal?.aborted) child.stdin.end(prompt);
+      else if (!child.stdin.destroyed) child.stdin.destroy();
     });
     return parseJsonProposalOutput(output) as Record<string, unknown>;
   } finally {

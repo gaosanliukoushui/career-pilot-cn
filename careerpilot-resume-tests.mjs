@@ -359,7 +359,9 @@ const confirmedExportVariant = confirmResumeVariant(root, variants[0]).variant;
 const markdownExport = await exportResume(root, confirmedExportVariant, 'md', 'output/careerpilot/anonymous-soe.md');
 assert.ok(existsSync(markdownExport.path));
 assert.ok(existsSync(`${markdownExport.path}.manifest.json`));
-assert.equal(JSON.parse(readFileSync(`${markdownExport.path}.manifest.json`, 'utf8')).fact_ids.length, confirmedExportVariant.fact_ids.length);
+const markdownManifest = JSON.parse(readFileSync(`${markdownExport.path}.manifest.json`, 'utf8'));
+assert.equal(markdownManifest.fact_ids.length, confirmedExportVariant.fact_ids.length);
+assert.equal(markdownManifest.variant_confirmation_sha256, confirmedExportVariant.confirmation.preview_sha256);
 console.log('PASS 导出采用正式文件与追踪 manifest 的原子发布');
 passed += 1;
 

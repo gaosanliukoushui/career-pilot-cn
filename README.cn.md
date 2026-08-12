@@ -1,6 +1,6 @@
 <p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/wordmark-dark.svg"><img src="docs/wordmark-light.svg" alt="career-ops" width="250" height="56"></picture></p>
 
-> **CareerPilot CN 首个正式版：** 本仓库是在 MIT 许可的 [career-ops](https://github.com/santifer/career-ops) 基础上开发的中国校招本地 AI 求职工作台，聚焦央企、地方国企、银行和运营商。已交付事实与证据中心、中文主简历、官网 JD/PDF/DOCX 导入、资格硬筛、证据化匹配、30% 简历定制上限、网申材料、中国招聘阶段跟踪，以及基于正式简历项目的 AI 面试特训。CareerPilot CN 是独立项目名称，不代表获得 career-ops 商标授权。当前上游基线仍冻结在 `career-ops v1.22.0`（commit `2901944`）。使用说明见[首个正式版指南](docs/CAREERPILOT_CN_FIRST_RELEASE.md)、[事实与证据中心](docs/CAREERPILOT_PROFILE.md)和[中文简历与导出工作台](docs/CAREERPILOT_RESUME.md)。
+> **CareerPilot CN 首个正式版：** 本仓库是在 MIT 许可的 [career-ops](https://github.com/santifer/career-ops) 基础上开发的中国校招本地 AI 求职工作台，聚焦央企、地方国企、银行和运营商。已交付事实与证据中心、中文主简历、官网 JD/PDF/DOCX 导入、资格硬筛、证据化匹配、30% 简历定制上限、网申材料、中国招聘阶段跟踪，以及基于正式简历项目的 AI 面试特训。CareerPilot CN 是独立项目名称，不代表获得 career-ops 商标授权。当前上游基线仍冻结在 `career-ops v1.22.0`（commit `2901944`）。使用说明见[首个正式版指南](docs/CAREERPILOT_CN_FIRST_RELEASE.md)、[事实与证据中心](docs/CAREERPILOT_PROFILE.md)、[中文简历与导出工作台](docs/CAREERPILOT_RESUME.md)和[项目面试特训](docs/CAREERPILOT_PROJECT_INTERVIEW.md)。
 
 快速开始：运行 Web 后打开 `/profile` 建立结构化资格资料，再到 `/job-analysis` 粘贴招聘公告、官网链接或上传文本型 PDF/DOCX。系统先给出 `eligible / ineligible / unknown` 资格结论，再计算六维匹配；正式简历导出后，可在 `/interview-center` 对简历中的项目生成分析、六类问题、参考答案并进行逐题模拟。身份证、家庭成员和详细住址不会落盘。
 
@@ -92,7 +92,7 @@ career-ops 具备代理式工作能力：Claude Code 会用 Playwright 浏览招
 | **自动管道** | 粘贴一个 URL，即可获得完整评估 + PDF + 追踪记录 |
 | **6 个评估模块** | 职位总结、简历匹配、职级策略、薪酬调研、个性化建议、面试准备（STAR+R）—— 外加一个用于核查职位真实性的 Block G 模块，可标记诈骗职位和幽灵职位 |
 | **面试故事库** | 跨多次评估积累 STAR+Reflection 故事，沉淀出 5-10 个可回答任意行为面试题的主线故事 |
-| **项目面试特训** | 从通过 QA 的正式简历识别项目，调用只读 AI 生成项目拆解、六类深挖题、证据化参考答案和逐题五维反馈；未核实指标与越界归功会被确定性拦截 |
+| **项目面试特训** | 从通过 QA 的正式简历识别项目，无工具 AI 只规划 Fact 选择、题型深度与五维评分；服务端重算 Fact 哈希并以完整原文/已确认 rewrite 组装六类深挖题、参考答案与更强版本，不允许模型自由拼接经历事实 |
 | **谈薪脚本** | 薪资谈判框架、地域折扣反驳话术、竞品 offer 杠杆策略 |
 | **ATS PDF 生成** | 注入关键词的简历，采用 Space Grotesk + DM Sans 设计 |
 | **平台扫描器** | 预配置 45+ 家公司（Anthropic、OpenAI、ElevenLabs、Retool、n8n...），支持跨 Ashby、Greenhouse、Lever、Wellfound 的自定义查询 |
