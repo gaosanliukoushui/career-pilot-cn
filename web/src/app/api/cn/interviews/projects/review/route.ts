@@ -5,7 +5,7 @@ import { buildProjectInterviewRetryPrompt, projectInterviewCoreStatus, shouldRet
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 180;
+export const maxDuration = 300;
 
 type PromptResult = { prompt?: string; proposal_schema?: Record<string, unknown> };
 type ValidationResult = { review?: unknown };
@@ -31,6 +31,9 @@ export async function POST(request: Request) {
     const message = status === 413 && error instanceof Error ? error.message : "缺少或无效的简历来源、项目、面试问题、候选人回答或 AI 命令行工具";
     return Response.json({ error: message }, { status });
   }
+  if (cliId !== "codex") {
+    return Response.json({ error: "项目面试仅支持隔离运行的 Codex" }, { status: 400 });
+  }
   const input = {
     source_id: sourceId,
     project_id: projectId,
@@ -50,7 +53,7 @@ export async function POST(request: Request) {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const proposal = await runJsonProposal(cliId, modelPrompt, {
         label: "项目面试回答点评",
-        timeoutMs: 75_000,
+        timeoutMs: 120_000,
         maxOutputBytes: 2 * 1024 * 1024,
         schema: promptResult.data.proposal_schema,
         signal: request.signal,

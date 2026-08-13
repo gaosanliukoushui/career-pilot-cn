@@ -6,7 +6,7 @@
 
 1. 在 `/cv` 完成主简历或定向简历的确认与正式导出。
 2. 打开 `/interview-center`，在“项目面试特训”中选择正式简历来源。
-3. 选择简历里的项目，填写目标岗位，选择已登录的 Claude Code。
+3. 选择简历里的项目，填写目标岗位；系统使用本机已登录的 Codex。
 4. 生成项目分析、安全开场、六类问题和服务端参考答案。
 5. 逐题输入自己的回答并提交点评。
 6. 查看五维评分、原回答命中点、需加强项、未核实主张、只用已确认 Fact 生成的更强版本和下一道追问。
@@ -37,7 +37,7 @@
 
 项目指南、兄弟仓库、聊天记录和模型常识都不会被偷偷拼进回答。回答中新出现的职责、指标或成果只会被标为“待核实”，不会自动写回 Profile。
 
-Web 目前只开放能强制无工具执行的 Claude Code。调用发生在独立临时目录，禁用工具、浏览器、斜杠命令、项目/用户规则和会话持久化；只从 Claude 用户设置中读取模型认证白名单。Codex 等 CLI 在具备可强制的无工具策略前不会作为 Web 提案器开放。
+Web 与桌面 App 的项目面试入口只使用 Codex。每次调用都在独立临时目录中执行，使用临时会话并忽略用户配置、项目规则；同时关闭 Shell、MCP/Apps、浏览器、Computer Use、多代理、Web 搜索和命令网络。专用权限配置额外拒绝根文件系统，只保留 Codex 运行所需的最小运行时路径和隔离工作区；简历 Fact 仅经 stdin 传入，stderr 不回显到浏览器。Codex 只负责受生成 Schema 约束的题目与点评计划；返回结果还会继续通过 CareerPilot 原有的严格 Schema、Fact ID、SHA-256 和确定性渲染校验。
 
 ## CLI 与 API
 
@@ -68,7 +68,10 @@ npm run careerpilot:interview-test
 npm --prefix web test
 npm --prefix web run typecheck
 npm --prefix web run build
+npm run desktop:dist
 ```
+
+桌面 App 打包会强制执行 packaged smoke，确认 `/interview-center`、项目目录 API、训练包 API 和点评 API 均真实存在于安装产物中；因此旧的 `0.3.0` 安装包不会被误报为已同步，新安装包版本为 `0.3.1`。
 
 项目面试测试还覆盖伪造 manifest、过期 ResumeVariant、事实哈希漂移、错误责任归属、额外指标、长输入、精确 quote 校验和 AI 进程树清理。
 

@@ -1,6 +1,6 @@
 {
   "name": "careerpilot-cn-desktop",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Windows desktop shell for the local-first CareerPilot CN workbench",
   "author": "CareerPilot CN contributors",
   "private": true,
@@ -10,8 +10,8 @@
     "build:web": "npm --prefix ../web run build",
     "test": "node --test test/*.test.cjs",
     "smoke:packaged": "node scripts/smoke-packaged.mjs",
-    "pack": "npm run build:web && npm run prepare:desktop && npm test && electron-builder --dir --win x64",
-    "dist": "npm run build:web && npm run prepare:desktop && npm test && electron-builder --win nsis --x64"
+    "pack": "npm run build:web && npm run prepare:desktop && npm test && electron-builder --dir --win x64 && npm run smoke:packaged",
+    "dist": "npm run build:web && npm run prepare:desktop && npm test && electron-builder --win nsis --x64 && npm run smoke:packaged"
   },
   "devDependencies": {
     "electron": "^37.2.6",

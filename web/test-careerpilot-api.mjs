@@ -172,6 +172,27 @@ test('项目面试 API 公开可信简历目录并在启动 AI 前校验请求',
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ padding: 'x'.repeat(70_000) }),
   });
   assert.equal(response.status, 413, '项目面试 API 必须在 JSON 解析前限制请求体');
+
+  response = await fetch(`${baseUrl}/api/cn/interviews/projects/pack`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+      source_id: 'source', project_id: 'project_alpha', cliId: 'claude',
+    }),
+  });
+  assert.equal(response.status, 400, '项目面试服务端必须拒绝非 Codex 提供方');
+  assert.match((await response.json()).error, /Codex/);
+}, { timeout: 30_000 });
+
+test('Codex 只用于项目面试，不可绕过 UI 调用通用岗位建议 API', async () => {
+  const response = await fetch(`${baseUrl}/api/cn/jobs/propose`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      cliId: 'codex',
+      posting: { confirmation: { status: 'confirmed' } },
+    }),
+  });
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /Codex.*项目面试/);
 }, { timeout: 30_000 });
 
 test('Web ResumeVariant preview uses canonical Facts and sparse DOCX is rejected by render QA', async () => {

@@ -9,6 +9,9 @@ export const maxDuration = 150;
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({})) as { posting?: JobPosting; cliId?: string };
   if (!body.posting || !body.cliId) return Response.json({ error: "缺少岗位结构或 AI 命令行工具" }, { status: 400 });
+  if (body.cliId !== "claude") {
+    return Response.json({ error: "岗位匹配建议当前仅支持原有的 Claude 隔离提案；Codex 仅用于项目面试特训" }, { status: 400 });
+  }
   if (body.posting.confirmation?.status !== "confirmed") return Response.json({ error: "请先逐条确认岗位结构和资格规则" }, { status: 409 });
   const contextResult = await runCareerPilot<{ facts?: Array<{ id: string; type: string; statement: string }>; structured?: unknown }>(["job-context"]);
   if (!contextResult.ok || !contextResult.data) return Response.json({ error: contextResult.error || "无法读取脱敏事实上下文" }, { status: 422 });

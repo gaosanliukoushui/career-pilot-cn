@@ -23,7 +23,7 @@ import type {
   ProjectInterviewReview,
 } from "@/lib/project-interview-types";
 
-type Cli = { id: string; name: string; installed: boolean; proposalAvailable?: boolean };
+type Cli = { id: string; name: string; installed: boolean; projectInterviewAvailable?: boolean };
 type BusyState = "" | "pack" | "review";
 type GenerationMode = "ai" | "deterministic-fallback";
 
@@ -111,13 +111,11 @@ export function ProjectInterviewWorkbench() {
       fetch("/api/clis").then((response) => jsonBody<{ clis: Cli[] }>(response)),
     ]).then(([nextCatalog, cliResponse]) => {
       if (cancelled) return;
-      const available = cliResponse.clis.filter((item) => item.proposalAvailable);
-      let savedCli = "";
-      try { savedCli = JSON.parse(localStorage.getItem("career-ops:config") || "{}").cliId || ""; } catch { /* ignore */ }
+      const available = cliResponse.clis.filter((item) => item.id === "codex" && item.projectInterviewAvailable);
       const nextSource = nextCatalog.sources.find((item) => item.id === nextCatalog.default_source_id) || nextCatalog.sources[0];
       setCatalog(nextCatalog);
       setClis(available);
-      setCliId(available.some((item) => item.id === savedCli) ? savedCli : available[0]?.id || "");
+      setCliId(available[0]?.id || "");
       setSourceId(nextSource?.id || "");
       setProjectId(nextSource?.projects[0]?.id || "");
       setTargetRole(nextSource?.target_job_title || "AI 应用开发工程师");
@@ -318,7 +316,7 @@ export function ProjectInterviewWorkbench() {
       {project && <section className="rounded-2xl border border-border bg-surface p-5 md:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl"><div className="flex items-center gap-2 text-brand-text"><Target className="size-4" /><span className="text-xs font-semibold uppercase tracking-[0.16em]">当前训练项目</span></div><h2 className="mt-2 text-2xl font-semibold">{project.name}</h2><p className="mt-2 text-sm leading-6 text-muted">{project.summary}</p><p className="mt-2 text-xs leading-5 text-faint">AI 只选择 Fact、题型深度和评分；可复述答案由服务端按 Fact 哈希用完整原文组装。</p><div className="mt-3"><FactBadges ids={project.fact_ids} /></div></div>
-          <div className="flex min-w-64 flex-col gap-2"><label className="text-sm"><span className="mb-1.5 block text-muted">无工具 AI 模型</span><select aria-label="无工具 AI 模型" value={cliId} onChange={(event) => chooseCli(event.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-2.5"><option value="">没有满足安全策略的 CLI</option>{clis.map((cli) => <option key={cli.id} value={cli.id}>{cli.name}</option>)}</select></label><button type="button" onClick={generatePack} disabled={!cliId || busy !== ""} className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-brand-foreground disabled:opacity-50">{busy === "pack" ? <><LoaderCircle className="mr-2 size-4 animate-spin" />{cliName} 正在生成训练包…</> : pack ? <><RefreshCw className="mr-2 size-4" />重新生成训练包</> : <><Sparkles className="mr-2 size-4" />生成分析、题目与参考答案</>}</button>{!cliId && <Link href="/config" className="text-center text-xs text-brand-text hover:underline">先配置支持强制无工具模式的 Claude Code</Link>}</div>
+          <div className="flex min-w-64 flex-col gap-2"><label className="text-sm"><span className="mb-1.5 block text-muted">隔离提案模型</span><select aria-label="隔离提案模型" value={cliId} onChange={(event) => chooseCli(event.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-2.5"><option value="">未找到可用的 Codex</option>{clis.map((cli) => <option key={cli.id} value={cli.id}>{cli.name}</option>)}</select></label><button type="button" onClick={generatePack} disabled={!cliId || busy !== ""} className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-brand-foreground disabled:opacity-50">{busy === "pack" ? <><LoaderCircle className="mr-2 size-4 animate-spin" />{cliName} 正在生成训练包…</> : pack ? <><RefreshCw className="mr-2 size-4" />重新生成训练包</> : <><Sparkles className="mr-2 size-4" />生成分析、题目与参考答案</>}</button>{!cliId && <Link href="/config" className="text-center text-xs text-brand-text hover:underline">先登录并安装 Codex</Link>}</div>
         </div>
       </section>}
 

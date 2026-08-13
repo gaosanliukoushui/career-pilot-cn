@@ -13,12 +13,12 @@ export type CliSpec = {
   /** headless invocation args for a single prompt */
   args: (prompt: string) => string[];
   /** Enforceable policy used by the Web proposal runner. */
-  proposalPolicy: "no-tools" | "read-only" | "unsupported";
+  proposalPolicy: "no-tools" | "isolated-no-tools" | "unsupported";
 };
 
 export const KNOWN: CliSpec[] = [
   { id: "claude", name: "Claude Code", bin: "claude", run: "claude -p", url: "https://claude.ai/code", args: (p) => ["-p", p], proposalPolicy: "no-tools" },
-  { id: "codex", name: "Codex", bin: "codex", run: "codex exec", url: "https://github.com/openai/codex", args: (p) => ["exec", p], proposalPolicy: "unsupported" },
+  { id: "codex", name: "Codex", bin: "codex", run: "codex exec", url: "https://developers.openai.com/codex/cli", args: (p) => ["exec", p], proposalPolicy: "isolated-no-tools" },
   { id: "gemini", name: "Gemini CLI", bin: "gemini", run: "gemini -p", url: "https://github.com/google-gemini/gemini-cli", args: (p) => ["-p", p], proposalPolicy: "unsupported" },
   { id: "opencode", name: "OpenCode", bin: "opencode", run: "opencode run", url: "https://opencode.ai", args: (p) => ["run", p], proposalPolicy: "unsupported" },
   { id: "copilot", name: "GitHub Copilot CLI", bin: "copilot", run: "copilot -p", url: "https://docs.github.com/en/copilot/github-copilot-in-the-cli", args: (p) => ["-p", p], proposalPolicy: "unsupported" },
@@ -70,8 +70,23 @@ export function proposalArgs(id: string, output: ProposalOutputOptions = {}): st
   }
   if (id === "codex") {
     return [
-      "exec", "-", "--sandbox", "read-only", "--ephemeral", "--ignore-user-config",
-      "--ignore-rules", "--skip-git-repo-check", "--color", "never",
+      "exec", "-", "--ephemeral", "--ignore-user-config",
+      "--ignore-rules", "--skip-git-repo-check", "--strict-config", "--color", "never",
+      "-c", "approval_policy='never'",
+      "-c", "web_search='disabled'",
+      "-c", "project_doc_max_bytes=0",
+      "-c", "developer_instructions='You are a JSON transformation worker. Do not use tools or external context. Follow the complete task supplied on stdin and return only the requested JSON object.'",
+      "-c", "apps._default.enabled=false",
+      "-c", "tools.web_search=false",
+      "-c", "default_permissions='careerpilot-proposal'",
+      "-c", "permissions.careerpilot-proposal={description='CareerPilot proposal isolation',filesystem={':root'='deny',':minimal'='read',':workspace_roots'={'.'='read'},':tmpdir'='deny',':slash_tmp'='deny'},network={enabled=false}}",
+      ...[
+        "shell_tool", "unified_exec", "code_mode", "code_mode_host", "code_mode_only",
+        "apps", "enable_mcp_apps", "plugins", "hooks", "browser_use",
+        "browser_use_external", "browser_use_full_cdp_access", "computer_use", "multi_agent",
+        "image_generation", "tool_suggest", "workspace_dependencies", "skill_mcp_dependency_install",
+        "request_permissions_tool", "in_app_browser", "plugin_sharing", "remote_plugin", "memories",
+      ].flatMap((feature) => ["--disable", feature]),
       ...(output.schemaPath ? ["--output-schema", output.schemaPath] : []),
     ];
   }
@@ -179,14 +194,25 @@ export function findBin(bin: string, dirs = searchDirs()): string | null {
   return null;
 }
 
+export function cliCapabilityFlags(
+  cli: Pick<CliSpec, "id" | "proposalPolicy">,
+  installed: boolean,
+) {
+  return {
+    proposalAvailable: installed && cli.id === "claude" && cli.proposalPolicy !== "unsupported",
+    projectInterviewAvailable: installed && cli.id === "codex" && cli.proposalPolicy === "isolated-no-tools",
+  };
+}
+
 export function detectClis() {
   const dirs = searchDirs();
   return KNOWN.map((c) => {
     const found = findBin(c.bin, dirs);
+    const capabilities = cliCapabilityFlags(c, Boolean(found));
     return {
       id: c.id, name: c.name, run: c.run, url: c.url, installed: !!found, path: found,
       proposalPolicy: c.proposalPolicy,
-      proposalAvailable: Boolean(found) && c.proposalPolicy !== "unsupported",
+      ...capabilities,
     };
   });
 }

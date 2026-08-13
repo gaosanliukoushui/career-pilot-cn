@@ -2,24 +2,33 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { KNOWN, findBin, minimalCliEnv, proposalArgs, proposalCapable, proposalCliEnv } from './src/lib/clis.ts';
-import { runJsonProposal } from './src/lib/ai-proposal.ts';
+import { KNOWN, cliCapabilityFlags, findBin, minimalCliEnv, proposalArgs, proposalCapable, proposalCliEnv } from './src/lib/clis.ts';
+import { codexCompatibleOutputSchema, runJsonProposal } from './src/lib/ai-proposal.ts';
 import { AiProposalError, aiProcessFailureMessage, parseJsonProposalOutput, proposalAbortError, proposalTerminationPlan } from './src/lib/ai-proposal-core.mjs';
 import { buildProjectInterviewRetryPrompt, shouldRetryProjectInterviewProposal, shouldUseProjectInterviewFallback } from './src/lib/project-interview-api.ts';
 
-test('Web AI 只启用具备应用级无工具或只读策略的 CLI', () => {
+test('Web 项目面试只启用具备应用级隔离提案策略的 Codex', () => {
   assert.equal(proposalCapable('claude'), true);
-  assert.equal(proposalCapable('codex'), false, 'Codex exec 尚无可强制的 no-tools 模式');
-  for (const id of ['codex', 'gemini', 'opencode', 'copilot', 'qwen', 'antigravity']) {
+  assert.equal(proposalCapable('codex'), true);
+  for (const id of ['gemini', 'opencode', 'copilot', 'qwen', 'antigravity']) {
     assert.equal(proposalCapable(id), false, `${id} must stay disabled until an enforceable policy exists`);
   }
   assert.equal(KNOWN.every((item) => typeof item.proposalPolicy === 'string'), true);
+  const codex = KNOWN.find((item) => item.id === 'codex');
+  assert.deepEqual(cliCapabilityFlags(codex, true), {
+    proposalAvailable: false,
+    projectInterviewAvailable: true,
+  });
+  assert.deepEqual(cliCapabilityFlags(codex, false), {
+    proposalAvailable: false,
+    projectInterviewAvailable: false,
+  });
 });
 
-test('Claude 强制无工具；Codex 仅保留只读参数但不开放 Web 提案', () => {
+test('Codex 提案运行禁用工具与联网，并把文件读取限制到隔离工作区', () => {
   assert.throws(() => proposalArgs('claude'), /MCP/);
   const claude = proposalArgs('claude', { mcpConfigPath: 'C:\\Temp\\empty-mcp.json' });
   assert.match(claude.join(' '), /--disallowedTools/);
@@ -48,9 +57,20 @@ test('Claude 强制无工具；Codex 仅保留只读参数但不开放 Web 提�
   assert.equal(claude.includes('prompt'), false, '模型提示词必须走 stdin，不能进入 Windows shell 命令行');
   const codex = proposalArgs('codex');
   assert.deepEqual(codex.slice(0, 2), ['exec', '-']);
-  assert.ok(codex.includes('read-only'));
   assert.ok(codex.includes('--ephemeral'));
   assert.ok(codex.includes('--ignore-user-config'));
+  assert.ok(codex.includes('--strict-config'));
+  assert.ok(codex.includes("web_search='disabled'"));
+  assert.ok(codex.includes('project_doc_max_bytes=0'));
+  assert.ok(codex.some((arg) => /developer_instructions=.*JSON transformation worker/.test(arg)));
+  assert.ok(codex.includes('apps._default.enabled=false'));
+  assert.ok(codex.includes("default_permissions='careerpilot-proposal'"));
+  assert.ok(codex.includes("permissions.careerpilot-proposal={description='CareerPilot proposal isolation',filesystem={':root'='deny',':minimal'='read',':workspace_roots'={'.'='read'},':tmpdir'='deny',':slash_tmp'='deny'},network={enabled=false}}"));
+  for (const feature of ['shell_tool', 'unified_exec', 'apps', 'browser_use', 'computer_use', 'multi_agent']) {
+    const index = codex.indexOf(feature);
+    assert.notEqual(index, -1, `${feature} must be disabled`);
+    assert.equal(codex[index - 1], '--disable');
+  }
   assert.deepEqual(proposalArgs('claude', {
     schemaJson: '{"type":"object"}',
     mcpConfigPath: 'C:\\Temp\\empty-mcp.json',
@@ -60,6 +80,37 @@ test('Claude 强制无工具；Codex 仅保留只读参数但不开放 Web 提�
   assert.deepEqual(proposalArgs('codex', { schemaPath: 'C:\\Temp\\schema.json' }).slice(-2), [
     '--output-schema', 'C:\\Temp\\schema.json',
   ]);
+});
+
+test('Codex 生成 Schema 只做协议兼容，原始严格 Schema 保持不变用于服务端校验', () => {
+  const strictSchema = {
+    $defs: {
+      item: { type: 'object', additionalProperties: false, required: ['value'], properties: { value: { enum: ['a', 'b'] } } },
+    },
+    type: 'object', additionalProperties: false, required: ['kind', 'items'],
+    properties: {
+      kind: { const: 'pack' },
+      items: {
+        type: 'array', minItems: 2, maxItems: 2, uniqueItems: true,
+        prefixItems: [
+          { $ref: '#/$defs/item' },
+          { type: 'object', additionalProperties: false, required: ['value'], properties: { value: { const: 'b' } } },
+        ],
+        items: false,
+      },
+    },
+  };
+  const source = JSON.stringify(strictSchema);
+  const compatible = codexCompatibleOutputSchema(strictSchema);
+  assert.equal(JSON.stringify(strictSchema), source, '兼容转换不得修改原始 Schema');
+  assert.doesNotMatch(JSON.stringify(compatible), /\$ref|\$defs|oneOf|uniqueItems|prefixItems|minItems|maxItems|\"const\"/);
+  assert.deepEqual(compatible.properties.kind.enum, ['pack']);
+  assert.deepEqual(compatible.properties.items.items.properties.value.anyOf, [
+    { enum: ['a', 'b'] },
+    { enum: ['b'] },
+  ]);
+  assert.match(compatible.properties.items.description, /at least 2 array items/);
+  assert.match(compatible.properties.items.description, /at most 2 array items/);
 });
 
 test('Windows 优先选择可启动的扩展名 shim，不把无扩展名 npm shell 脚本交给 spawn', {
@@ -84,6 +135,12 @@ test('AI 子进程不继承无关凭据', () => {
   assert.equal(env.AWS_SECRET_ACCESS_KEY, undefined);
   assert.equal(env.GITHUB_TOKEN, undefined);
   assert.equal(env.PATH, 'bin');
+});
+
+test('Codex 隔离策略依赖的参数由当前最低版本锁定', () => {
+  const runner = readFileSync(join(import.meta.dirname, 'src', 'lib', 'ai-proposal.ts'), 'utf8');
+  assert.match(runner, /CODEX_MIN_VERSION = \[0, 144, 1\]/);
+  assert.match(runner, /Codex 0\.144\.1 或更高版本/);
 });
 
 test('Claude 只从用户设置提取模型认证白名单，不加载 hooks 或无关云凭据', () => {

@@ -10,6 +10,7 @@ export { AiProposalError, aiProcessFailureMessage, parseJsonProposalOutput } fro
 
 const DEFAULT_TIMEOUT_MS = 120_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 2 * 1024 * 1024;
+const CODEX_MIN_VERSION = [0, 144, 1] as const;
 
 type RunJsonProposalOptions = {
   timeoutMs?: number;
@@ -60,6 +61,112 @@ function commandForSpawn(binPath: string, args: string[]) {
   return { command: tokens.map((value) => `"${value}"`).join(" "), args: [], shell: true };
 }
 
+function parseCodexVersion(output: string) {
+  const match = output.match(/codex-cli\s+(\d+)\.(\d+)\.(\d+)/iu);
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] as const : null;
+}
+
+function supportsIsolatedCodex(binPath: string) {
+  const invocation = commandForSpawn(binPath, ["--version"]);
+  const result = invocation.shell
+    ? spawnSync(invocation.command, { shell: process.env.ComSpec || process.env.COMSPEC || true, env: proposalCliEnv("codex"), encoding: "utf8", windowsHide: true, timeout: 5_000 })
+    : spawnSync(invocation.command, invocation.args, { env: proposalCliEnv("codex"), encoding: "utf8", windowsHide: true, timeout: 5_000 });
+  const version = parseCodexVersion(String(result.stdout || ""));
+  if (!version) return false;
+  for (let index = 0; index < CODEX_MIN_VERSION.length; index += 1) {
+    if (version[index] > CODEX_MIN_VERSION[index]) return true;
+    if (version[index] < CODEX_MIN_VERSION[index]) return false;
+  }
+  return true;
+}
+
+/**
+ * Codex structured output intentionally accepts a smaller JSON Schema subset
+ * than the AJV schemas used by CareerPilot for the trust boundary. Build a
+ * generation-only schema here, then validate the returned plan against the
+ * original schema and Fact hashes in project-interview-core.
+ */
+export function codexCompatibleOutputSchema(schema: Record<string, unknown>): Record<string, unknown> {
+  const resolveLocalRef = (reference: string) => {
+    if (!reference.startsWith("#/")) return undefined;
+    return reference.slice(2).split("/").reduce<unknown>((current, segment) => {
+      if (!current || typeof current !== "object" || Array.isArray(current)) return undefined;
+      const key = segment.replaceAll("~1", "/").replaceAll("~0", "~");
+      return (current as Record<string, unknown>)[key];
+    }, schema);
+  };
+  const mergeObjectSchemas = (schemas: unknown[]) => {
+    const objects = schemas.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item));
+    const properties: Record<string, unknown[]> = {};
+    for (const object of objects) {
+      const objectProperties = object.properties as Record<string, unknown> | undefined;
+      for (const [key, child] of Object.entries(objectProperties || {})) {
+        (properties[key] ||= []).push(child);
+      }
+    }
+    return {
+      type: "object",
+      additionalProperties: false,
+      required: [...new Set(objects.flatMap((item) => Array.isArray(item.required) ? item.required : []))],
+      properties: Object.fromEntries(Object.entries(properties).map(([key, variants]) => {
+        if (variants.length === 1) return [key, variants[0]];
+        const flattened = variants.flatMap((variant) => {
+          if (!variant || typeof variant !== "object" || Array.isArray(variant)) return [variant];
+          const anyOf = (variant as Record<string, unknown>).anyOf;
+          return Array.isArray(anyOf) ? anyOf : [variant];
+        });
+        return [key, { anyOf: flattened }];
+      })),
+    };
+  };
+  const convert = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(convert);
+    if (!value || typeof value !== "object") return value;
+    const input = value as Record<string, unknown>;
+    if (typeof input.$ref === "string") {
+      const resolved = resolveLocalRef(input.$ref);
+      if (resolved) return convert(resolved);
+    }
+    if (Array.isArray(input.enum) && input.enum.some((item) => item && typeof item === "object")) {
+      return {
+        type: "object",
+        additionalProperties: false,
+        required: ["fact_id", "fact_sha256"],
+        properties: {
+          fact_id: { type: "string", enum: input.enum.map((item) => (item as Record<string, unknown>).fact_id) },
+          fact_sha256: { type: "string", enum: input.enum.map((item) => (item as Record<string, unknown>).fact_sha256) },
+        },
+      };
+    }
+    const output: Record<string, unknown> = {};
+    for (const [key, child] of Object.entries(input)) {
+      if (["$schema", "$id", "$defs", "$ref", "title", "oneOf", "uniqueItems", "prefixItems"].includes(key)) continue;
+      if (key === "const") {
+        output.enum = [convert(child)];
+        continue;
+      }
+      if (["minItems", "maxItems", "minLength", "maxLength", "pattern", "minimum", "maximum"].includes(key)) {
+        if ((key === "minItems" || key === "maxItems") && typeof child === "number") {
+          const current = String(output.description || "");
+          const rule = key === "minItems" ? `Return at least ${child} array items.` : `Return at most ${child} array items.`;
+          output.description = [current, rule].filter(Boolean).join(" ");
+        }
+        continue;
+      }
+      if (key === "items" && child === false && Array.isArray(input.prefixItems)) {
+        output.items = mergeObjectSchemas(input.prefixItems.map(convert));
+        continue;
+      }
+      output[key] = convert(child);
+    }
+    if (Array.isArray(input.prefixItems) && !("items" in input)) {
+      output.items = mergeObjectSchemas(input.prefixItems.map(convert));
+    }
+    return output;
+  };
+  return convert(schema) as Record<string, unknown>;
+}
+
 function terminateProposalProcess(child: ChildProcessWithoutNullStreams) {
   const plan = proposalTerminationPlan(process.platform, child.pid);
   if (plan) {
@@ -80,16 +187,20 @@ export async function runJsonProposal(cliId: string, prompt: string, options: Ru
   if (!resolved) {
     throw new AiProposalError("AI_CLI_UNAVAILABLE", "所选 AI 命令行工具未安装，或无法强制只读/无工具策略", 404);
   }
-  const timeoutMs = Math.min(Math.max(options.timeoutMs || DEFAULT_TIMEOUT_MS, 10_000), 180_000);
+  const timeoutMs = Math.min(Math.max(options.timeoutMs || DEFAULT_TIMEOUT_MS, 10_000), 240_000);
   const maxOutputBytes = Math.min(Math.max(options.maxOutputBytes || DEFAULT_MAX_OUTPUT_BYTES, 64 * 1024), 4 * 1024 * 1024);
   const { spec, binPath } = resolved;
+  if (spec.id === "codex" && !supportsIsolatedCodex(binPath)) {
+    throw new AiProposalError("AI_CLI_UNAVAILABLE", "Codex 版本过旧；项目面试需要 Codex 0.144.1 或更高版本", 409);
+  }
   const isolatedCwd = await fs.mkdtemp(path.join(os.tmpdir(), "careerpilot-cn-proposal-"));
   try {
     let schemaPath: string | undefined;
     let schemaJson: string | undefined;
     let mcpConfigPath: string | undefined;
     if (options.schema) {
-      schemaJson = JSON.stringify(options.schema);
+      const generationSchema = spec.id === "codex" ? codexCompatibleOutputSchema(options.schema) : options.schema;
+      schemaJson = JSON.stringify(generationSchema);
       schemaPath = path.join(isolatedCwd, "output.schema.json");
       await fs.writeFile(schemaPath, schemaJson, "utf8");
     }

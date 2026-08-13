@@ -14,7 +14,7 @@ test('面试中心是正式主流程入口，不再显示为 V4 预留', () => {
   assert.equal(PLANNED_NAV_ITEMS.some((item) => item.href === '/interview-center'), false);
 });
 
-test('更换岗位或 AI 时清空旧训练结果，界面不再宣称 Codex 可用', () => {
+test('更换岗位或 AI 时清空旧训练结果，项目面试只使用 Codex', () => {
   const source = readFileSync(join(import.meta.dirname, 'src', 'components', 'cn', 'project-interview-workbench.tsx'), 'utf8');
   assert.match(source, /function chooseTargetRole[\s\S]*resetTraining\(\)/);
   assert.match(source, /function chooseCli[\s\S]*resetTraining\(\)/);
@@ -23,14 +23,18 @@ test('更换岗位或 AI 时清空旧训练结果，界面不再宣称 Codex 可
   assert.match(source, /packRequest\.current\.id !== requestId/);
   assert.match(source, /reviewRequest\.current\.id !== requestId/);
   assert.match(source, /表达观察（事实另核）/);
-  assert.match(source, /支持强制无工具模式的 Claude Code/);
-  assert.doesNotMatch(source, /先配置 Claude Code 或 Codex/);
+  assert.match(source, /先登录并安装 Codex/);
+  assert.match(source, /item\.id === "codex"/);
+  assert.match(source, /item\.projectInterviewAvailable/);
+  assert.doesNotMatch(source, /支持强制无工具模式的 Claude Code/);
   const packRoute = readFileSync(join(import.meta.dirname, 'src', 'app', 'api', 'cn', 'interviews', 'projects', 'pack', 'route.ts'), 'utf8');
   const reviewRoute = readFileSync(join(import.meta.dirname, 'src', 'app', 'api', 'cn', 'interviews', 'projects', 'review', 'route.ts'), 'utf8');
   const proposalRunner = readFileSync(join(import.meta.dirname, 'src', 'lib', 'ai-proposal.ts'), 'utf8');
   assert.match(packRoute, /signal: request\.signal/);
   assert.match(reviewRoute, /signal: request\.signal/);
   assert.match(reviewRoute, /buildProjectInterviewRetryPrompt/);
+  assert.match(packRoute, /timeoutMs: 120_000/);
+  assert.match(reviewRoute, /timeoutMs: 120_000/);
   assert.match(packRoute, /interview-pack-fallback/);
   assert.match(reviewRoute, /interview-review-fallback/);
   assert.match(packRoute, /X-CareerPilot-Generation-Mode/);
